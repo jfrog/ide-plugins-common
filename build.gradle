@@ -46,6 +46,12 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
 }
 
+test {
+    useTestNG() {
+        useDefaultListeners = true
+    }
+}
+
 artifacts {
     archives sourcesJar
     archives javadocJar
