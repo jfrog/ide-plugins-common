@@ -68,22 +68,22 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Populate a ScanTreeNode with issues, licenses and general info from the scan cache.
+     * Populate a DependenciesTree node with issues, licenses and general info from the scan cache.
      *
-     * @param scanTreeNode - The root node.
+     * @param node - The root node.
      */
-    protected void populateScanTreeNode(DependenciesTree scanTreeNode) {
-        Artifact scanArtifact = getArtifactSummary(scanTreeNode.toString());
+    protected void populateDependenciesTreeNode(DependenciesTree node) {
+        Artifact scanArtifact = getArtifactSummary(node.toString());
         if (scanArtifact != null) {
-            scanTreeNode.setIssues(Sets.newHashSet(scanArtifact.getIssues()));
-            scanTreeNode.setLicenses(Sets.newHashSet(scanArtifact.getLicenses()));
-            scanTreeNode.setGeneralInfo(scanArtifact.getGeneralInfo());
+            node.setIssues(Sets.newHashSet(scanArtifact.getIssues()));
+            node.setLicenses(Sets.newHashSet(scanArtifact.getLicenses()));
+            node.setGeneralInfo(scanArtifact.getGeneralInfo());
         }
     }
 
     protected void scanTree(DependenciesTree rootNode) {
         rootNode.getChildren().forEach(child -> {
-            populateScanTreeNode(child);
+            populateDependenciesTreeNode(child);
             scanTree(child);
         });
     }
@@ -213,7 +213,7 @@ public abstract class ScanManagerBase {
             return;
         }
         for (DependenciesTree child : node.getChildren()) {
-            populateScanTreeNode(child);
+            populateDependenciesTreeNode(child);
             addXrayInfoToTree(child);
         }
     }
