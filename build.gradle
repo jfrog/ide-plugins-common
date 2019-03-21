@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'org.jfrog'
-version '0.0.1'
+version '1.0.0'
 
 sourceCompatibility = 1.8
 
@@ -14,8 +14,8 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.jfrog.xray.client', name: 'xray-client-java-service', version: '0.2.2'
-    compile group: 'org.jfrog.xray.client', name: 'xray-client-java-api', version: '0.2.2'
+    compile group: 'org.jfrog.xray.client', name: 'xray-client-java-service', version: '0.3.0'
+    compile group: 'org.jfrog.xray.client', name: 'xray-client-java-api', version: '0.3.0'
     compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.13.x-SNAPSHOT'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.8'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.2'
@@ -49,6 +49,11 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 test {
     useTestNG() {
         useDefaultListeners = true
+    }
+    testLogging {
+        exceptionFormat "full"
+        events "started", "passed", "skipped", "failed", "standardOut", "standardError"
+        minGranularity 0
     }
 }
 

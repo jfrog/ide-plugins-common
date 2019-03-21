@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
+ * Severities and licenses filtering.
+ *
  * @author yahavi
  */
 public class FilterManager {
@@ -34,52 +36,51 @@ public class FilterManager {
         }
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public Map<Severity, Boolean> getSelectedSeverities() {
         return selectedSeverities;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public Map<License, Boolean> getSelectedLicenses() {
         return selectedLicenses;
     }
 
-    public void setLicenses(Set<License> scanLicenses) {
-        scanLicenses.forEach(license -> {
-            if (!selectedLicenses.containsKey(license)) {
-                selectedLicenses.put(license, true);
-            }
-        });
+    /**
+     * Add missing licenses.
+     *
+     * @param scanLicenses - Licenses from the Xray scan.
+     */
+    public void addLicenses(Set<License> scanLicenses) {
+        scanLicenses.forEach(license -> selectedLicenses.putIfAbsent(license, true));
     }
 
+    /**
+     * Return true iff severity selected.
+     *
+     * @param issue - The issue contained the severity.
+     * @return true iff severity selected.
+     */
     private boolean isSeveritySelected(Issue issue) {
-        Severity severity = issue.getSeverity();
-        return severity != null && selectedSeverities.get(severity);
+        return selectedSeverities.getOrDefault(issue.getSeverity(), false);
     }
 
     private boolean isSeveritySelected(DependenciesTree node) {
-        if (node.getIssues().size() == 0 && selectedSeverities.get(Severity.Normal)) {
+        // If there are no issues in the node and we accept normal severity, return true
+        if (node.getIssues().isEmpty() && selectedSeverities.get(Severity.Normal)) {
             return true;
         }
-        for (Issue issue : node.getIssues()) {
-            if (isSeveritySelected(issue)) {
-                return true;
-            }
-        }
-        return false;
+        // Return true if any issue in this node contains a selected severity
+        return node.getIssues().stream().anyMatch(this::isSeveritySelected);
     }
 
     private boolean isLicenseSelected(License license) {
-        return selectedLicenses.containsKey(license) && selectedLicenses.get(license);
+        return selectedLicenses.getOrDefault(license, false);
     }
 
     private boolean isLicenseSelected(DependenciesTree node) {
-        for (License license : node.getLicenses()) {
-            if (isLicenseSelected(license)) {
-                return true;
-            }
-        }
-        return false;
+        // Return true if any issue in this node contains a selected license
+        return node.getLicenses().stream().anyMatch(this::isLicenseSelected);
     }
 
     public Set<Issue> filterIssues(Set<Issue> allIssues) {
@@ -96,7 +97,7 @@ public class FilterManager {
      * @param issuesFilteredRoot  Out - Filtered issues tree
      * @param LicenseFilteredRoot Out - Filtered licenses tree
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public void applyFilters(DependenciesTree unfilteredRoot, DependenciesTree issuesFilteredRoot, DependenciesTree LicenseFilteredRoot) {
         applyFilters(unfilteredRoot, issuesFilteredRoot, LicenseFilteredRoot, new MutableBoolean(), new MutableBoolean());
     }

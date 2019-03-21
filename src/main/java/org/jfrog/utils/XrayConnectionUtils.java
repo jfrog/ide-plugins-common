@@ -38,6 +38,13 @@ public class XrayConnectionUtils {
         return version.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED);
     }
 
+    /**
+     * Send REST to Xray: summary/component with "testComponent". If exception thrown, return the reason.
+     *
+     * @param xrayClient - The xray client.
+     * @return a pair of boolean and error details.
+     * @throws IOException in case of connection issues.
+     */
     public static Pair<Boolean, String> testComponentPermission(Xray xrayClient) throws IOException {
         try {
             Components testComponent = new ComponentsImpl();

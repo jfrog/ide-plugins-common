@@ -19,17 +19,17 @@ import static org.testng.AssertJUnit.fail;
  * @author yahavi
  */
 public class FilterManagerTest extends DependenciesTreeTestsBase {
-    
+
     private FilterManager filterManager = FilterManager.getInstance();
     private Map<Severity, Boolean> severitiesFilters;
     private Map<License, Boolean> licensesFilters;
 
     /**
-     * Init the FilterManager to accept all severities and MIT license.
+     * Initialize the FilterManager to accept all severities and MIT license.
      */
     @BeforeTest
-    public void init() {
-        super.init();
+    public void setUp() {
+        super.setUp();
         severitiesFilters = filterManager.getSelectedSeverities();
         for (Severity severity : Severity.values()) {
             severitiesFilters.put(severity, true);

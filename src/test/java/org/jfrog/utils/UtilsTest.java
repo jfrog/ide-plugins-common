@@ -20,7 +20,7 @@ public class UtilsTest {
     private static String rootFolderA, rootFolderB, rootFolderC;
 
     @BeforeTest
-    public void init() {
+    public void setUp() {
         if (isWindows()) {
             rootFolderA = "C:\\";
             rootFolderB = "D:\\";
@@ -32,14 +32,14 @@ public class UtilsTest {
         }
     }
 
-    @Test(dataProvider = "Paths")
+    @Test(dataProvider = "pathsDataProvider")
     public void testConsolidatePaths(Set<Path> given, Set<Path> expected) {
         Set<Path> results = Utils.consolidatePaths(given);
         assertEquals(expected.size(), results.size());
         expected.forEach(path -> assertTrue(results.contains(path)));
     }
 
-    @DataProvider(name = "Paths")
+    @DataProvider
     public static Object[][] pathsDataProvider() {
         return new Object[][]{
                 {Sets.newHashSet((Object) Paths.get(rootFolderA)),
@@ -52,12 +52,12 @@ public class UtilsTest {
                         Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderB, "a"), Paths.get(rootFolderC, "b"))},
 
                 {Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderA, "b"), Paths.get(rootFolderC, "b")),
-                        Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderC , "b"))},
+                        Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderC, "b"))},
 
-                {Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderA ,"a"), Paths.get(rootFolderA, "b")),
+                {Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderA, "a"), Paths.get(rootFolderA, "b")),
                         Sets.newHashSet((Object) Paths.get(rootFolderA))},
 
-                {Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderA, "a"), Paths.get(rootFolderC ,"b"), Paths.get(rootFolderC, "b", "fff"), Paths.get(rootFolderC, "f", "fff")),
+                {Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderA, "a"), Paths.get(rootFolderC, "b"), Paths.get(rootFolderC, "b", "fff"), Paths.get(rootFolderC, "f", "fff")),
                         Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderC, "b"), Paths.get(rootFolderC, "f", "fff"))},
 
                 {Sets.newHashSet(Paths.get(rootFolderA), Paths.get(rootFolderA, "a/"), Paths.get(rootFolderC, "b"), Paths.get(rootFolderC, "b", "..", "b", "..", "b", "fff"), Paths.get(rootFolderC, "f", "fff")),

@@ -17,7 +17,7 @@ public class DependenciesTreeTestsBase {
     /**
      * Build an empty tree with 5 nodes
      */
-    public void init() {
+    public void setUp() {
         root = new DependenciesTree("0");
         one = new DependenciesTree("1");
         two = new DependenciesTree("2");

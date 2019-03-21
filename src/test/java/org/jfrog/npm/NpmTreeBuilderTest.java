@@ -21,7 +21,7 @@ import static org.testng.Assert.*;
 
 /**
  * Test correctness of DependenciesTree for different npm projects.
- * The tests verify correctness before and after 'npm install' command.
+ * The tests verifies correctness before and after 'npm install' command.
  *
  * @author yahavi
  */
@@ -49,7 +49,7 @@ public class NpmTreeBuilderTest {
     private File tempProject;
 
     @BeforeMethod
-    public void init(Object[] testArgs) {
+    public void setUp(Object[] testArgs) {
         try {
             tempProject = Files.createTempDirectory("ide-plugins-common-npm").toFile();
             tempProject.deleteOnExit();
@@ -60,7 +60,7 @@ public class NpmTreeBuilderTest {
     }
 
     @AfterMethod
-    public void terminate() {
+    public void tearDown() {
         FileUtils.deleteQuietly(tempProject);
     }
 

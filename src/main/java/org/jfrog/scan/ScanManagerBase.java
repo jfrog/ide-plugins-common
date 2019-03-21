@@ -23,37 +23,48 @@ import org.jfrog.persistency.ScanCache;
 import org.jfrog.utils.XrayConnectionUtils;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CancellationException;
 
 import static org.jfrog.utils.Constants.MINIMAL_XRAY_VERSION_SUPPORTED;
 
 /**
+ * Base class for the scan managers.
+ *
  * @author yahavi
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 @Getter
 @Setter
 public abstract class ScanManagerBase {
-
     private final static int NUMBER_OF_ARTIFACTS_BULK_SCAN = 100;
-    protected static final String GAV_PREFIX = "gav://";
 
-    private DependenciesTree scanResults;
     private XrayServerConfig xrayServerConfig;
+    private DependenciesTree scanResults;
     private ComponentPrefix prefix;
     private ScanCache scanCache;
     private String projectName;
     private Log log;
 
-    public ScanManagerBase(String projectName, Log log, XrayServerConfig xrayServerConfig, ComponentPrefix prefix) throws IOException {
-        this.projectName = projectName;
-        this.scanCache = new ScanCache(projectName);
-        this.log = log;
+    /**
+     * Construct a scan manager for IDE project.
+     *
+     * @param cachePath        - Scan cache path.
+     * @param projectName      - The project name.
+     * @param log              - The logger.
+     * @param xrayServerConfig - Xray server config.
+     * @param prefix           - Components prefix for xray scan.
+     * @throws IOException in case of an error in the scan cache initialization.
+     */
+    public ScanManagerBase(Path cachePath, String projectName, Log log, XrayServerConfig xrayServerConfig, ComponentPrefix prefix) throws IOException {
+        this.scanCache = new ScanCache(projectName, cachePath, log);
         this.xrayServerConfig = xrayServerConfig;
+        this.projectName = projectName;
         this.prefix = prefix;
+        this.log = log;
     }
 
     /**
@@ -85,23 +96,24 @@ public abstract class ScanManagerBase {
         });
     }
 
-    protected void setUiLicenses() {
-        FilterManager.getInstance().setLicenses(getAllLicenses());
+    /**
+     * Add licenses to filter manager in order to show them in the filter menu later.
+     */
+    protected void addFilterMangerLicenses() {
+        Set<License> allLicenses = Sets.newHashSet();
+        if (scanResults != null) {
+            DependenciesTree node = (DependenciesTree) scanResults.getRoot();
+            collectAllLicenses(node, allLicenses);
+        }
+        FilterManager.getInstance().addLicenses(allLicenses);
     }
 
     /**
-     * @return all licenses available from the current scan results.
+     * Recursively, add all dependencies list licenses to the licenses set.
+     *
+     * @param node        - In - The root DepdendenciesTree node.
+     * @param allLicenses - Out - All licenses in the tree.
      */
-    private Set<License> getAllLicenses() {
-        Set<License> allLicenses = new HashSet<>();
-        if (scanResults == null) {
-            return allLicenses;
-        }
-        DependenciesTree node = (DependenciesTree) scanResults.getRoot();
-        collectAllLicenses(node, allLicenses);
-        return allLicenses;
-    }
-
     private void collectAllLicenses(DependenciesTree node, Set<License> allLicenses) {
         allLicenses.addAll(node.getLicenses());
         node.getChildren().forEach(child -> collectAllLicenses(child, allLicenses));
@@ -121,13 +133,20 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * @param componentId artifact component ID
+     * @param componentId artifact component ID.
      * @return {@link Artifact} according to the component ID.
      */
     protected Artifact getArtifactSummary(String componentId) {
         return scanCache.get(componentId);
     }
 
+    /**
+     * Recursively, extract all candidates for Xray scan.
+     *
+     * @param node       - In - The DependenciesTree root node.
+     * @param components - Out - Components for Xray scan.
+     * @param quickScan  - True if this is a quick scan. In slow scans we'll scan all components.
+     */
     private void extractComponents(DependenciesTree node, Components components, boolean quickScan) {
         for (DependenciesTree child : node.getChildren()) {
             String componentId = child.toString();
@@ -145,18 +164,21 @@ public abstract class ScanManagerBase {
      * @param quickScan - Quick or full scan.
      */
     protected void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) {
+        // Collect components to scan
         Components componentsToScan = ComponentsFactory.create();
         extractComponents(scanResults, componentsToScan, quickScan);
         if (componentsToScan.getComponentDetails().isEmpty()) {
+            // No components found to scan
             return;
         }
 
-        Xray xray = XrayClient.create(xrayServerConfig.getUrl(), xrayServerConfig.getUsername(), xrayServerConfig.getPassword());
-
-        if (!isXrayVersionSupported(xray)) {
+        // Create Xray client and check version
+        Xray xrayClient = XrayClient.create(xrayServerConfig.getUrl(), xrayServerConfig.getUsername(), xrayServerConfig.getPassword());
+        if (!isXrayVersionSupported(xrayClient)) {
             return;
         }
 
+        // Start scan
         try {
             int currentIndex = 0;
             List<ComponentDetail> componentsList = Lists.newArrayList(componentsToScan.getComponentDetails());
@@ -164,23 +186,28 @@ public abstract class ScanManagerBase {
                 checkCanceled();
                 List<ComponentDetail> partialComponentsDetails = componentsList.subList(currentIndex, currentIndex + NUMBER_OF_ARTIFACTS_BULK_SCAN);
                 Components partialComponents = ComponentsFactory.create(Sets.newHashSet(partialComponentsDetails));
-                scanComponents(xray, partialComponents);
+                scanComponents(xrayClient, partialComponents);
                 indicator.setFraction(((double) currentIndex + 1) / (double) componentsList.size());
                 currentIndex += NUMBER_OF_ARTIFACTS_BULK_SCAN;
             }
 
             List<ComponentDetail> partialComponentsDetails = componentsList.subList(currentIndex, componentsList.size());
             Components partialComponents = ComponentsFactory.create(Sets.newHashSet(partialComponentsDetails));
-            scanComponents(xray, partialComponents);
+            scanComponents(xrayClient, partialComponents);
             indicator.setFraction(1);
             scanCache.write();
-        } catch (RuntimeException e) {
+        } catch (CancellationException e) {
             log.info("Xray scan was canceled");
         } catch (IOException e) {
             log.error("Scan failed", e);
         }
     }
 
+    /**
+     * Add Xray scan results from cache to the dependencies tree.
+     *
+     * @param node - The dependencies tree.
+     */
     protected void addXrayInfoToTree(DependenciesTree node) {
         if (node == null || node.isLeaf()) {
             return;
@@ -191,20 +218,31 @@ public abstract class ScanManagerBase {
         }
     }
 
-    private void scanComponents(Xray xray, Components artifactsToScan) throws IOException {
-        SummaryResponse summary = xray.summary().component(artifactsToScan);
-        // Update cached artifact summary
-        for (com.jfrog.xray.client.services.summary.Artifact summaryArtifact : summary.getArtifacts()) {
-            if (summaryArtifact == null || summaryArtifact.getGeneral() == null) {
-                continue;
-            }
-            scanCache.add(summaryArtifact);
-        }
+    /**
+     * Xray scan a bulk of components.
+     *
+     * @param xrayClient      - The Xray client.
+     * @param artifactsToScan - The bulk of components to scan.
+     * @throws IOException in case of connection issues.
+     */
+    private void scanComponents(Xray xrayClient, Components artifactsToScan) throws IOException {
+        SummaryResponse scanResults = xrayClient.summary().component(artifactsToScan);
+        // Add scan results to cache
+        scanResults.getArtifacts().stream()
+                .filter(Objects::nonNull)
+                .filter(summaryArtifact -> summaryArtifact.getGeneral() != null)
+                .forEach(scanCache::add);
     }
 
-    private boolean isXrayVersionSupported(Xray xray) {
+    /**
+     * Return true iff xray version is sufficient.
+     *
+     * @param xrayClient - The xray client.
+     * @return true iff xray version is sufficient.
+     */
+    private boolean isXrayVersionSupported(Xray xrayClient) {
         try {
-            if (XrayConnectionUtils.isXrayVersionSupported(xray.system().version())) {
+            if (XrayConnectionUtils.isXrayVersionSupported(xrayClient.system().version())) {
                 return true;
             }
             log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + MINIMAL_XRAY_VERSION_SUPPORTED + " and above");
@@ -214,5 +252,8 @@ public abstract class ScanManagerBase {
         return false;
     }
 
-    protected abstract void checkCanceled();
+    /**
+     * @throws CancellationException if the user clicked on the cancel button.
+     */
+    protected abstract void checkCanceled() throws CancellationException;
 }
