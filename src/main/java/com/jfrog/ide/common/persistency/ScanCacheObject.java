@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 @Getter
 class ScanCacheObject implements Serializable {
     private static final long serialVersionUID = 0L;
-    private static final long MAX_EXPIRATION_TIME = TimeUnit.DAYS.toMillis(7);
+    private static final long EXPIRATION = TimeUnit.DAYS.toMillis(7);
 
     @JsonProperty("artifact")
     private Artifact artifact;
@@ -43,6 +43,6 @@ class ScanCacheObject implements Serializable {
      */
     @JsonIgnore
     boolean isInvalidated() {
-        return System.currentTimeMillis() - lastUpdated > MAX_EXPIRATION_TIME;
+        return System.currentTimeMillis() - lastUpdated > EXPIRATION;
     }
 }
