@@ -14,8 +14,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.jfrog.xray.client', name: 'xray-client-java-service', version: '0.3.0'
-    compile group: 'org.jfrog.xray.client', name: 'xray-client-java-api', version: '0.3.0'
+    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.3.0'
     compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.13.5'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.8'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.3'
