@@ -1,5 +1,6 @@
 package com.jfrog.ide.common;
 
+import com.google.common.collect.Lists;
 import org.jfrog.build.extractor.scan.DependenciesTree;
 import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
@@ -38,7 +39,7 @@ public class DependenciesTreeTestsBase {
      * @return the random issue
      */
     protected Issue createIssue(Severity severity) {
-        return new Issue(generateUID(), generateUID(), generateUID(), generateUID(), severity, generateUID());
+        return new Issue(generateUID(), generateUID(), generateUID(), generateUID(), severity, generateUID(), Lists.newArrayList());
     }
 
     /**

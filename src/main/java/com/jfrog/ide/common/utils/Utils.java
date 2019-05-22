@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.npm.NpmPackageFileFinder;
 import com.jfrog.xray.client.services.summary.General;
+import com.jfrog.xray.client.services.summary.VulnerableComponents;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.*;
@@ -55,7 +57,13 @@ public class Utils {
 
     public static Issue toIssue(com.jfrog.xray.client.services.summary.Issue other) {
         Severity severity = Severity.fromString(other.getSeverity());
-        return new Issue(other.getCreated(), other.getDescription(), other.getIssueType(), other.getProvider(), severity, other.getSummary());
+        List<? extends VulnerableComponents> vulnerableComponentsList = other.getVulnerableComponents();
+        List<String> fixedVersions = null;
+        if (CollectionUtils.isNotEmpty(vulnerableComponentsList)) {
+            VulnerableComponents vulnerableComponents = vulnerableComponentsList.get(0);
+            fixedVersions = vulnerableComponents.getFixedVersions();
+        }
+        return new Issue(other.getCreated(), other.getDescription(), other.getIssueType(), other.getProvider(), severity, other.getSummary(), fixedVersions);
     }
 
     public static Artifact getArtifact(com.jfrog.xray.client.services.summary.Artifact other) {
