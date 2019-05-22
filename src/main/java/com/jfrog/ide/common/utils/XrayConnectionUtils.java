@@ -29,7 +29,7 @@ public class XrayConnectionUtils {
         }
 
         public static String unsupported(Version xrayVersion) {
-            return "ERROR: Unsupported Xray version: " + xrayVersion + ", version " +
+            return "ERROR: Unsupported Xray version: " + xrayVersion.getVersion() + ", version " +
                     MINIMAL_XRAY_VERSION_SUPPORTED + " or above is required.";
         }
     }
