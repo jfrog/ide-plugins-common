@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.configuration;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jfrog.client.http.model.ProxyConfig;
 
 /**
  * @author yahavi
@@ -11,6 +12,8 @@ public interface XrayServerConfig {
     String getUsername();
 
     String getPassword();
+
+    ProxyConfig getProxyConfig();
 
     @SuppressWarnings("unused")
     default boolean areCredentialsSet() {

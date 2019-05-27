@@ -15,7 +15,7 @@ repositories {
 dependencies {
     compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.13.5'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.8'
-    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.3.0'
+    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.3.x-SNAPSHOT'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.3'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
     compile group: 'com.google.guava', name: 'guava', version: '27.1-jre'
