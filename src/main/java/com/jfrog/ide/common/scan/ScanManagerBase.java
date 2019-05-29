@@ -75,7 +75,9 @@ public abstract class ScanManagerBase {
         if (scanArtifact != null) {
             node.setIssues(Sets.newHashSet(scanArtifact.getIssues()));
             node.setLicenses(Sets.newHashSet(scanArtifact.getLicenses()));
-            node.setGeneralInfo(scanArtifact.getGeneralInfo());
+            if (node.getGeneralInfo() == null) {
+                node.setGeneralInfo(scanArtifact.getGeneralInfo());
+            }
         }
     }
 
@@ -135,8 +137,8 @@ public abstract class ScanManagerBase {
             String componentId = child.toString();
             if (!quickScan || !scanCache.contains(componentId)) {
                 components.addComponent(prefix.getPrefix() + componentId, "");
-                extractComponents(child, components, quickScan);
             }
+            extractComponents(child, components, quickScan);
         }
     }
 
