@@ -20,7 +20,7 @@ import static org.testng.AssertJUnit.fail;
  */
 public class FilterManagerTest extends DependenciesTreeTestsBase {
 
-    private FilterManager filterManager = FilterManager.getInstance();
+    private FilterManager filterManager = new FilterManager();
     private Map<Severity, Boolean> severitiesFilters;
     private Map<License, Boolean> licensesFilters;
 

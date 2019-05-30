@@ -84,13 +84,13 @@ public abstract class ScanManagerBase {
     /**
      * Add licenses to filter manager in order to show them in the filter menu later.
      */
-    protected void addFilterMangerLicenses() {
+    protected void addFilterMangerLicenses(FilterManager filterManager) {
         Set<License> allLicenses = Sets.newHashSet();
         if (scanResults != null) {
             DependenciesTree node = (DependenciesTree) scanResults.getRoot();
             collectAllLicenses(node, allLicenses);
         }
-        FilterManager.getInstance().addLicenses(allLicenses);
+        filterManager.addLicenses(allLicenses);
     }
 
     /**
@@ -110,8 +110,7 @@ public abstract class ScanManagerBase {
      * @param selectedNodes - Selected tree nodes that the user chose from the ui.
      * @return filtered issues according to the selected component and user filters.
      */
-    public Set<Issue> getFilteredScanIssues(List<DependenciesTree> selectedNodes) {
-        FilterManager filterManager = FilterManager.getInstance();
+    public Set<Issue> getFilteredScanIssues(FilterManager filterManager, List<DependenciesTree> selectedNodes) {
         Set<Issue> filteredIssues = Sets.newHashSet();
         selectedNodes.forEach(node -> filteredIssues.addAll(filterManager.filterIssues(node.getIssues())));
         return filteredIssues;

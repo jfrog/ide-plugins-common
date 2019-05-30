@@ -19,29 +19,21 @@ import java.util.stream.Collectors;
  */
 public class FilterManager {
 
-    private static FilterManager instance;
     private Map<Severity, Boolean> selectedSeverities = Maps.newTreeMap(Collections.reverseOrder());
     private Map<License, Boolean> selectedLicenses = Maps.newHashMap();
 
-    public static FilterManager getInstance() {
-        if (instance == null) {
-            instance = new FilterManager();
-        }
-        return instance;
-    }
-
-    private FilterManager() {
+    protected FilterManager() {
         for (Severity severity : Severity.NEW_SEVERITIES) {
             selectedSeverities.put(severity, true);
         }
     }
 
-    @SuppressWarnings({"unused", "WeakerAccess"})
+    @SuppressWarnings({"unused"})
     public Map<Severity, Boolean> getSelectedSeverities() {
         return selectedSeverities;
     }
 
-    @SuppressWarnings({"unused", "WeakerAccess"})
+    @SuppressWarnings({"unused"})
     public Map<License, Boolean> getSelectedLicenses() {
         return selectedLicenses;
     }
@@ -97,7 +89,7 @@ public class FilterManager {
      * @param issuesFilteredRoot  Out - Filtered issues tree
      * @param LicenseFilteredRoot Out - Filtered licenses tree
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
+    @SuppressWarnings({"unused"})
     public void applyFilters(DependenciesTree unfilteredRoot, DependenciesTree issuesFilteredRoot, DependenciesTree LicenseFilteredRoot) {
         applyFilters(unfilteredRoot, issuesFilteredRoot, LicenseFilteredRoot, new MutableBoolean(), new MutableBoolean());
     }
