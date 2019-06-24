@@ -81,7 +81,7 @@ public class NpmTreeBuilderTest {
     private void npmTreeBuilderTest(Project project, boolean install, boolean expectChild) {
         try {
             if (install) {
-                npmDriver.install(tempProject, Lists.newArrayList());
+                npmDriver.install(tempProject, Lists.newArrayList(), null);
             }
             NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath());
             DependenciesTree dependenciesTree = npmTreeBuilder.buildTree(new NullLog());
