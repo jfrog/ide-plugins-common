@@ -15,7 +15,7 @@ node('java') {
     }
 
     stage('Build IDE plugins common') {
-        buildInfo = buildIdePluginsCommon(server)
+        buildInfo = buildIdePluginsCommon(server, release)
     }
 
     stage('Publish build info') {
@@ -61,12 +61,13 @@ node('java') {
     }
 }
 
-def buildIdePluginsCommon(server) {
+def buildIdePluginsCommon(server, release) {
+    def deployRepo = release ? 'oss-release-local' : 'oss-snapshot-local'
     def gradleBuild = Artifactory.newGradleBuild()
     gradleBuild.useWrapper = true
     gradleBuild.deployer.deployMavenDescriptors = true
     gradleBuild.deployer.deployIvyDescriptors = false
-    gradleBuild.deployer repo: 'oss-release-local', server: server
+    gradleBuild.deployer repo: deployRepo, server: server
     gradleBuild.resolver repo: 'remote-repos', server: server
 
     def buildInfo = Artifactory.newBuildInfo()
