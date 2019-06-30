@@ -13,7 +13,7 @@ public interface XrayServerConfig {
 
     String getPassword();
 
-    ProxyConfig getProxyConfig();
+    ProxyConfig getProxyConfig(String hostUrl);
 
     @SuppressWarnings("unused")
     default boolean areCredentialsSet() {
