@@ -13,7 +13,13 @@ public interface XrayServerConfig {
 
     String getPassword();
 
-    ProxyConfig getProxyConfig(String hostUrl);
+    /**
+     * Reads the http proxy configuration set in IDE configuration and returns the proxy config for the Xray URL.
+     *
+     * @param xrayUrl - Xray url.
+     * @return proxy config for the Xray URL.
+     */
+    ProxyConfig getProxyConfForTargetUrl(String xrayUrl);
 
     @SuppressWarnings("unused")
     default boolean areCredentialsSet() {
