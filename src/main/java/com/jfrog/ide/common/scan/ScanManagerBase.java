@@ -157,7 +157,7 @@ public abstract class ScanManagerBase {
         }
 
         // Create Xray client and check version
-        Xray xrayClient = XrayClient.create(xrayServerConfig.getUrl(), xrayServerConfig.getUsername(), xrayServerConfig.getPassword(), xrayServerConfig.getProxyConfForTargetUrl(""));
+        Xray xrayClient = XrayClient.create(xrayServerConfig.getUrl(), xrayServerConfig.getUsername(), xrayServerConfig.getPassword(), false, xrayServerConfig.getProxyConfForTargetUrl(""));
         if (!isXrayVersionSupported(xrayClient)) {
             return;
         }
