@@ -84,7 +84,7 @@ public abstract class ScanManagerBase {
     /**
      * Add licenses to filter manager in order to show them in the filter menu later.
      */
-    protected void addFilterMangerLicenses(FilterManager filterManager) {
+    protected void addFilterManagerLicenses(FilterManager filterManager) {
         Set<License> allLicenses = Sets.newHashSet();
         if (scanResults != null) {
             DependenciesTree node = (DependenciesTree) scanResults.getRoot();
