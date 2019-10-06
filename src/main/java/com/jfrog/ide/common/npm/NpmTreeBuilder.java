@@ -11,21 +11,23 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Build npm dependencies tree before the Xray scan.
  *
  * @author yahavi
  */
-@SuppressWarnings({"unused", "WeakerAccess"})
+@SuppressWarnings({"unused"})
 public class NpmTreeBuilder {
 
-    private static NpmDriver npmDriver = new NpmDriver("", null);
     private static ObjectMapper objectMapper = new ObjectMapper();
+    private NpmDriver npmDriver;
     private Path projectDir;
 
-    public NpmTreeBuilder(Path projectDir) {
+    public NpmTreeBuilder(Path projectDir, Map<String, String> env) {
         this.projectDir = projectDir;
+        this.npmDriver = new NpmDriver("", env);
     }
 
     /**

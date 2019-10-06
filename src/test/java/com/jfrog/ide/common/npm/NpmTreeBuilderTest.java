@@ -83,7 +83,7 @@ public class NpmTreeBuilderTest {
             if (install) {
                 npmDriver.install(tempProject, Lists.newArrayList(), null);
             }
-            NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath());
+            NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath(), null);
             DependenciesTree dependenciesTree = npmTreeBuilder.buildTree(new NullLog());
             assertNotNull(dependenciesTree);
             String projectName = project.name;
