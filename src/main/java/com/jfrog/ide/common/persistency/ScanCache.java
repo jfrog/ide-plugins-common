@@ -6,6 +6,7 @@ import org.jfrog.build.extractor.scan.Artifact;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
@@ -30,7 +31,7 @@ public class ScanCache {
      */
     public ScanCache(String projectName, Path basePath, Log logger) throws IOException {
         scanCacheMap = new ScanCacheMap();
-        file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes()) + "XrayScanCache.json").toFile();
+        file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8)) + "XrayScanCache.json").toFile();
         if (!file.exists()) {
             Files.createDirectories(basePath);
             return;
