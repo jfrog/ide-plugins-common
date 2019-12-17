@@ -13,6 +13,8 @@ public interface XrayServerConfig {
 
     String getPassword();
 
+    boolean isTrustSelfSignCert();
+
     /**
      * Reads the http proxy configuration set in IDE configuration and returns the proxy config for the Xray URL.
      *
