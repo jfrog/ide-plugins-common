@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 
 /**
  * Cache for Xray scan.
@@ -22,14 +23,14 @@ public class ScanCache {
     /**
      * Construct an Xray scan cache.
      *
-     * @param projectName - The IDE project name.
+     * @param projectName - The IDE project name. In npm it is a full path to the directory containing the package.json.
      * @param basePath    - The directory for the cache.
      * @param logger      - The logger.
      * @throws IOException in case of I/O problem in the paths.
      */
     public ScanCache(String projectName, Path basePath, Log logger) throws IOException {
         scanCacheMap = new ScanCacheMap();
-        file = basePath.resolve(projectName + "_XrayScanCache.json").toFile();
+        file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes()) + "XrayScanCache.json").toFile();
         if (!file.exists()) {
             Files.createDirectories(basePath);
             return;
