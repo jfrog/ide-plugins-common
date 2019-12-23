@@ -17,6 +17,11 @@ public interface XrayServerConfig {
 
     boolean isNoHostVerification();
 
+    /**
+     * Reads the certifications KeyStore provider in IDE configuration and returns the KeyStoreProvider.
+     *
+     * @return KeyStoreProvider
+     */
     KeyStoreProvider getKeyStoreProvider() throws KeyStoreProviderException;
 
     /**
