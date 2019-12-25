@@ -38,6 +38,10 @@ public class NpmTreeBuilder {
      * @throws IOException in case of I/O error.
      */
     public DependenciesTree buildTree(Log logger) throws IOException {
+        if (!npmDriver.isNpmInstalled()) {
+            logger.error("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
+            return null;
+        }
         JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList());
         DependenciesTree rootNode = NpmDependencyTree.createDependenciesTree(null, npmLsResults);
         JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
