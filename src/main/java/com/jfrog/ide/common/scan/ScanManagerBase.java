@@ -4,10 +4,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.XrayServerConfig;
 import com.jfrog.ide.common.filter.FilterManager;
-import com.jfrog.ide.common.utils.Constants;
-import com.jfrog.ide.common.utils.XrayConnectionUtils;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
+import com.jfrog.ide.common.utils.Constants;
+import com.jfrog.ide.common.utils.XrayConnectionUtils;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.ComponentsFactory;
 import com.jfrog.xray.client.impl.XrayClient;
@@ -21,6 +21,7 @@ import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependenciesTree;
 import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
+import org.jfrog.client.util.KeyStoreProviderException;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -156,14 +157,16 @@ public abstract class ScanManagerBase {
             return;
         }
 
-        // Create Xray client and check version
-        Xray xrayClient = XrayClient.create(xrayServerConfig.getUrl(), xrayServerConfig.getUsername(), xrayServerConfig.getPassword(), false, xrayServerConfig.getProxyConfForTargetUrl(""));
-        if (!isXrayVersionSupported(xrayClient)) {
-            return;
-        }
-
-        // Start scan
         try {
+            // Create Xray client and check version
+            Xray xrayClient = XrayClient.create(xrayServerConfig.getUrl(), xrayServerConfig.getUsername(),
+                    xrayServerConfig.getPassword(), xrayServerConfig.isNoHostVerification(),
+                    xrayServerConfig.getKeyStoreProvider(), xrayServerConfig.getProxyConfForTargetUrl(""));
+            if (!isXrayVersionSupported(xrayClient)) {
+                return;
+            }
+
+            // Start scan
             int currentIndex = 0;
             List<ComponentDetail> componentsList = Lists.newArrayList(componentsToScan.getComponentDetails());
             while (currentIndex + NUMBER_OF_ARTIFACTS_BULK_SCAN < componentsList.size()) {
@@ -182,7 +185,7 @@ public abstract class ScanManagerBase {
             scanCache.write();
         } catch (CancellationException e) {
             log.info("Xray scan was canceled");
-        } catch (IOException e) {
+        } catch (IOException | KeyStoreProviderException e) {
             log.error("Scan failed", e);
         }
     }

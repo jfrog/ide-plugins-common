@@ -2,6 +2,8 @@ package com.jfrog.ide.common.configuration;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.client.http.model.ProxyConfig;
+import org.jfrog.client.util.KeyStoreProvider;
+import org.jfrog.client.util.KeyStoreProviderException;
 
 /**
  * @author yahavi
@@ -12,6 +14,20 @@ public interface XrayServerConfig {
     String getUsername();
 
     String getPassword();
+
+    /**
+     * Return true to disable ssl certificates verification.
+     *
+     * @return true to disable ssl certificates verification
+     */
+    boolean isNoHostVerification();
+
+    /**
+     * Reads the certifications KeyStore provider in IDE configuration and returns the KeyStoreProvider.
+     *
+     * @return KeyStoreProvider
+     */
+    KeyStoreProvider getKeyStoreProvider() throws KeyStoreProviderException;
 
     /**
      * Reads the http proxy configuration set in IDE configuration and returns the proxy config for the Xray URL.
