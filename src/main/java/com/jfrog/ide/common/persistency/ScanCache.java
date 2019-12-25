@@ -24,7 +24,7 @@ public class ScanCache {
     /**
      * Construct an Xray scan cache.
      *
-     * @param projectName - The IDE project name. In npm it is a full path to the directory containing the package.json.
+     * @param projectName - The IDE project name. If this is an npm project, it is a full path to the directory containing the package.json.
      * @param basePath    - The directory for the cache.
      * @param logger      - The logger.
      * @throws IOException in case of I/O problem in the paths.
