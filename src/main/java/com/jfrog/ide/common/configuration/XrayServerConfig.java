@@ -15,6 +15,11 @@ public interface XrayServerConfig {
 
     String getPassword();
 
+    /**
+     * Return true to disable ssl certificates verification.
+     *
+     * @return true to disable ssl certificates verification
+     */
     boolean isNoHostVerification();
 
     /**
