@@ -38,8 +38,8 @@ public class Utils {
      * @return set of directories containing package.json files.
      * @throws IOException if an I/O error is thrown by a visitor method.
      */
-    public static Set<String> findPackageJsonDirs(Set<Path> paths) throws IOException {
-        NpmPackageFileFinder npmPackageFileFinder = new NpmPackageFileFinder(paths);
+    public static Set<String> findPackageJsonDirs(Set<Path> paths, String excludedPaths) throws IOException {
+        NpmPackageFileFinder npmPackageFileFinder = new NpmPackageFileFinder(paths, excludedPaths);
         return Sets.newHashSet(npmPackageFileFinder.getPackageFilePairs());
     }
 
