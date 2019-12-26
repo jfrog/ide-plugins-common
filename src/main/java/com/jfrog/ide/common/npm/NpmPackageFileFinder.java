@@ -4,12 +4,8 @@ import com.google.common.collect.Lists;
 import com.jfrog.ide.common.utils.Utils;
 
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -20,12 +16,17 @@ import java.util.Set;
  */
 public class NpmPackageFileFinder implements FileVisitor<Path> {
 
-    private static final String[] EXCLUDED_DIRS = {"node_modules", ".idea"};
     private List<String> packageJsonDirectories = Lists.newArrayList();
+    private PathMatcher pathMatcher;
     private Set<Path> projectPaths;
 
-    public NpmPackageFileFinder(Set<Path> projectPaths) {
+    /**
+     * @param projectPaths  - List of project base paths.
+     * @param excludedPaths - Pattern of project paths to exclude from Xray scanning for npm
+     */
+    public NpmPackageFileFinder(Set<Path> projectPaths, String excludedPaths) {
         this.projectPaths = Utils.consolidatePaths(projectPaths);
+        this.pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
     }
 
     /**
@@ -50,7 +51,7 @@ public class NpmPackageFileFinder implements FileVisitor<Path> {
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-        return !isDirExcluded(dir) ? FileVisitResult.CONTINUE : FileVisitResult.SKIP_SUBTREE;
+        return !pathMatcher.matches(dir) ? FileVisitResult.CONTINUE : FileVisitResult.SKIP_SUBTREE;
     }
 
     /**
@@ -92,16 +93,5 @@ public class NpmPackageFileFinder implements FileVisitor<Path> {
      */
     private static boolean isPackageFile(Path file) {
         return "package.json".equals(file.getFileName().toString());
-    }
-
-    /**
-     * Return true if directory is excluded from search.
-     *
-     * @param dir - The directory to check.
-     * @return true iff the input directory is excluded.
-     */
-    private static boolean isDirExcluded(Path dir) {
-        return Arrays.stream(EXCLUDED_DIRS)
-                .anyMatch(excludedDir -> dir.toString().contains(excludedDir));
     }
 }
