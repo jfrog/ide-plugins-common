@@ -6,7 +6,8 @@ package com.jfrog.ide.common.scan;
 @SuppressWarnings("unused")
 public enum ComponentPrefix {
     GAV("gav://"),
-    NPM("npm://");
+    NPM("npm://"),
+    GO("go://");
 
     private String prefix;
 
