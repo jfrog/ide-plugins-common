@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Find package.json and go.mod files within the input paths.
- *
  * @author yahavi
  */
 public class PackageFileFinder implements FileVisitor<Path> {
@@ -19,17 +17,16 @@ public class PackageFileFinder implements FileVisitor<Path> {
     private List<String> packageJsonDirectories = Lists.newArrayList();
     private List<String> gomodDirectories = Lists.newArrayList();
     private PathMatcher pathMatcher;
-    private Set<Path> projectPaths;
 
     /**
      * @param projectPaths  - List of project base paths.
      * @param excludedPaths - Pattern of project paths to exclude from Xray scanning for npm
      */
     public PackageFileFinder(Set<Path> projectPaths, String excludedPaths) throws IOException {
-        this.projectPaths = Utils.consolidatePaths(projectPaths);
+        Set<Path> consolidatedPaths = Utils.consolidatePaths(projectPaths);
         this.pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
 
-        for (Path projectPath : projectPaths) {
+        for (Path projectPath : consolidatedPaths) {
             Files.walkFileTree(projectPath, this);
         }
     }

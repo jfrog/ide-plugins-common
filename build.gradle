@@ -19,6 +19,7 @@ repositories {
 }
 
 dependencies {
+    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: '2.15.x-SNAPSHOT'
     compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.15.0'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.1'
     compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.5.0'
