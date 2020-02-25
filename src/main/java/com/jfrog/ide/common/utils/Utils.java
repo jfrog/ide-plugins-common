@@ -1,8 +1,6 @@
 package com.jfrog.ide.common.utils;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.jfrog.ide.common.npm.NpmPackageFileFinder;
 import com.jfrog.xray.client.services.summary.General;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
 import org.apache.commons.collections4.CollectionUtils;
@@ -10,7 +8,6 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.*;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -29,18 +26,6 @@ public class Utils {
             return license.getName();
         }
         return license.getFullName() + " (" + license.getName() + ")";
-    }
-
-    /**
-     * Get package.json parent directories.
-     *
-     * @param paths - Input - List of project base paths.
-     * @return set of directories containing package.json files.
-     * @throws IOException if an I/O error is thrown by a visitor method.
-     */
-    public static Set<String> findPackageJsonDirs(Set<Path> paths, String excludedPaths) throws IOException {
-        NpmPackageFileFinder npmPackageFileFinder = new NpmPackageFileFinder(paths, excludedPaths);
-        return Sets.newHashSet(npmPackageFileFinder.getPackageFilePairs());
     }
 
     public static GeneralInfo getGeneralInfo(General other) {
