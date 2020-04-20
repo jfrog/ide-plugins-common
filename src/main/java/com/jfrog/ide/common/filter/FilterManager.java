@@ -29,6 +29,15 @@ public class FilterManager {
     }
 
     @SuppressWarnings({"unused"})
+    protected void setSelectedSeverities(Map<Severity, Boolean> selectedSeverities) {
+        for (Severity severity : Severity.NEW_SEVERITIES) {
+            if (selectedSeverities.containsKey(severity)) {
+                this.selectedSeverities.put(severity, selectedSeverities.get(severity));
+            }
+        }
+    }
+
+    @SuppressWarnings({"unused"})
     public Map<Severity, Boolean> getSelectedSeverities() {
         return selectedSeverities;
     }
