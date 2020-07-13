@@ -112,6 +112,5 @@ class ScanCacheMap {
         } catch (JsonParseException | JsonMappingException e) {
             logger.error("Failed reading cache file, zapping the old cache and starting a new one.");
         }
-
     }
 }
