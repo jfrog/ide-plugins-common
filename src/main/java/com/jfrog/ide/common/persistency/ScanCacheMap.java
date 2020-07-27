@@ -1,7 +1,9 @@
 package com.jfrog.ide.common.persistency;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.Getter;
@@ -100,11 +102,15 @@ class ScanCacheMap {
      * @throws IOException in case of I/O error during read.
      */
     void read(File file, Log logger) throws IOException {
-        ScanCacheMap scanCacheMap = objectMapper.readValue(file, ScanCacheMap.class);
-        if (scanCacheMap.getVersion() != version) {
-            logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
-            return;
+        try {
+            ScanCacheMap scanCacheMap = objectMapper.readValue(file, ScanCacheMap.class);
+            if (scanCacheMap.getVersion() != version) {
+                logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
+                return;
+            }
+            this.artifactsMap = scanCacheMap.artifactsMap;
+        } catch (JsonParseException | JsonMappingException e) {
+            logger.error("Failed reading cache file, zapping the old cache and starting a new one.");
         }
-        this.artifactsMap = scanCacheMap.artifactsMap;
     }
 }
