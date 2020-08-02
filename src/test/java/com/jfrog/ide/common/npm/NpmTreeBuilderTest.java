@@ -1,10 +1,13 @@
 package com.jfrog.ide.common.npm;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.npm.NpmDriver;
 import org.jfrog.build.extractor.scan.DependenciesTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
+import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -28,24 +31,31 @@ import static org.testng.Assert.*;
 public class NpmTreeBuilderTest {
 
     private static final Path NPM_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "npm"));
+    private static final DependenciesTree progress = new DependenciesTree("progress:2.0.3");
+    private static final DependenciesTree debug = new DependenciesTree("debug:4.1.1");
+
+    static {
+        progress.setScopes(Sets.newHashSet(new Scope("production")));
+        debug.setScopes(Sets.newHashSet(new Scope("development")));
+    }
 
     enum Project {
-        EMPTY("package-name1", null, "empty"),
-        DEPENDENCY("package-name2", new DependenciesTree("progress:2.0.3"), "dependency"),
-        DEPENDENCY_PACKAGE_LOCK("package-name3", new DependenciesTree("progress:2.0.3"), "dependencyPackageLock");
+        EMPTY("package-name1", "empty"),
+        DEPENDENCY("package-name2", "dependency", progress, debug),
+        DEPENDENCY_PACKAGE_LOCK("package-name3", "dependencyPackageLock", progress, debug);
 
-        private DependenciesTree child;
-        private String name;
-        private Path path;
+        private final DependenciesTree[] children;
+        private final String name;
+        private final Path path;
 
-        Project(String name, DependenciesTree child, String path) {
+        Project(String name, String path, DependenciesTree... children) {
             this.name = name;
-            this.child = child;
             this.path = NPM_ROOT.resolve(path);
+            this.children = children;
         }
     }
 
-    private NpmDriver npmDriver = new NpmDriver("", null);
+    private final NpmDriver npmDriver = new NpmDriver(null);
     private File tempProject;
 
     @BeforeMethod
@@ -78,7 +88,7 @@ public class NpmTreeBuilderTest {
 
     @SuppressWarnings("unused")
     @Test(dataProvider = "npmTreeBuilderProvider")
-    private void npmTreeBuilderTest(Project project, boolean install, boolean expectChild) {
+    private void npmTreeBuilderTest(Project project, boolean install, boolean expectChildren) {
         try {
             if (install) {
                 npmDriver.install(tempProject, Lists.newArrayList(), null);
@@ -87,17 +97,29 @@ public class NpmTreeBuilderTest {
             DependenciesTree dependenciesTree = npmTreeBuilder.buildTree(new NullLog());
             assertNotNull(dependenciesTree);
             String projectName = project.name;
-            if (!install && project.child != null) {
+            if (!install && ArrayUtils.isNotEmpty(project.children)) {
                 projectName += " (Not installed)";
             }
             checkGeneralInfo(dependenciesTree.getGeneralInfo(), projectName, tempProject);
-            if (!expectChild) {
+            if (!expectChildren) {
                 assertTrue(dependenciesTree.isLeaf());
                 return;
             }
-            DependenciesTree child = (DependenciesTree) dependenciesTree.getFirstChild();
-            assertEquals(child.toString(), "progress:2.0.3");
-            assertEquals(child.getParent().toString(), projectName);
+            assertEquals(dependenciesTree.getChildren().size(), 2);
+            for (DependenciesTree child : dependenciesTree.getChildren()) {
+                assertEquals(child.getScopes().size(), 1);
+                switch (child.toString()) {
+                    case "progress:2.0.3":
+                        assertEquals(child.getScopes().toArray()[0], new Scope("production"));
+                        break;
+                    case "debug:4.1.1":
+                        assertEquals(child.getScopes().toArray()[0], new Scope("development"));
+                        break;
+                    default:
+                        fail("Unexpected dependency " + child.toString());
+                }
+                assertEquals(child.getParent().toString(), projectName);
+            }
         } catch (IOException e) {
             fail(e.getMessage(), e);
         }

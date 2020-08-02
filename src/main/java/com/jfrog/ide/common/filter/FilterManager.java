@@ -2,10 +2,7 @@ package com.jfrog.ide.common.filter;
 
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.mutable.MutableBoolean;
-import org.jfrog.build.extractor.scan.DependenciesTree;
-import org.jfrog.build.extractor.scan.Issue;
-import org.jfrog.build.extractor.scan.License;
-import org.jfrog.build.extractor.scan.Severity;
+import org.jfrog.build.extractor.scan.*;
 
 import java.util.Collections;
 import java.util.Map;
@@ -19,8 +16,9 @@ import java.util.stream.Collectors;
  */
 public class FilterManager {
 
-    private Map<Severity, Boolean> selectedSeverities = Maps.newTreeMap(Collections.reverseOrder());
-    private Map<License, Boolean> selectedLicenses = Maps.newHashMap();
+    private final Map<Severity, Boolean> selectedSeverities = Maps.newTreeMap(Collections.reverseOrder());
+    private final Map<License, Boolean> selectedLicenses = Maps.newHashMap();
+    private final Map<Scope, Boolean> selectedScopes = Maps.newHashMap();
 
     protected FilterManager() {
         for (Severity severity : Severity.NEW_SEVERITIES) {
@@ -39,12 +37,17 @@ public class FilterManager {
 
     @SuppressWarnings({"unused"})
     public Map<Severity, Boolean> getSelectedSeverities() {
-        return selectedSeverities;
+        return this.selectedSeverities;
     }
 
     @SuppressWarnings({"unused"})
     public Map<License, Boolean> getSelectedLicenses() {
-        return selectedLicenses;
+        return this.selectedLicenses;
+    }
+
+    @SuppressWarnings("unused")
+    public Map<Scope, Boolean> getSelectedScopes() {
+        return this.selectedScopes;
     }
 
     /**
@@ -54,6 +57,15 @@ public class FilterManager {
      */
     public void addLicenses(Set<License> scanLicenses) {
         scanLicenses.forEach(license -> selectedLicenses.putIfAbsent(license, true));
+    }
+
+    /**
+     * Add missing scopes.
+     *
+     * @param scanScopes - Scopes from the Xray scan.
+     */
+    public void addScopes(Set<Scope> scanScopes) {
+        scanScopes.forEach(scope -> selectedScopes.putIfAbsent(scope, true));
     }
 
     /**
@@ -79,9 +91,34 @@ public class FilterManager {
         return selectedLicenses.getOrDefault(license, false);
     }
 
+    /**
+     * Return true if this node contains a selected license.
+     *
+     * @param node - The dependencies tree node
+     * @return true if this node contains a selected license
+     */
     private boolean isLicenseSelected(DependenciesTree node) {
-        // Return true if any issue in this node contains a selected license
         return node.getLicenses().stream().anyMatch(this::isLicenseSelected);
+    }
+
+    private boolean isScopeSelected(Scope scope) {
+        return selectedScopes.getOrDefault(scope, false);
+    }
+
+    /**
+     * Return true if this node or its parents contains a selected scope.
+     *
+     * @param node - The dependencies tree node
+     * @return true if this node or its parents contains a selected scope
+     */
+    private boolean isScopeSelected(DependenciesTree node) {
+        while (node != null) {
+            if (node.getScopes().stream().anyMatch(this::isScopeSelected)) {
+                return true;
+            }
+            node = (DependenciesTree) node.getParent();
+        }
+        return false;
     }
 
     public Set<Issue> filterIssues(Set<Issue> allIssues) {
@@ -94,39 +131,33 @@ public class FilterManager {
     /**
      * Filter scan results
      *
-     * @param unfilteredRoot      In - The scan results
-     * @param issuesFilteredRoot  Out - Filtered issues tree
-     * @param LicenseFilteredRoot Out - Filtered licenses tree
+     * @param unfilteredRoot - The scan results before filtering
      */
     @SuppressWarnings({"unused"})
-    public void applyFilters(DependenciesTree unfilteredRoot, DependenciesTree issuesFilteredRoot, DependenciesTree LicenseFilteredRoot) {
-        applyFilters(unfilteredRoot, issuesFilteredRoot, LicenseFilteredRoot, new MutableBoolean(), new MutableBoolean());
+    public DependenciesTree applyFilters(DependenciesTree unfilteredRoot) {
+        DependenciesTree filteredRoot = (DependenciesTree) unfilteredRoot.clone();
+        filteredRoot.getIssues().clear();
+        applyFilters(unfilteredRoot, filteredRoot, new MutableBoolean());
+        return filteredRoot;
     }
 
-    private void applyFilters(DependenciesTree unfilteredRoot, DependenciesTree issuesFilteredRoot, DependenciesTree licenseFilteredRoot, MutableBoolean severitySelected, MutableBoolean licenseSelected) {
-        severitySelected.setValue(isSeveritySelected(unfilteredRoot));
-        licenseSelected.setValue(isLicenseSelected(unfilteredRoot));
+    private void applyFilters(DependenciesTree unfilteredRoot, DependenciesTree filteredRoot, MutableBoolean selected) {
+        selected.setValue(isSeveritySelected(unfilteredRoot) && isLicenseSelected(unfilteredRoot) && isScopeSelected(unfilteredRoot));
         for (int i = 0; i < unfilteredRoot.getChildCount(); i++) {
             DependenciesTree unfilteredChild = (DependenciesTree) unfilteredRoot.getChildAt(i);
-            DependenciesTree filteredSeverityChild = getFilteredTreeNode(unfilteredChild);
-            DependenciesTree filteredLicenseChild = (DependenciesTree) unfilteredChild.clone();
-            MutableBoolean childSeveritySelected = new MutableBoolean();
-            MutableBoolean childLicenseSelected = new MutableBoolean();
-            applyFilters(unfilteredChild, filteredSeverityChild, filteredLicenseChild, childSeveritySelected, childLicenseSelected);
-            if (childSeveritySelected.booleanValue()) {
-                severitySelected.setValue(true);
-                issuesFilteredRoot.add(filteredSeverityChild);
-            }
-            if (childLicenseSelected.booleanValue()) {
-                licenseSelected.setValue(true);
-                licenseFilteredRoot.add(filteredLicenseChild);
+            DependenciesTree filteredChild = cloneNode(unfilteredChild);
+            MutableBoolean childSelected = new MutableBoolean();
+            applyFilters(unfilteredChild, filteredChild, childSelected);
+            if (childSelected.booleanValue()) {
+                selected.setValue(true);
+                filteredRoot.add(filteredChild);
             }
         }
     }
 
-    private DependenciesTree getFilteredTreeNode(DependenciesTree unfilteredChild) {
-        DependenciesTree filteredSeverityChild = (DependenciesTree) unfilteredChild.clone();
-        filteredSeverityChild.setIssues(filterIssues(unfilteredChild.getIssues()));
-        return filteredSeverityChild;
+    private DependenciesTree cloneNode(DependenciesTree node) {
+        DependenciesTree filteredChild = (DependenciesTree) node.clone();
+        filteredChild.setIssues(filterIssues(node.getIssues()));
+        return filteredChild;
     }
 }

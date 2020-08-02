@@ -21,13 +21,13 @@ import java.util.Map;
 @SuppressWarnings({"unused"})
 public class NpmTreeBuilder {
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
-    private NpmDriver npmDriver;
-    private Path projectDir;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final NpmDriver npmDriver;
+    private final Path projectDir;
 
     public NpmTreeBuilder(Path projectDir, Map<String, String> env) {
         this.projectDir = projectDir;
-        this.npmDriver = new NpmDriver("", env);
+        this.npmDriver = new NpmDriver(env);
     }
 
     /**
@@ -42,8 +42,8 @@ public class NpmTreeBuilder {
             logger.error("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
             return null;
         }
-        JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList());
-        DependenciesTree rootNode = NpmDependencyTree.createDependenciesTree(null, npmLsResults);
+        JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev", "--prod"));
+        DependenciesTree rootNode = NpmDependencyTree.createDependenciesTree(npmLsResults);
         JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
         JsonNode nameNode = packageJson.get("name");
         String packageName = getPackageName(logger, packageJson, npmLsResults);

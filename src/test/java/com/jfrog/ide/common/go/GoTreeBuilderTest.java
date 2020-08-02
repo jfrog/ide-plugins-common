@@ -5,6 +5,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.scan.DependenciesTree;
+import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -21,8 +22,9 @@ import static org.testng.Assert.*;
  * Created by Bar Belity on 16/02/2020.
  */
 public class GoTreeBuilderTest {
-    protected static final Log log = new NullLog();
     private static final Path GO_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "go"));
+    private static final Scope NONE_SCOPE = new Scope();
+    private static final Log log = new NullLog();
 
     @Test
     public void testCreateDependenciesTree1() {
@@ -40,7 +42,7 @@ public class GoTreeBuilderTest {
             Path projectDir = createProjectDir("project1", GO_ROOT.resolve("project1").toFile());
             GoTreeBuilder treeBuilder = new GoTreeBuilder(projectDir, null, log);
             DependenciesTree dt = treeBuilder.buildTree();
-            validateDependenciesTreeResults(expected, dt);
+            validateDependenciesTreeResults(expected, dt, true);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
         }
@@ -48,19 +50,21 @@ public class GoTreeBuilderTest {
 
     @Test
     public void testCreateDependenciesTree2() {
-        Map<String, Integer> expected = new HashMap<String, Integer>() {{ put("github.com/jfrog/gocmd:0.1.12", 5); }};
+        Map<String, Integer> expected = new HashMap<String, Integer>() {{
+            put("github.com/jfrog/gocmd:0.1.12", 5);
+        }};
         try {
             Path projectDir = createProjectDir("project2", GO_ROOT.resolve("project2").toFile());
             GoTreeBuilder treeBuilder = new GoTreeBuilder(projectDir, null, log);
             DependenciesTree dt = treeBuilder.buildTree();
-            validateDependenciesTreeResults(expected, dt);
+            validateDependenciesTreeResults(expected, dt, true);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
         }
     }
 
     private Map<String, List<String>> getAllDependenciesForTest() {
-        return new HashMap<String, List<String>>(){
+        return new HashMap<String, List<String>>() {
             {
                 put("my/pkg/name1", Arrays.asList(
                         "github.com/jfrog/directDep1@v0.1",
@@ -127,20 +131,19 @@ public class GoTreeBuilderTest {
         Map<String, List<String>> allDependencies = getAllDependenciesForTest();
         DependenciesTree rootNode = new DependenciesTree();
         GoTreeBuilder.populateDependenciesTree(rootNode, "my/pkg/name1", allDependencies);
-        validateDependenciesTreeResults(expected, rootNode);
+        validateDependenciesTreeResults(expected, rootNode, false);
     }
 
-    private void validateDependenciesTreeResults(Map<String, Integer> expected, DependenciesTree actual) {
+    private void validateDependenciesTreeResults(Map<String, Integer> expected, DependenciesTree actual, boolean checkScope) {
         Vector<DependenciesTree> children = actual.getChildren();
         assertEquals(children.size(), expected.size());
-        boolean equal = true;
         for (DependenciesTree current : children) {
-            if (!expected.containsKey(current.toString()) || (expected.get(current.toString()) != current.getChildren().size())) {
-                equal = false;
-                break;
+            assertTrue(expected.containsKey(current.toString()));
+            assertEquals(current.getChildren().size(), expected.get(current.toString()).intValue());
+            if (checkScope) {
+                assertTrue(current.getScopes().contains(NONE_SCOPE));
             }
         }
-        assertTrue(equal);
     }
 
     public static Path createProjectDir(String targetDir, File projectOrigin) throws IOException {
