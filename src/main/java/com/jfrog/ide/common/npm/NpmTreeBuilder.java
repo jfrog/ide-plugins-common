@@ -27,7 +27,7 @@ public class NpmTreeBuilder {
 
     public NpmTreeBuilder(Path projectDir, Map<String, String> env) {
         this.projectDir = projectDir;
-        this.npmDriver = new NpmDriver("", env);
+        this.npmDriver = new NpmDriver(env);
     }
 
     /**
