@@ -45,7 +45,7 @@ public class NpmTreeBuilderTest {
         }
     }
 
-    private NpmDriver npmDriver = new NpmDriver("", null);
+    private NpmDriver npmDriver = new NpmDriver(null);
     private File tempProject;
 
     @BeforeMethod

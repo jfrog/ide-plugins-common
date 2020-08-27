@@ -10,7 +10,7 @@ import com.jfrog.ide.common.utils.Constants;
 import com.jfrog.ide.common.utils.XrayConnectionUtils;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.ComponentsFactory;
-import com.jfrog.xray.client.impl.XrayClient;
+import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.summary.ComponentDetail;
 import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.summary.SummaryResponse;
@@ -21,7 +21,6 @@ import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependenciesTree;
 import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
-import org.jfrog.client.util.KeyStoreProviderException;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -159,9 +158,17 @@ public abstract class ScanManagerBase {
 
         try {
             // Create Xray client and check version
-            Xray xrayClient = XrayClient.create(xrayServerConfig.getUrl(), xrayServerConfig.getUsername(),
-                    xrayServerConfig.getPassword(), xrayServerConfig.isNoHostVerification(),
-                    xrayServerConfig.getKeyStoreProvider(), xrayServerConfig.getProxyConfForTargetUrl(""));
+            Xray xrayClient = (Xray) new XrayClientBuilder()
+                    .setUrl(xrayServerConfig.getUrl())
+                    .setUserName(xrayServerConfig.getUsername())
+                    .setPassword(xrayServerConfig.getPassword())
+                    .setInsecureTls(xrayServerConfig.isInsecureTls())
+                    .setSslContext(xrayServerConfig.getSslContext())
+                    .setProxyConfiguration(xrayServerConfig.getProxyConfForTargetUrl(xrayServerConfig.getUrl()))
+                    .setConnectionRetries(xrayServerConfig.getConnectionRetries())
+                    .setTimeout(xrayServerConfig.getConnectionTimeout())
+                    .setLog(getLog())
+                    .build();
             if (!isXrayVersionSupported(xrayClient)) {
                 return;
             }
@@ -185,7 +192,7 @@ public abstract class ScanManagerBase {
             scanCache.write();
         } catch (CancellationException e) {
             log.info("Xray scan was canceled");
-        } catch (IOException | KeyStoreProviderException e) {
+        } catch (IOException e) {
             log.error("Scan failed", e);
         }
     }
