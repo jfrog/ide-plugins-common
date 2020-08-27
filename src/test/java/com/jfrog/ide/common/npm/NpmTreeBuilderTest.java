@@ -2,7 +2,7 @@ package com.jfrog.ide.common.npm;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.npm.NpmDriver;
 import org.jfrog.build.extractor.scan.DependenciesTree;

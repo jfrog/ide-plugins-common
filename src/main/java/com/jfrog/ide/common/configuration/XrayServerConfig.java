@@ -1,9 +1,9 @@
 package com.jfrog.ide.common.configuration;
 
 import org.apache.commons.lang3.StringUtils;
-import org.jfrog.client.http.model.ProxyConfig;
-import org.jfrog.client.util.KeyStoreProvider;
-import org.jfrog.client.util.KeyStoreProviderException;
+import org.jfrog.build.client.ProxyConfiguration;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * @author yahavi
@@ -16,26 +16,36 @@ public interface XrayServerConfig {
     String getPassword();
 
     /**
-     * Return true to disable ssl certificates verification.
+     * Return true to disable SSL certificates verification.
      *
-     * @return true to disable ssl certificates verification
+     * @return true to disable SSL certificates verification
      */
-    boolean isNoHostVerification();
+    boolean isInsecureTls();
 
     /**
-     * Reads the certifications KeyStore provider in IDE configuration and returns the KeyStoreProvider.
+     * Return the SSLContext from IDE configuration. This allows to accept certificates defined in the IDE configuration.
      *
-     * @return KeyStoreProvider
+     * @return SSLContext
      */
-    KeyStoreProvider getKeyStoreProvider() throws KeyStoreProviderException;
+    SSLContext getSslContext();
 
     /**
-     * Reads the http proxy configuration set in IDE configuration and returns the proxy config for the Xray URL.
+     * Reads the http proxy configuration set in IDE configuration and returns the proxy configuration for the Xray URL.
      *
      * @param xrayUrl - Xray url.
      * @return proxy config for the Xray URL.
      */
-    ProxyConfig getProxyConfForTargetUrl(String xrayUrl);
+    ProxyConfiguration getProxyConfForTargetUrl(String xrayUrl);
+
+    /**
+     * @return connection retries.
+     */
+    int getConnectionRetries();
+
+    /**
+     * @return connection timeout.
+     */
+    int getConnectionTimeout();
 
     @SuppressWarnings("unused")
     default boolean areCredentialsSet() {

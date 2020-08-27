@@ -1,7 +1,7 @@
 node('java') {
     cleanWs()
     git url: 'https://github.com/jfrog/ide-plugins-common.git'
-    def jdktool = tool name: "1.8.0_102"
+    def jdktool = tool name: "jdk-8u111-linux-x64-jce-unlimited-policy"
     env.JAVA_HOME = jdktool
     echo jdktool
     def server = Artifactory.server('oss.jfrog.org')
@@ -37,10 +37,10 @@ node('java') {
     }
 
     stage('Push changes') {
-        sh '''#!/bin/bash 
-            set -o pipefail
-            git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/JFrog/ide-plugins-common.git 2>&1 | grep -v "http"
-            git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/JFrog/ide-plugins-common.git --tags 2>&1 | grep -v "http"
+        sh '''#!/bin/bash
+           set -o pipefail
+           git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/JFrog/ide-plugins-common.git 2>&1 | grep -v "http"
+           git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/JFrog/ide-plugins-common.git --tags 2>&1 | grep -v "http"
         '''
     }
 
