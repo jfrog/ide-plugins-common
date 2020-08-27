@@ -1,19 +1,18 @@
 package com.jfrog.ide.common.go;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
 import org.jfrog.build.extractor.scan.DependenciesTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
+import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Bar Belity on 06/02/2020.
@@ -22,10 +21,10 @@ import java.util.Map;
 @SuppressWarnings({"unused"})
 public class GoTreeBuilder {
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
-    private GoDriver goDriver;
-    private Path projectDir;
-    private Log logger;
+    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private final GoDriver goDriver;
+    private final Path projectDir;
+    private final Log logger;
 
     public GoTreeBuilder(Path projectDir, Map<String, String> env, Log logger) {
         this.projectDir = projectDir;
@@ -47,6 +46,7 @@ public class GoTreeBuilder {
                 .artifactId(rootNode.getUserObject().toString())
                 .version(""));
 
+        setNoneScope(rootNode);
         return rootNode;
     }
 
@@ -67,17 +67,23 @@ public class GoTreeBuilder {
         return rootNode;
     }
 
+    /**
+     * Since Go doesn't have scopes, populate the direct dependencies with 'None' scope
+     *
+     * @param rootNode - The dependencies tree root
+     */
+    private static void setNoneScope(DependenciesTree rootNode) {
+        Set<Scope> scopes = Sets.newHashSet(new Scope());
+        rootNode.getChildren().forEach(child -> child.setScopes(scopes));
+    }
+
     static void populateAllDependenciesMap(String[] dependenciesGraph, Map<String, List<String>> allDependencies) {
         for (String entry : dependenciesGraph) {
             if (StringUtils.isAllBlank(entry)) {
                 continue;
             }
             String[] parsedEntry = entry.split("\\s");
-            List<String> pkgDeps = allDependencies.get(parsedEntry[0]);
-            if (pkgDeps == null) {
-                pkgDeps = new ArrayList<>();
-                allDependencies.put(parsedEntry[0], pkgDeps);
-            }
+            List<String> pkgDeps = allDependencies.computeIfAbsent(parsedEntry[0], k -> new ArrayList<>());
             pkgDeps.add(parsedEntry[1]);
         }
     }

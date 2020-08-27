@@ -17,10 +17,7 @@ import com.jfrog.xray.client.services.summary.SummaryResponse;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.Artifact;
-import org.jfrog.build.extractor.scan.DependenciesTree;
-import org.jfrog.build.extractor.scan.Issue;
-import org.jfrog.build.extractor.scan.License;
+import org.jfrog.build.extractor.scan.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -82,26 +79,40 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Add licenses to filter manager in order to show them in the filter menu later.
+     * Add licenses and scopes to filter manager in order to show them in the filter menu later.
      */
-    protected void addFilterManagerLicenses(FilterManager filterManager) {
+    protected void addLicensesAndScopes(FilterManager filterManager) {
         Set<License> allLicenses = Sets.newHashSet();
+        Set<Scope> allScopes = Sets.newHashSet();
         if (scanResults != null) {
             DependenciesTree node = (DependenciesTree) scanResults.getRoot();
             collectAllLicenses(node, allLicenses);
+            collectAllScopes(node, allScopes);
         }
         filterManager.addLicenses(allLicenses);
+        filterManager.addScopes(allScopes);
     }
 
     /**
      * Recursively, add all dependencies list licenses to the licenses set.
      *
-     * @param node        - In - The root DepdendenciesTree node.
+     * @param node        - In - The root DependenciesTree node.
      * @param allLicenses - Out - All licenses in the tree.
      */
-    private void collectAllLicenses(DependenciesTree node, Set<License> allLicenses) {
+    protected void collectAllLicenses(DependenciesTree node, Set<License> allLicenses) {
         allLicenses.addAll(node.getLicenses());
         node.getChildren().forEach(child -> collectAllLicenses(child, allLicenses));
+    }
+
+    /**
+     * Recursively, add all dependencies list scopes to the scopes set.
+     *
+     * @param node      - In - The root DependenciesTree node.
+     * @param allScopes - Out - All licenses in the tree.
+     */
+    protected void collectAllScopes(DependenciesTree node, Set<Scope> allScopes) {
+        allScopes.addAll(node.getScopes());
+        node.getChildren().forEach(child -> collectAllScopes(child, allScopes));
     }
 
     /**
