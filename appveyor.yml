@@ -12,7 +12,7 @@ environment:
 before_test:
   - sh: curl -s "https://get.sdkman.io" | bash
   - sh: source "$HOME/.sdkman/bin/sdkman-init.sh"
-  - sh: sdk install java `sdk list java | grep -E "8\.\d*.\d*-zulu" | head -1 | awk '{print $NF}'` && java -version
+  - sh: sdk install java `sdk list java | grep -E "8.[0-9]*.[0-9]*-zulu"" | head -1 | awk '{print $NF}'` && java -version
   - sh: export JAVA_HOME=$HOME/.sdkman/candidates/java/current
 
 test_script:
