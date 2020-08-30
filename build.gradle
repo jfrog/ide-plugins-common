@@ -5,7 +5,10 @@ plugins {
 
 group 'com.jfrog.ide'
 
-sourceCompatibility = 1.8
+compileJava {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+}
 
 repositories {
     mavenLocal()
@@ -21,22 +24,22 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: '2.19.x-SNAPSHOT'
-    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.19.x-SNAPSHOT'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.1'
-    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.5.x-SNAPSHOT'
+    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: '2.19.2'
+    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.19.2'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
+    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.6.0'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
-    compile group: 'com.google.guava', name: 'guava', version: '28.1-jre'
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.10'
-    testCompile group: 'org.testng', name: 'testng', version: '6.14.3'
-    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.10'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
+    compile group: 'com.google.guava', name: 'guava', version: '29.0-jre'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    testCompile group: 'org.testng', name: 'testng', version: '7.3.0'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
 }
 
 task uberJar(type: Jar) {
     archiveClassifier.set('uber')
     manifest {
-        attributes 'Implementation-Version': version
+        attributes 'Implementation-Version': archiveVersion
     }
 
     from {
@@ -48,7 +51,7 @@ task uberJar(type: Jar) {
 
 jar {
     manifest {
-        attributes 'Implementation-Version': version
+        attributes 'Implementation-Version': archiveVersion
     }
 }
 
