@@ -32,6 +32,7 @@ public class ScanCache {
     public ScanCache(String projectName, Path basePath, Log logger) throws IOException {
         scanCacheMap = new ScanCacheMap();
         file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8)) + "XrayScanCache.json").toFile();
+        logger.debug("Project cache path: " + file.getAbsolutePath());
         if (!file.exists()) {
             Files.createDirectories(basePath);
             return;

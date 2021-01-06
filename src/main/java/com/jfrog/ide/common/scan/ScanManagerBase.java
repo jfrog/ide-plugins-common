@@ -163,6 +163,7 @@ public abstract class ScanManagerBase {
         Components componentsToScan = ComponentsFactory.create();
         extractComponents(scanResults, componentsToScan, quickScan);
         if (componentsToScan.getComponentDetails().isEmpty()) {
+            log.debug("No components found to scan for '" + projectName + "'.");
             // No components found to scan
             return;
         }
@@ -187,6 +188,7 @@ public abstract class ScanManagerBase {
             // Start scan
             int currentIndex = 0;
             List<ComponentDetail> componentsList = Lists.newArrayList(componentsToScan.getComponentDetails());
+            log.debug("Starting to scan " + componentsList.size() + " components.");
             while (currentIndex + NUMBER_OF_ARTIFACTS_BULK_SCAN < componentsList.size()) {
                 checkCanceled();
                 List<ComponentDetail> partialComponentsDetails = componentsList.subList(currentIndex, currentIndex + NUMBER_OF_ARTIFACTS_BULK_SCAN);
@@ -200,11 +202,13 @@ public abstract class ScanManagerBase {
             Components partialComponents = ComponentsFactory.create(Sets.newHashSet(partialComponentsDetails));
             scanComponents(xrayClient, partialComponents);
             indicator.setFraction(1);
+            log.debug("Saving scan cache...");
             scanCache.write();
+            log.debug("Scan cache saved successfully.");
         } catch (CancellationException e) {
-            log.info("Xray scan was canceled");
+            log.info("Xray scan was canceled.");
         } catch (IOException e) {
-            log.error("Scan failed", e);
+            log.error("Scan failed.", e);
         }
     }
 
@@ -250,9 +254,9 @@ public abstract class ScanManagerBase {
             if (XrayConnectionUtils.isXrayVersionSupported(xrayClient.system().version())) {
                 return true;
             }
-            log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + Constants.MINIMAL_XRAY_VERSION_SUPPORTED + " and above");
+            log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + Constants.MINIMAL_XRAY_VERSION_SUPPORTED + " and above.");
         } catch (IOException e) {
-            log.error("Scan failed", e);
+            log.error("JFrog Xray Scan failed. Please check your credentials.", e);
         }
         return false;
     }
