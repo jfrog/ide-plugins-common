@@ -41,7 +41,7 @@ public class Utils {
     }
 
     public static Issue toIssue(com.jfrog.xray.client.services.summary.Issue other) {
-        Severity severity = Severity.fromString(other.getSeverity());
+        Severity severity = Severity.FromString(other.getSeverity());
         List<? extends VulnerableComponents> vulnerableComponentsList = other.getVulnerableComponents();
         List<String> fixedVersions = null;
         if (CollectionUtils.isNotEmpty(vulnerableComponentsList)) {
