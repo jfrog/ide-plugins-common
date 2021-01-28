@@ -2,7 +2,7 @@ package com.jfrog.ide.common.scan;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.jfrog.ide.common.configuration.XrayServerConfig;
+import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.filter.FilterManager;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
@@ -37,7 +37,7 @@ import java.util.concurrent.CancellationException;
 public abstract class ScanManagerBase {
     private final static int NUMBER_OF_ARTIFACTS_BULK_SCAN = 100;
 
-    private XrayServerConfig xrayServerConfig;
+    private ServerConfig serverConfig;
     private DependenciesTree scanResults;
     private ComponentPrefix prefix;
     private ScanCache scanCache;
@@ -47,16 +47,16 @@ public abstract class ScanManagerBase {
     /**
      * Construct a scan manager for IDE project.
      *
-     * @param cachePath        - Scan cache path.
-     * @param projectName      - The project name.
-     * @param log              - The logger.
-     * @param xrayServerConfig - Xray server config.
-     * @param prefix           - Components prefix for xray scan, e.g. gav:// or npm://.
+     * @param cachePath    - Scan cache path.
+     * @param projectName  - The project name.
+     * @param log          - The logger.
+     * @param serverConfig - Xray server config.
+     * @param prefix       - Components prefix for xray scan, e.g. gav:// or npm://.
      * @throws IOException in case of an error in the scan cache initialization.
      */
-    public ScanManagerBase(Path cachePath, String projectName, Log log, XrayServerConfig xrayServerConfig, ComponentPrefix prefix) throws IOException {
+    public ScanManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig, ComponentPrefix prefix) throws IOException {
         this.scanCache = new ScanCache(projectName, cachePath, log);
-        this.xrayServerConfig = xrayServerConfig;
+        this.serverConfig = serverConfig;
         this.projectName = projectName;
         this.prefix = prefix;
         this.log = log;
@@ -171,14 +171,14 @@ public abstract class ScanManagerBase {
         try {
             // Create Xray client and check version
             Xray xrayClient = (Xray) new XrayClientBuilder()
-                    .setUrl(xrayServerConfig.getUrl())
-                    .setUserName(xrayServerConfig.getUsername())
-                    .setPassword(xrayServerConfig.getPassword())
-                    .setInsecureTls(xrayServerConfig.isInsecureTls())
-                    .setSslContext(xrayServerConfig.getSslContext())
-                    .setProxyConfiguration(xrayServerConfig.getProxyConfForTargetUrl(xrayServerConfig.getUrl()))
-                    .setConnectionRetries(xrayServerConfig.getConnectionRetries())
-                    .setTimeout(xrayServerConfig.getConnectionTimeout())
+                    .setUrl(serverConfig.getXrayUrl())
+                    .setUserName(serverConfig.getUsername())
+                    .setPassword(serverConfig.getPassword())
+                    .setInsecureTls(serverConfig.isInsecureTls())
+                    .setSslContext(serverConfig.getSslContext())
+                    .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getXrayUrl()))
+                    .setConnectionRetries(serverConfig.getConnectionRetries())
+                    .setTimeout(serverConfig.getConnectionTimeout())
                     .setLog(getLog())
                     .build();
             if (!isXrayVersionSupported(xrayClient)) {

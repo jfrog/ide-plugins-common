@@ -1,15 +1,22 @@
 package com.jfrog.ide.common.configuration;
 
-import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.client.ProxyConfiguration;
 
 import javax.net.ssl.SSLContext;
 
+import static org.apache.commons.lang3.StringUtils.isAllBlank;
+import static org.apache.commons.lang3.StringUtils.isNoneBlank;
+
 /**
  * @author yahavi
  */
-public interface XrayServerConfig {
+@SuppressWarnings("unused")
+public interface ServerConfig {
     String getUrl();
+
+    String getXrayUrl();
+
+    String getArtifactoryUrl();
 
     String getUsername();
 
@@ -49,6 +56,6 @@ public interface XrayServerConfig {
 
     @SuppressWarnings("unused")
     default boolean areCredentialsSet() {
-        return StringUtils.isNoneBlank(getUrl(), getUsername(), getPassword());
+        return isNoneBlank(getUsername(), getPassword()) && !isAllBlank(getUrl(), getXrayUrl(), getArtifactoryUrl());
     }
 }

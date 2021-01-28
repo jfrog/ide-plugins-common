@@ -13,24 +13,23 @@ compileJava {
 repositories {
     mavenLocal()
     maven {
-        url "http://oss.jfrog.org/artifactory/libs-snapshot"
+        url "https://oss.jfrog.org/artifactory/libs-snapshot"
         mavenContent {
             snapshotsOnly()
         }
     }
     maven {
-        url "http://oss.jfrog.org/artifactory/libs-release"
+        url "https://oss.jfrog.org/artifactory/libs-release"
     }
 }
 
 dependencies {
-    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: '2.19.2'
-    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.19.2'
+    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: '2.22.0'
+    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.22.0'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
-    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.6.0'
+    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.6.x-SNAPSHOT'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
-    compile group: 'com.google.guava', name: 'guava', version: '29.0-jre'
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
     testCompile group: 'org.testng', name: 'testng', version: '7.3.0'
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
