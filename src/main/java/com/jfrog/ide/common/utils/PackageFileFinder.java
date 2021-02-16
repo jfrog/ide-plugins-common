@@ -2,6 +2,7 @@ package com.jfrog.ide.common.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.jfrog.build.api.util.Log;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -12,19 +13,22 @@ import java.util.Set;
 /**
  * @author yahavi
  */
+@SuppressWarnings("unused")
 public class PackageFileFinder implements FileVisitor<Path> {
-
-    private List<String> packageJsonDirectories = Lists.newArrayList();
-    private List<String> gomodDirectories = Lists.newArrayList();
-    private PathMatcher pathMatcher;
+    private final List<String> packageJsonDirectories = Lists.newArrayList();
+    private final List<String> goModDirectories = Lists.newArrayList();
+    private final PathMatcher exclusions;
+    private final Log logger;
 
     /**
-     * @param projectPaths  - List of project base paths.
-     * @param excludedPaths - Pattern of project paths to exclude from Xray scanning for npm
+     * @param projectPaths  - List of project base paths
+     * @param excludedPaths - Pattern of project paths to exclude from Xray scanning for npm and Go projects
+     * @param logger        - The logger to log excluded paths when found
      */
-    public PackageFileFinder(Set<Path> projectPaths, String excludedPaths) throws IOException {
+    public PackageFileFinder(Set<Path> projectPaths, String excludedPaths, Log logger) throws IOException {
         Set<Path> consolidatedPaths = Utils.consolidatePaths(projectPaths);
-        this.pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
+        this.exclusions = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
+        this.logger = logger;
 
         for (Path projectPath : consolidatedPaths) {
             Files.walkFileTree(projectPath, this);
@@ -46,7 +50,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
      * @return List of go.mod's parent directories.
      */
     public Set<String> getGoPackagesFilePairs() {
-        return Sets.newHashSet(gomodDirectories);
+        return Sets.newHashSet(goModDirectories);
     }
 
     /**
@@ -58,7 +62,11 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-        return !pathMatcher.matches(dir) ? FileVisitResult.CONTINUE : FileVisitResult.SKIP_SUBTREE;
+        if (exclusions.matches(dir)) {
+            logger.info("Excluding directory '" + dir + "' from Xray scanning due to the defined Excluded Paths pattern.");
+            return FileVisitResult.SKIP_SUBTREE;
+        }
+        return FileVisitResult.CONTINUE;
     }
 
     /**
@@ -73,7 +81,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
         if (isNpmPackageFile(file)) {
             packageJsonDirectories.add(file.getParent().toString());
         } else if (isGoPackageFile(file)) {
-            gomodDirectories.add(file.getParent().toString());
+            goModDirectories.add(file.getParent().toString());
         }
         return FileVisitResult.CONTINUE;
     }
