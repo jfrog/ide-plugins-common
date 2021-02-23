@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.filter;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.jfrog.build.extractor.scan.*;
 
@@ -66,6 +67,29 @@ public class FilterManager {
      */
     public void addScopes(Set<Scope> scanScopes) {
         scanScopes.forEach(scope -> selectedScopes.putIfAbsent(scope, true));
+    }
+
+    /**
+     * Recursively, add all dependencies list licenses to the licenses set.
+     *
+     * @param node        - In - The root DependenciesTree node.
+     * @param allLicenses - Out - All licenses in the tree.
+     */
+    protected void collectAllLicenses(DependenciesTree node, Set<License> allLicenses) {
+        allLicenses.addAll(node.getLicenses());
+        node.getChildren().forEach(child -> collectAllLicenses(child, allLicenses));
+        addLicenses(allLicenses);
+    }
+
+    /**
+     * Recursively, add all dependencies list scopes to the scopes set.
+     *
+     * @param node      - In - The root DependenciesTree node.
+     * @param allScopes - Out - All licenses in the tree.
+     */
+    protected void collectAllScopes(DependenciesTree node, Set<Scope> allScopes) {
+        allScopes.addAll(node.getScopes());
+        node.getChildren().forEach(child -> collectAllScopes(child, allScopes));
     }
 
     /**

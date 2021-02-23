@@ -21,6 +21,7 @@ import org.jfrog.build.extractor.scan.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -100,8 +101,11 @@ public abstract class ScanManagerBase {
      * @param allLicenses - Out - All licenses in the tree.
      */
     protected void collectAllLicenses(DependenciesTree node, Set<License> allLicenses) {
-        allLicenses.addAll(node.getLicenses());
-        node.getChildren().forEach(child -> collectAllLicenses(child, allLicenses));
+        Enumeration<?> enumeration = node.breadthFirstEnumeration();
+        while (enumeration.hasMoreElements()) {
+            DependenciesTree child = (DependenciesTree) enumeration.nextElement();
+            allLicenses.addAll(node.getLicenses());
+        }
     }
 
     /**
