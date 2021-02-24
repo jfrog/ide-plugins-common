@@ -21,7 +21,7 @@ public class FilterManagerTest {
 
     private static final Scope MAIN_SCOPE = new Scope("main");
 
-    private DependenciesTree root, one, two, three, four, five;
+    private DependencyTree root, one, two, three, four, five;
     private Map<Severity, Boolean> severitiesFilters;
     private Map<License, Boolean> licensesFilters;
     private FilterManager filterManager;
@@ -47,13 +47,13 @@ public class FilterManagerTest {
         // Create scope filter with 'main' scope enabled
         filterManager.getSelectedScopes().put(MAIN_SCOPE, true);
 
-        // Create the dependencies tree
-        root = new DependenciesTree("0");
-        one = new DependenciesTree("1");
-        two = new DependenciesTree("2");
-        three = new DependenciesTree("3");
-        four = new DependenciesTree("4");
-        five = new DependenciesTree("5");
+        // Create the dependency tree
+        root = new DependencyTree("0");
+        one = new DependencyTree("1");
+        two = new DependencyTree("2");
+        three = new DependencyTree("3");
+        four = new DependencyTree("4");
+        five = new DependencyTree("5");
         root.add(one); // 0 -> 1
         root.add(two); // 0 -> 2
         two.add(three); // 2 -> 3
@@ -75,7 +75,7 @@ public class FilterManagerTest {
         one.setLicenses(Sets.newHashSet(createLicense("MIT")));
 
         // Apply filter
-        DependenciesTree filteredRoot = filterAndAssert();
+        DependencyTree filteredRoot = filterAndAssert();
 
         // Assert that the issues filtered tree have 1 issue, 1 license and 1 node except the root
         rootIssues = filteredRoot.processTreeIssues();
@@ -97,7 +97,7 @@ public class FilterManagerTest {
         severitiesFilters.replace(Severity.Low, false);
 
         // Apply filter
-        DependenciesTree filteredRoot = filterAndAssert();
+        DependencyTree filteredRoot = filterAndAssert();
 
         // Assert that the 'Low' issue from 'testNoFilter' had been filtered
         Set<Issue> rootIssues = filteredRoot.processTreeIssues();
@@ -125,7 +125,7 @@ public class FilterManagerTest {
         five.setLicenses(Sets.newHashSet(createLicense("MIT")));
 
         // Apply filter
-        DependenciesTree filteredRoot = filterAndAssert();
+        DependencyTree filteredRoot = filterAndAssert();
 
         // Assert that the issues filtered tree have 2 issues (1 'High' and 1 'Unknown')
         Set<Issue> rootIssues = filteredRoot.processTreeIssues();
@@ -155,7 +155,7 @@ public class FilterManagerTest {
         licensesFilters.put(createLicense("MIT"), false);
 
         // Apply filter
-        DependenciesTree filteredRoot = filterAndAssert();
+        DependencyTree filteredRoot = filterAndAssert();
 
         // Assert that the license in "1" has been filtered
         assertEquals(1, one.getLicenses().size());
@@ -175,7 +175,7 @@ public class FilterManagerTest {
         five.setLicenses(Sets.newHashSet(createLicense("MIT")));
 
         // Apply filter
-        DependenciesTree filteredRoot = filterAndAssert();
+        DependencyTree filteredRoot = filterAndAssert();
 
         // Assert that the license filtered tree root has 2 children ("2" and "3")
         assertEquals(2, filteredRoot.getChildren().size());
@@ -204,8 +204,8 @@ public class FilterManagerTest {
         });
     }
 
-    private DependenciesTree filterAndAssert() {
-        DependenciesTree filteredRoot = filterManager.applyFilters(root);
+    private DependencyTree filterAndAssert() {
+        DependencyTree filteredRoot = filterManager.applyFilters(root);
         assertTrue(filteredRoot.getScopes().contains(MAIN_SCOPE));
         return filteredRoot;
     }

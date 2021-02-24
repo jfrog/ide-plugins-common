@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.npm.NpmDriver;
 import org.jfrog.build.extractor.npm.extractor.NpmDependencyTree;
-import org.jfrog.build.extractor.scan.DependenciesTree;
+import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 
 import java.io.IOException;
@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 /**
- * Build npm dependencies tree before the Xray scan.
+ * Build npm dependency tree before the Xray scan.
  *
  * @author yahavi
  */
@@ -31,19 +31,19 @@ public class NpmTreeBuilder {
     }
 
     /**
-     * Build the npm dependencies tree.
+     * Build the npm dependency tree.
      *
      * @param logger - The logger.
-     * @return full dependencies tree without Xray scan results.
+     * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
-    public DependenciesTree buildTree(Log logger) throws IOException {
+    public DependencyTree buildTree(Log logger) throws IOException {
         if (!npmDriver.isNpmInstalled()) {
             logger.error("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
             return null;
         }
         JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev", "--prod"));
-        DependenciesTree rootNode = NpmDependencyTree.createDependenciesTree(npmLsResults);
+        DependencyTree rootNode = NpmDependencyTree.createDependencyTree(npmLsResults);
         JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
         JsonNode nameNode = packageJson.get("name");
         String packageName = getPackageName(logger, packageJson, npmLsResults);

@@ -39,7 +39,7 @@ public abstract class ScanManagerBase {
     private final static int NUMBER_OF_ARTIFACTS_BULK_SCAN = 100;
 
     private ServerConfig serverConfig;
-    private DependenciesTree scanResults;
+    private DependencyTree scanResults;
     private ComponentPrefix prefix;
     private ScanCache scanCache;
     private String projectName;
@@ -64,11 +64,11 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Populate a DependenciesTree node with issues, licenses and general info from the scan cache.
+     * Populate a DependencyTree node with issues, licenses and general info from the scan cache.
      *
      * @param node - The root node.
      */
-    protected void populateDependenciesTreeNode(DependenciesTree node) {
+    protected void populateDependencyTreeNode(DependencyTree node) {
         Artifact scanArtifact = getArtifactSummary(node.toString());
         if (scanArtifact != null) {
             node.setIssues(Sets.newHashSet(scanArtifact.getIssues()));
@@ -80,43 +80,33 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Add licenses and scopes to filter manager in order to show them in the filter menu later.
-     */
-    protected void addLicensesAndScopes(FilterManager filterManager) {
-        Set<License> allLicenses = Sets.newHashSet();
-        Set<Scope> allScopes = Sets.newHashSet();
-        if (scanResults != null) {
-            DependenciesTree node = (DependenciesTree) scanResults.getRoot();
-            collectAllLicenses(node, allLicenses);
-            collectAllScopes(node, allScopes);
-        }
-        filterManager.addLicenses(allLicenses);
-        filterManager.addScopes(allScopes);
-    }
-
-    /**
      * Recursively, add all dependencies list licenses to the licenses set.
      *
-     * @param node        - In - The root DependenciesTree node.
-     * @param allLicenses - Out - All licenses in the tree.
+     * @param node - The root DependencyTree node.
      */
-    protected void collectAllLicenses(DependenciesTree node, Set<License> allLicenses) {
+    protected Set<License> collectAllLicenses(DependencyTree node) {
+        Set<License> allLicenses = Sets.newHashSet();
         Enumeration<?> enumeration = node.breadthFirstEnumeration();
         while (enumeration.hasMoreElements()) {
-            DependenciesTree child = (DependenciesTree) enumeration.nextElement();
-            allLicenses.addAll(node.getLicenses());
+            DependencyTree child = (DependencyTree) enumeration.nextElement();
+            allLicenses.addAll(child.getLicenses());
         }
+        return allLicenses;
     }
 
     /**
      * Recursively, add all dependencies list scopes to the scopes set.
      *
-     * @param node      - In - The root DependenciesTree node.
-     * @param allScopes - Out - All licenses in the tree.
+     * @param node - The root DependencyTree node.
      */
-    protected void collectAllScopes(DependenciesTree node, Set<Scope> allScopes) {
-        allScopes.addAll(node.getScopes());
-        node.getChildren().forEach(child -> collectAllScopes(child, allScopes));
+    protected Set<Scope> collectAllScopes(DependencyTree node) {
+        Set<Scope> allScopes = Sets.newHashSet();
+        Enumeration<?> enumeration = node.breadthFirstEnumeration();
+        while (enumeration.hasMoreElements()) {
+            DependencyTree child = (DependencyTree) enumeration.nextElement();
+            allScopes.addAll(child.getScopes());
+        }
+        return allScopes;
     }
 
     /**
@@ -125,7 +115,7 @@ public abstract class ScanManagerBase {
      * @param selectedNodes - Selected tree nodes that the user chose from the ui.
      * @return filtered issues according to the selected component and user filters.
      */
-    public Set<Issue> getFilteredScanIssues(FilterManager filterManager, List<DependenciesTree> selectedNodes) {
+    public Set<Issue> getFilteredScanIssues(FilterManager filterManager, List<DependencyTree> selectedNodes) {
         Set<Issue> filteredIssues = Sets.newHashSet();
         selectedNodes.forEach(node -> filteredIssues.addAll(filterManager.filterIssues(node.getIssues())));
         return filteredIssues;
@@ -142,12 +132,12 @@ public abstract class ScanManagerBase {
     /**
      * Recursively, extract all candidates for Xray scan.
      *
-     * @param node       - In - The DependenciesTree root node.
+     * @param node       - In - The DependencyTree root node.
      * @param components - Out - Components for Xray scan.
      * @param quickScan  - True if this is a quick scan. In slow scans we'll scan all components.
      */
-    private void extractComponents(DependenciesTree node, Components components, boolean quickScan) {
-        for (DependenciesTree child : node.getChildren()) {
+    private void extractComponents(DependencyTree node, Components components, boolean quickScan) {
+        for (DependencyTree child : node.getChildren()) {
             String componentId = child.toString();
             if (!quickScan || !scanCache.contains(componentId)) {
                 components.addComponent(prefix.getPrefix() + componentId, "");
@@ -217,16 +207,16 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Add Xray scan results from cache to the dependencies tree.
+     * Add Xray scan results from cache to the dependency tree.
      *
-     * @param node - The dependencies tree.
+     * @param node - The dependency tree.
      */
-    protected void addXrayInfoToTree(DependenciesTree node) {
+    protected void addXrayInfoToTree(DependencyTree node) {
         if (node == null || node.isLeaf()) {
             return;
         }
-        for (DependenciesTree child : node.getChildren()) {
-            populateDependenciesTreeNode(child);
+        for (DependencyTree child : node.getChildren()) {
+            populateDependencyTreeNode(child);
             addXrayInfoToTree(child);
         }
     }
