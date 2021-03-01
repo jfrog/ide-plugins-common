@@ -5,7 +5,7 @@ import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.filter.FilterManager;
 import com.jfrog.ide.common.log.ProgressIndicator;
-import com.jfrog.ide.common.persistency.local.ScanCache;
+import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.ide.common.utils.Constants;
 import com.jfrog.ide.common.utils.XrayConnectionUtils;
 import com.jfrog.xray.client.Xray;

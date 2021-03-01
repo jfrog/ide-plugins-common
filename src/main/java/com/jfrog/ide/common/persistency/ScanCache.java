@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.persistency.local;
+package com.jfrog.ide.common.persistency;
 
 import com.jfrog.ide.common.utils.Utils;
 import org.jfrog.build.api.util.Log;
@@ -19,7 +19,7 @@ import java.util.Base64;
 public class ScanCache {
 
     private ScanCacheMap scanCacheMap;
-    private File file;
+    private final File file;
 
     /**
      * Construct an Xray scan cache.
@@ -30,7 +30,15 @@ public class ScanCache {
      * @throws IOException in case of I/O problem in the paths.
      */
     public ScanCache(String projectName, Path basePath, Log logger) throws IOException {
-        scanCacheMap = new ScanCacheMap();
+        this(projectName, basePath, logger, -1);
+    }
+
+    public ScanCache(String projectName, Path basePath, Log logger, int maxCapacity) throws IOException {
+        if (maxCapacity == -1) {
+            scanCacheMap = new ScanCacheMap();
+        } else {
+            scanCacheMap = new ScanCacheMap(maxCapacity);
+        }
         file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8)) + "XrayScanCache.json").toFile();
         logger.debug("Project cache path: " + file.getAbsolutePath());
         if (!file.exists()) {
@@ -38,7 +46,6 @@ public class ScanCache {
             return;
         }
         scanCacheMap.read(file, logger);
-        scanCacheMap.removeInvalidated();
     }
 
     public void write() throws IOException {

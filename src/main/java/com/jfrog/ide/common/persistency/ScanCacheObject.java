@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.persistency.local;
+package com.jfrog.ide.common.persistency;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.extractor.scan.Artifact;
 
-import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -17,8 +16,7 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 @Setter
 @Getter
-class ScanCacheObject implements Serializable {
-    private static final long serialVersionUID = 0L;
+class ScanCacheObject implements Comparable<ScanCacheObject> {
     private static final long EXPIRATION = TimeUnit.DAYS.toMillis(7);
 
     @JsonProperty("artifact")
@@ -44,5 +42,10 @@ class ScanCacheObject implements Serializable {
     @JsonIgnore
     boolean isInvalidated() {
         return System.currentTimeMillis() - lastUpdated > EXPIRATION;
+    }
+
+    @Override
+    public int compareTo(ScanCacheObject o) {
+        return Long.compare(getLastUpdated(), o.getLastUpdated());
     }
 }

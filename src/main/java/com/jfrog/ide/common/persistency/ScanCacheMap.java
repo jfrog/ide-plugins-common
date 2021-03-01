@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.persistency.local;
+package com.jfrog.ide.common.persistency;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -14,6 +14,7 @@ import org.jfrog.build.extractor.scan.Artifact;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -26,6 +27,7 @@ import java.util.Map;
 @Setter
 class ScanCacheMap {
 
+    private static final int MAXIMUM_CAPACITY = 1 << 30;
     private static int CACHE_VERSION = 0;
     private static ObjectMapper objectMapper;
 
@@ -41,7 +43,24 @@ class ScanCacheMap {
     private Map<String, ScanCacheObject> artifactsMap;
 
     ScanCacheMap() {
-        artifactsMap = new HashMap<>();
+        artifactsMap = new HashMap<String, ScanCacheObject>() {
+            @Override
+            public ScanCacheObject put(String key, ScanCacheObject value) {
+                if (value.isInvalidated()) {
+                    return null;
+                }
+                return super.put(key, value);
+            }
+        };
+    }
+
+    ScanCacheMap(int capacity) {
+        artifactsMap = new LinkedHashMap<String, ScanCacheObject>(capacity) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry eldest) {
+                return size() > capacity;
+            }
+        };
     }
 
     /**
@@ -75,13 +94,6 @@ class ScanCacheMap {
      */
     boolean contains(String id) {
         return artifactsMap.containsKey(id);
-    }
-
-    /**
-     * Remove artifacts older than 1 week.
-     */
-    void removeInvalidated() {
-        artifactsMap.entrySet().removeIf(entry -> entry.getValue().isInvalidated());
     }
 
     /**

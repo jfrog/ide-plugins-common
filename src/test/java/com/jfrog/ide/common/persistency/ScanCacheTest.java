@@ -2,11 +2,9 @@ package com.jfrog.ide.common.persistency;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
-import com.jfrog.ide.common.persistency.local.ScanCache;
-import com.jfrog.ide.common.persistency.local.ScanCacheMap;
-import com.jfrog.ide.common.persistency.local.ScanCacheObject;
 import com.jfrog.xray.client.impl.services.summary.ArtifactImpl;
 import com.jfrog.xray.client.impl.services.summary.GeneralImpl;
+import com.jfrog.xray.client.services.summary.Artifact;
 import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.testng.Assert;
@@ -43,18 +41,6 @@ public class ScanCacheTest {
     }
 
     @Test
-    public void testInvalidated() {
-        ScanCacheObject scanCacheObject = new ScanCacheObject();
-        Assert.assertFalse(scanCacheObject.isInvalidated());
-
-        scanCacheObject.setLastUpdated(0);
-        Assert.assertTrue(scanCacheObject.isInvalidated());
-
-        scanCacheObject.setLastUpdated(System.currentTimeMillis() - 6 * 24 * 60 * 60 * 1000);
-        Assert.assertFalse(scanCacheObject.isInvalidated());
-    }
-
-    @Test
     public void testGetScanCacheEmpty() {
         String projectName = "not_exits";
         try {
@@ -74,7 +60,7 @@ public class ScanCacheTest {
             ScanCache scanCache = new ScanCache(projectName, tempDir, new NullLog());
             assertNotNull(scanCache);
 
-            ArtifactImpl artifact = createArtifact(artifactId);
+            Artifact artifact = createArtifact(artifactId);
             scanCache.add(artifact);
             assertEquals(scanCache.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
         } catch (IOException e) {
@@ -88,7 +74,7 @@ public class ScanCacheTest {
         String artifactId = "red:skull:3.3.3";
         try {
             ScanCache scanCache1 = new ScanCache(projectName, tempDir, new NullLog());
-            ArtifactImpl artifact = createArtifact(artifactId);
+            Artifact artifact = createArtifact(artifactId);
 
             scanCache1.add(artifact);
             scanCache1.write();
@@ -106,7 +92,7 @@ public class ScanCacheTest {
         String artifactId = "tony:stark:3.3.3";
         try {
             ScanCache scanCache = new ScanCache(projectName, tempDir, new NullLog());
-            ArtifactImpl artifact = createArtifact(artifactId);
+            Artifact artifact = createArtifact(artifactId);
 
             scanCache.add(artifact);
             scanCache.add(createArtifact(artifactId));
@@ -169,7 +155,7 @@ public class ScanCacheTest {
      * @param id - Artifact id.
      * @return empty artifact.
      */
-    private ArtifactImpl createArtifact(String id) {
+    private Artifact createArtifact(String id) {
         ArtifactImpl artifact = new ArtifactImpl();
         GeneralImpl general = new GeneralImpl();
         general.setComponentId(id);
