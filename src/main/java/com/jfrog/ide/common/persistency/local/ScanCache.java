@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.persistency;
+package com.jfrog.ide.common.persistency.local;
 
 import com.jfrog.ide.common.utils.Utils;
 import org.jfrog.build.api.util.Log;

@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.persistency;
+package com.jfrog.ide.common.persistency.local;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;

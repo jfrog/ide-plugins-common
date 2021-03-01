@@ -2,6 +2,9 @@ package com.jfrog.ide.common.persistency;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import com.jfrog.ide.common.persistency.local.ScanCache;
+import com.jfrog.ide.common.persistency.local.ScanCacheMap;
+import com.jfrog.ide.common.persistency.local.ScanCacheObject;
 import com.jfrog.xray.client.impl.services.summary.ArtifactImpl;
 import com.jfrog.xray.client.impl.services.summary.GeneralImpl;
 import org.apache.commons.io.FileUtils;
