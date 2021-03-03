@@ -27,19 +27,28 @@ public class ScanCache {
      * @param projectName - The IDE project name. If this is an npm project, it is a full path to the directory containing the package.json.
      * @param basePath    - The directory for the cache.
      * @param logger      - The logger.
-     * @throws IOException in case of I/O problem in the paths.
+     * @throws IOException in case of an I/O problem in the paths.
      */
     public ScanCache(String projectName, Path basePath, Log logger) throws IOException {
-        this(projectName, basePath, logger, -1);
+        this(new TimeBasedCacheMap(), projectName, basePath, "XrayScanCache.json", logger);
     }
 
+    /**
+     * Construct VCS scan cache.
+     *
+     * @param projectName - The IDE project name. If this is an npm project, it is a full path to the directory containing the package.json.
+     * @param basePath    - The directory for the cache.
+     * @param logger      - The logger.
+     * @param maxCapacity - The cache capacity.
+     * @throws IOException in case of an I/O problem in the paths.
+     */
     public ScanCache(String projectName, Path basePath, Log logger, int maxCapacity) throws IOException {
-        if (maxCapacity == -1) {
-            scanCacheMap = new ScanCacheMap();
-        } else {
-            scanCacheMap = new ScanCacheMap(maxCapacity);
-        }
-        file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8)) + "XrayScanCache.json").toFile();
+        this(new LruScanCacheMap(maxCapacity), projectName, basePath, "VcsScanCache.json", logger);
+    }
+
+    private ScanCache(ScanCacheMap scanCacheMap, String projectName, Path basePath, String cacheFileName, Log logger) throws IOException {
+        this.scanCacheMap = scanCacheMap;
+        file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8)) + cacheFileName).toFile();
         logger.debug("Project cache path: " + file.getAbsolutePath());
         if (!file.exists()) {
             Files.createDirectories(basePath);
@@ -47,6 +56,7 @@ public class ScanCache {
         }
         scanCacheMap.read(file, logger);
     }
+
 
     public void write() throws IOException {
         scanCacheMap.write(file);

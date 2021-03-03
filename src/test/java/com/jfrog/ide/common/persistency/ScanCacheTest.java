@@ -1,7 +1,7 @@
 package com.jfrog.ide.common.persistency;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+
 import com.jfrog.xray.client.impl.services.summary.ArtifactImpl;
 import com.jfrog.xray.client.impl.services.summary.GeneralImpl;
 import com.jfrog.xray.client.services.summary.Artifact;
@@ -14,6 +14,7 @@ import org.testng.annotations.Test;
 import org.testng.collections.Maps;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -28,10 +29,9 @@ public class ScanCacheTest {
 
     private Path tempDir;
 
-    @SuppressWarnings("UnstableApiUsage")
     @BeforeMethod
-    public void setUp() {
-        tempDir = Files.createTempDir().toPath();
+    public void setUp() throws IOException {
+        tempDir = Files.createTempDirectory("ScanCacheTest");
         tempDir.toFile().deleteOnExit();
     }
 
@@ -115,7 +115,7 @@ public class ScanCacheTest {
             // Create ScanCacheObject
             ScanCacheObject scanCacheObject = new ScanCacheObject() {
                 @SuppressWarnings("unused")
-                int fuel = 50;
+                final int fuel = 50;
             };
 
             // Create artifacts map
@@ -123,7 +123,7 @@ public class ScanCacheTest {
             artifactsMap.put(artifactId, scanCacheObject);
 
             // Create ScanCacheMap with version -1
-            ScanCacheMap scanCacheMap = new ScanCacheMap();
+            ScanCacheMap scanCacheMap = new TimeBasedCacheMap();
             scanCacheMap.setVersion(-1);
             scanCacheMap.setArtifactsMap(artifactsMap);
 

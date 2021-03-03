@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @Getter
 @Setter
-class ScanCacheMap {
+abstract class ScanCacheMap {
 
     private static final int MAXIMUM_CAPACITY = 1 << 30;
     private static int CACHE_VERSION = 0;
@@ -40,13 +40,13 @@ class ScanCacheMap {
     @JsonProperty("version")
     private int version = CACHE_VERSION;
     @JsonProperty("artifactsMap")
-    private Map<String, ScanCacheObject> artifactsMap;
+    Map<String, ScanCacheObject> artifactsMap;
 
     ScanCacheMap() {
         artifactsMap = new HashMap<String, ScanCacheObject>() {
             @Override
             public ScanCacheObject put(String key, ScanCacheObject value) {
-                if (value.isInvalidated()) {
+                if (value.isExpired()) {
                     return null;
                 }
                 return super.put(key, value);
@@ -115,7 +115,7 @@ class ScanCacheMap {
      */
     void read(File file, Log logger) throws IOException {
         try {
-            ScanCacheMap scanCacheMap = objectMapper.readValue(file, ScanCacheMap.class);
+            ScanCacheMap scanCacheMap = objectMapper.readValue(file, getClass());
             if (scanCacheMap.getVersion() != version) {
                 logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
                 return;

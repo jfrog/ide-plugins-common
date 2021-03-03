@@ -1,6 +1,6 @@
 package com.jfrog.ide.common.vcs;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
@@ -45,12 +45,19 @@ public class VcsManagerBase {
             ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
                     new BuildArtifactsDownloader(buildArtifacts, dependenciesClient, indicator, count, total)};
             // Create consumer Runnables.
+            Multimap<String, DependencyTree> branchDependencyTreeItems = Multimaps.synchronizedSetMultimap(HashMultimap.create());
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                    new XrayScanBuildResultsDownloader(root)
+                    new XrayScanBuildResultsDownloader(branchDependencyTreeItems)
             };
             // Create the deployment executor.
             ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(logger, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
             deploymentExecutor.start();
+
+            branchDependencyTreeItems.asMap().forEach((branch, branchDependencyTrees) -> {
+                DependencyTree branchTree = new DependencyTree(branch);
+                branchDependencyTrees.forEach(branchTree::add);
+                root.add(branchTree);
+            });
         } catch (Exception exception) {
             logger.error("Failed to build VCS tree", exception);
         }

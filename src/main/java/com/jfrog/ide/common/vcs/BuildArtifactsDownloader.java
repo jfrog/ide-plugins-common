@@ -1,9 +1,12 @@
 package com.jfrog.ide.common.vcs;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
@@ -20,14 +23,15 @@ import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+import static com.jfrog.ide.common.utils.Utils.createMapper;
+import static org.apache.commons.lang3.ArrayUtils.isEmpty;
 
 /**
  * @author yahavi
@@ -52,44 +56,55 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
 
     @Override
     public void producerRun() throws InterruptedException {
-        ObjectMapper mapper = new ObjectMapper().configure(FAIL_ON_UNKNOWN_PROPERTIES, false).setSerializationInclusion(NON_NULL);
+        ObjectMapper mapper = createMapper();
         try {
             while (!buildArtifacts.isEmpty()) {
                 if (Thread.interrupted()) {
                     break;
                 }
                 AqlSearchResult.SearchEntry searchEntry = buildArtifacts.remove();
-                HttpEntity entity = null;
+//                URI uri = URI.create(client.getArtifactoryUrl()).resolve(BUILD_INFO_REPO).resolve(searchEntry.getPath()).resolve(searchEntry.getName());
                 String downloadUrl = client.getArtifactoryUrl() + BUILD_INFO_REPO + searchEntry.getPath() + "/" + searchEntry.getName();
+                HttpEntity entity = null;
                 try (CloseableHttpResponse response = client.downloadArtifact(downloadUrl)) {
                     entity = response.getEntity();
-                    Build build = mapper.readValue(response.getEntity().getContent(), Build.class);
-                    List<Vcs> vcsList = build.getVcs();
-                    if (CollectionUtils.isEmpty(vcsList)) {
-                        throw new IOException("Build '" + build.getName() + "/" + build.getNumber() + "' does not contain the branch VCS information");
-                    }
-                    GeneralInfo buildGeneralInfo = new GeneralInfo()
-                            .name(build.getName())
-                            .version(build.getNumber())
-                            .path(build.getUrl());
-                    DependencyTree DependencyTree = new DependencyTree(vcsList.get(0).getRevision());
-                    DependencyTree.setGeneralInfo(buildGeneralInfo);
-                    if (CollectionUtils.isNotEmpty(build.getModules())) {
-                        populateBuildModules(DependencyTree, build);
-                    }
-
-                    executor.put(DependencyTree);
-                    indicator.setFraction(count.incrementAndGet() / total);
+                    Build build = mapper.readValue(entity.getContent(), Build.class);
+                    executor.put(createVcsDependencyTree(build));
                 } finally {
                     EntityUtils.consumeQuietly(entity);
                 }
+                indicator.setFraction(count.incrementAndGet() / total);
+
             }
         } catch (IOException e) {
             throw new RuntimeException("Couldn't retrieve build information", e);
         }
     }
 
-    private void populateBuildModules(DependencyTree DependencyTree, Build build) {
+    VcsDependencyTree createVcsDependencyTree(Build build) throws IOException {
+        List<Vcs> vcsList = build.getVcs();
+        if (CollectionUtils.isEmpty(vcsList)) {
+            throw new IOException("Build '" + build.getName() + "/" + build.getNumber() + "' does not contain the branch VCS information");
+        }
+        return new VcsDependencyTree(createBuildDependencyTree(build), build.getVcs().get(0).getBranch());
+    }
+
+    private DependencyTree createBuildDependencyTree(Build build) {
+        GeneralInfo buildGeneralInfo = new GeneralInfo()
+                .name(build.getName())
+                .version(build.getNumber())
+                .path(build.getUrl());
+        DependencyTree dependencyTree = new DependencyTree(build.getVcs().get(0).getMessage()); // TODO - restore
+//        DependencyTree dependencyTree = new DependencyTree("Dummy commit message");
+
+        dependencyTree.setGeneralInfo(buildGeneralInfo);
+        if (CollectionUtils.isNotEmpty(build.getModules())) {
+            populateModulesDependencyTree(dependencyTree, build);
+        }
+        return dependencyTree;
+    }
+
+    private void populateModulesDependencyTree(DependencyTree DependencyTree, Build build) {
         for (Module module : build.getModules()) {
             GeneralInfo moduleGeneralInfo = new GeneralInfo()
                     .componentId(module.getId())
@@ -97,27 +112,50 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
             DependencyTree moduleNode = new DependencyTree(module.getId());
             moduleNode.setGeneralInfo(moduleGeneralInfo);
             if (CollectionUtils.isNotEmpty(module.getDependencies())) {
-                populateModuleDependencies(moduleNode, module);
+                populateDirectDependencies(moduleNode, module);
             }
             DependencyTree.add(moduleNode);
         }
     }
 
-    private void populateModuleDependencies(DependencyTree moduleNode, Module module) {
+    private void populateDirectDependencies(DependencyTree moduleNode, Module module) {
+        Set<Dependency> directDependencies = Sets.newHashSet();
+        Multimap<String, Dependency> parentToChildren = HashMultimap.create();
         for (Dependency dependency : module.getDependencies()) {
-            GeneralInfo dependencyGeneralInfo = new GeneralInfo()
-                    .componentId(dependency.getId())
-                    .pkgType(dependency.getType());
-            DependencyTree dependencyTree = new DependencyTree(dependency.getId());
-            dependencyTree.setGeneralInfo(dependencyGeneralInfo);
-            Set<String> scopes = dependency.getScopes();
-            if (scopes != null) {
-                dependencyTree.setScopes(scopes.stream().map(Scope::new).collect(Collectors.toSet()));
-            } else {
-                dependencyTree.setScopes(Sets.newHashSet(new Scope()));
+            String[][] requestedBy = dependency.getRequestedBy();
+            if (isEmpty(requestedBy) || isEmpty(requestedBy[0])) {
+                directDependencies.add(dependency);
+                continue;
             }
-            dependencyTree.setLicenses(Sets.newHashSet(new License()));
-            moduleNode.add(dependencyTree);
+
+            for (String[] parent : requestedBy) {
+                String directParent = parent[0];
+                if (StringUtils.isBlank(requestedBy[0][0]) || StringUtils.equals(requestedBy[0][0], module.getId())) {
+                    directDependencies.add(dependency);
+                } else {
+                    parentToChildren.put(directParent, dependency);
+                }
+            }
+        }
+
+        for (Dependency directDependency : directDependencies) {
+            moduleNode.add(populateTransitiveDependencies(directDependency, parentToChildren));
         }
     }
+
+    private DependencyTree populateTransitiveDependencies(Dependency dependency, Multimap<String, Dependency> parentToChildren) {
+        GeneralInfo dependencyGeneralInfo = new GeneralInfo().componentId(dependency.getId()).pkgType(dependency.getType());
+        DependencyTree dependencyTree = new DependencyTree(dependency.getId());
+        dependencyTree.setGeneralInfo(dependencyGeneralInfo);
+        Collection<String> scopes = CollectionUtils.emptyIfNull(dependency.getScopes());
+        dependencyTree.setScopes(scopes.stream().map(Scope::new).collect(Collectors.toSet()));
+        dependencyTree.setLicenses(Sets.newHashSet(new License()));
+
+        for (Dependency child : parentToChildren.get(dependency.getId())) {
+            dependencyTree.add(populateTransitiveDependencies(child, parentToChildren));
+        }
+        return dependencyTree;
+    }
+
+
 }

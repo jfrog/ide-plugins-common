@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.jfrog.xray.client.services.summary.General;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
@@ -15,11 +16,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+
 /**
  * @author yahavi
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class Utils {
+
+    public static ObjectMapper createMapper() {
+        return new ObjectMapper().configure(FAIL_ON_UNKNOWN_PROPERTIES, false).setSerializationInclusion(NON_NULL);
+    }
 
     public static String createLicenseString(License license) {
         if (license.isFullNameEmpty() || StringUtils.isBlank(license.getName())) {

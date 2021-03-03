@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.vcs;
 
+import com.google.common.collect.Multimap;
 import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
@@ -10,12 +11,12 @@ import org.jfrog.build.extractor.scan.DependencyTree;
  * @author yahavi
  **/
 public class XrayScanBuildResultsDownloader extends ConsumerRunnableBase {
+    private final Multimap<String, DependencyTree> branchDependencyTrees;
     private ProducerConsumerExecutor executor;
-    private final DependencyTree root;
     private Log log;
 
-    public XrayScanBuildResultsDownloader(DependencyTree root) {
-        this.root = root;
+    public XrayScanBuildResultsDownloader(Multimap<String, DependencyTree> branchDependencyTrees) {
+        this.branchDependencyTrees = branchDependencyTrees;
     }
 
     @Override
@@ -28,10 +29,8 @@ public class XrayScanBuildResultsDownloader extends ConsumerRunnableBase {
                     executor.put(item);
                     break;
                 }
-                DependencyTree branchTree = (DependencyTree) item;
-                synchronized (root) {
-                    root.add(branchTree);
-                }
+                VcsDependencyTree branchTree = (VcsDependencyTree) item;
+                branchDependencyTrees.put(branchTree.getBranch(), branchTree.getBranchDependencyTree());
             } catch (InterruptedException e) {
                 return;
             }

@@ -35,12 +35,12 @@ class ScanCacheObject implements Comparable<ScanCacheObject> {
     }
 
     /**
-     * Return true iff this artifact is older than 1 week.
+     * Return true iff this artifact is older than 1 week. Relevant only for the time based cache.
      *
      * @return true iff this artifact is older than 1 week.
      */
     @JsonIgnore
-    boolean isInvalidated() {
+    boolean isExpired() {
         return System.currentTimeMillis() - lastUpdated > EXPIRATION;
     }
 
