@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.vcs;
+package com.jfrog.ide.common.ci;
 
 /**
  * @author yahavi

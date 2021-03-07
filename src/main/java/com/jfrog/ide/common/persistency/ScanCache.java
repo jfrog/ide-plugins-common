@@ -34,7 +34,7 @@ public class ScanCache {
     }
 
     /**
-     * Construct VCS scan cache.
+     * Construct CI scan cache.
      *
      * @param projectName - The IDE project name. If this is an npm project, it is a full path to the directory containing the package.json.
      * @param basePath    - The directory for the cache.
@@ -43,7 +43,7 @@ public class ScanCache {
      * @throws IOException in case of an I/O problem in the paths.
      */
     public ScanCache(String projectName, Path basePath, Log logger, int maxCapacity) throws IOException {
-        this(new LruScanCacheMap(maxCapacity), projectName, basePath, "VcsScanCache.json", logger);
+        this(new LruScanCacheMap(maxCapacity), projectName, basePath, "CiScanCache.json", logger);
     }
 
     private ScanCache(ScanCacheMap scanCacheMap, String projectName, Path basePath, String cacheFileName, Log logger) throws IOException {

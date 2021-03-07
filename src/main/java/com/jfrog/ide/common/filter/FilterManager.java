@@ -19,6 +19,7 @@ public class FilterManager {
 
     private final Map<Severity, Boolean> selectedSeverities = Maps.newTreeMap(Collections.reverseOrder());
     private final Map<License, Boolean> selectedLicenses = Maps.newHashMap();
+    private final Map<String, Boolean> selectedBranches = Maps.newHashMap();
     private final Map<Scope, Boolean> selectedScopes = Maps.newHashMap();
 
     protected FilterManager() {
@@ -46,6 +47,12 @@ public class FilterManager {
         return this.selectedLicenses;
     }
 
+
+    @SuppressWarnings("unused")
+    public Map<String, Boolean> getSelectedBranches() {
+        return this.selectedBranches;
+    }
+
     @SuppressWarnings("unused")
     public Map<Scope, Boolean> getSelectedScopes() {
         return this.selectedScopes;
@@ -58,6 +65,10 @@ public class FilterManager {
      */
     public void addLicenses(Set<License> scanLicenses) {
         scanLicenses.forEach(license -> selectedLicenses.putIfAbsent(license, true));
+    }
+
+    public void addBranches(Set<String> branches) {
+        branches.forEach(branch -> selectedBranches.putIfAbsent(branch, false));
     }
 
     /**

@@ -1,6 +1,9 @@
-package com.jfrog.ide.common.vcs;
+package com.jfrog.ide.common.ci;
 
-import com.google.common.collect.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
@@ -28,11 +31,11 @@ import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL
 /**
  * @author yahavi
  **/
-public class VcsManagerBase {
+public class CiManagerBase {
     protected DependencyTree root = new DependencyTree();
 
-    public void buildVcsTree(String buildsPattern, ArtifactoryDependenciesClientBuilder dependenciesClientBuilder,
-                             String projectPath, Log logger, ProgressIndicator indicator) {
+    public void buildCiTree(String buildsPattern, ArtifactoryDependenciesClientBuilder dependenciesClientBuilder,
+                            String projectPath, Log logger, ProgressIndicator indicator) {
         root.setGeneralInfo(new GeneralInfo().path(projectPath));
         try (ArtifactoryDependenciesClient dependenciesClient = dependenciesClientBuilder.build()) {
             AqlSearchResult searchResult = dependenciesClient.searchArtifactsByAql(createAql(buildsPattern));
@@ -47,19 +50,14 @@ public class VcsManagerBase {
             // Create consumer Runnables.
             Multimap<String, DependencyTree> branchDependencyTreeItems = Multimaps.synchronizedSetMultimap(HashMultimap.create());
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                    new XrayScanBuildResultsDownloader(branchDependencyTreeItems)
+                    new XrayScanBuildResultsDownloader(root)
             };
             // Create the deployment executor.
             ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(logger, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
             deploymentExecutor.start();
 
-            branchDependencyTreeItems.asMap().forEach((branch, branchDependencyTrees) -> {
-                DependencyTree branchTree = new DependencyTree(branch);
-                branchDependencyTrees.forEach(branchTree::add);
-                root.add(branchTree);
-            });
         } catch (Exception exception) {
-            logger.error("Failed to build VCS tree", exception);
+            logger.error("Failed to build CI tree", exception);
         }
     }
 

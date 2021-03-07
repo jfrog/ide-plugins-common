@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.vcs;
+package com.jfrog.ide.common.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
@@ -69,7 +69,10 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                 try (CloseableHttpResponse response = client.downloadArtifact(downloadUrl)) {
                     entity = response.getEntity();
                     Build build = mapper.readValue(entity.getContent(), Build.class);
-                    executor.put(createVcsDependencyTree(build));
+                    DependencyTree buildDependencyTree = createBuildDependencyTree(build);
+                    if (buildDependencyTree != null) {
+                        executor.put(buildDependencyTree);
+                    }
                 } finally {
                     EntityUtils.consumeQuietly(entity);
                 }
@@ -81,22 +84,20 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
         }
     }
 
-    VcsDependencyTree createVcsDependencyTree(Build build) throws IOException {
+    DependencyTree createBuildDependencyTree(Build build) {
         List<Vcs> vcsList = build.getVcs();
         if (CollectionUtils.isEmpty(vcsList)) {
-            throw new IOException("Build '" + build.getName() + "/" + build.getNumber() + "' does not contain the branch VCS information");
+            log.warn("Build '" + build.getName() + "/" + build.getNumber() + "' does not contain the branch VCS information");
+            return null;
         }
-        return new VcsDependencyTree(createBuildDependencyTree(build), build.getVcs().get(0).getBranch());
-    }
 
-    private DependencyTree createBuildDependencyTree(Build build) {
         GeneralInfo buildGeneralInfo = new GeneralInfo()
                 .name(build.getName())
                 .version(build.getNumber())
                 .path(build.getUrl());
-        DependencyTree dependencyTree = new DependencyTree(build.getVcs().get(0).getMessage()); // TODO - restore
-//        DependencyTree dependencyTree = new DependencyTree("Dummy commit message");
-
+//        DependencyTree dependencyTree = new DependencyTree(build.getVcs().get(0).getMessage()); // TODO - restore
+        DependencyTree dependencyTree = new DependencyTree(build.getName() + "/" + build.getNumber());
+        dependencyTree.setScopes(Sets.newHashSet(new Scope()));
         dependencyTree.setGeneralInfo(buildGeneralInfo);
         if (CollectionUtils.isNotEmpty(build.getModules())) {
             populateModulesDependencyTree(dependencyTree, build);

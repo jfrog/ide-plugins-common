@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.vcs;
+package com.jfrog.ide.common.ci;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import org.jfrog.build.extractor.scan.DependencyTree;
 @Getter
 @Setter
 @AllArgsConstructor
-public class VcsDependencyTree implements ProducerConsumerItem {
+public class CiDependencyTree implements ProducerConsumerItem {
     private DependencyTree branchDependencyTree;
     private String branch;
 }

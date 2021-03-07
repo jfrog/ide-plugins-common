@@ -1,11 +1,11 @@
-package com.jfrog.ide.common.vcs;
+package com.jfrog.ide.common.ci;
 
 import java.util.List;
 
 /**
  * @author yahavi
  **/
-public class VcsArtifactsResults {
+public class CiArtifactsResults {
     private List<Results> results;
 
     public List<Results> getResults() {
