@@ -3,21 +3,22 @@ package com.jfrog.ide.common.scan;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
-import com.jfrog.ide.common.filter.FilterManager;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.ide.common.utils.Constants;
 import com.jfrog.ide.common.utils.XrayConnectionUtils;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.ComponentsFactory;
-import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.summary.ComponentDetail;
 import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.summary.SummaryResponse;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.*;
+import org.jfrog.build.extractor.scan.Artifact;
+import org.jfrog.build.extractor.scan.DependencyTree;
+import org.jfrog.build.extractor.scan.License;
+import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+
+import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 
 /**
  * Base class for the scan managers.
@@ -110,18 +113,6 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Return filtered issues according to the selected component and user filters.
-     *
-     * @param selectedNodes - Selected tree nodes that the user chose from the ui.
-     * @return filtered issues according to the selected component and user filters.
-     */
-    public Set<Issue> getFilteredScanIssues(FilterManager filterManager, List<DependencyTree> selectedNodes) {
-        Set<Issue> filteredIssues = Sets.newHashSet();
-        selectedNodes.forEach(node -> filteredIssues.addAll(filterManager.filterIssues(node.getIssues())));
-        return filteredIssues;
-    }
-
-    /**
      * @param componentId artifact component ID.
      * @return {@link Artifact} according to the component ID.
      */
@@ -164,17 +155,7 @@ public abstract class ScanManagerBase {
 
         try {
             // Create Xray client and check version
-            Xray xrayClient = (Xray) new XrayClientBuilder()
-                    .setUrl(serverConfig.getXrayUrl())
-                    .setUserName(serverConfig.getUsername())
-                    .setPassword(serverConfig.getPassword())
-                    .setInsecureTls(serverConfig.isInsecureTls())
-                    .setSslContext(serverConfig.getSslContext())
-                    .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getXrayUrl()))
-                    .setConnectionRetries(serverConfig.getConnectionRetries())
-                    .setTimeout(serverConfig.getConnectionTimeout())
-                    .setLog(getLog())
-                    .build();
+            Xray xrayClient = createXrayClientBuilder(serverConfig, getLog()).build();
             if (!isXrayVersionSupported(xrayClient)) {
                 return;
             }

@@ -1,10 +1,10 @@
 package com.jfrog.ide.common.ci;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
+import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
+import com.jfrog.ide.common.persistency.ScanCache;
+import com.jfrog.xray.client.impl.XrayClientBuilder;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
@@ -18,6 +18,11 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,19 +31,37 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.jfrog.ide.common.utils.XrayConnectionUtils.createDependenciesClientBuilder;
+import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
 
 /**
  * @author yahavi
  **/
 public class CiManagerBase {
+    public static final String DEPENDENCIES_NODE = "dependencies";
+    public static final String ARTIFACTS_NODE = "artifacts";
     protected DependencyTree root = new DependencyTree();
+    private ServerConfig serverConfig;
+    private ScanCache scanCache;
+    private Log log;
 
-    public void buildCiTree(String buildsPattern, ArtifactoryDependenciesClientBuilder dependenciesClientBuilder,
-                            String projectPath, Log logger, ProgressIndicator indicator) {
+    public CiManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig) throws IOException {
+        this.scanCache = new ScanCache(projectName, cachePath, log);
+        this.serverConfig = serverConfig;
+        this.log = log;
+    }
+
+    public void buildCiTree(String buildsPattern, String projectPath, ProgressIndicator indicator) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        root = new DependencyTree();
         root.setGeneralInfo(new GeneralInfo().path(projectPath));
+        ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
+        XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
         try (ArtifactoryDependenciesClient dependenciesClient = dependenciesClientBuilder.build()) {
             AqlSearchResult searchResult = dependenciesClient.searchArtifactsByAql(createAql(buildsPattern));
+            if (searchResult.getResults().isEmpty()) {
+                return;
+            }
             Queue<AqlSearchResult.SearchEntry> buildArtifacts = new ArrayBlockingQueue<>(searchResult.getResults().size(), false);
             buildArtifacts.addAll(searchResult.getResults());
 
@@ -46,18 +69,17 @@ public class CiManagerBase {
             double total = buildArtifacts.size();
             // Create producer Runnables.
             ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClient, indicator, count, total)};
+                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, indicator, count, total)};
             // Create consumer Runnables.
-            Multimap<String, DependencyTree> branchDependencyTreeItems = Multimaps.synchronizedSetMultimap(HashMultimap.create());
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                    new XrayScanBuildResultsDownloader(root)
+                    new XrayScanBuildResultsDownloader(root, xrayClientBuilder, log)
             };
             // Create the deployment executor.
-            ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(logger, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
+            ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
             deploymentExecutor.start();
 
         } catch (Exception exception) {
-            logger.error("Failed to build CI tree", exception);
+            log.error("Failed to build CI tree", exception);
         }
     }
 

@@ -1,13 +1,14 @@
 package com.jfrog.ide.common.filter;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jfrog.build.extractor.scan.*;
 
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -18,8 +19,8 @@ import java.util.stream.Collectors;
 public class FilterManager {
 
     private final Map<Severity, Boolean> selectedSeverities = Maps.newTreeMap(Collections.reverseOrder());
+    private List<Pair<String, Boolean>> selectableBuilds = Lists.newArrayList();
     private final Map<License, Boolean> selectedLicenses = Maps.newHashMap();
-    private final Map<String, Boolean> selectedBranches = Maps.newHashMap();
     private final Map<Scope, Boolean> selectedScopes = Maps.newHashMap();
 
     protected FilterManager() {
@@ -42,15 +43,14 @@ public class FilterManager {
         return this.selectedSeverities;
     }
 
+    @SuppressWarnings("unused")
+    public List<Pair<String, Boolean>> getSelectableBuilds() {
+        return this.selectableBuilds;
+    }
+
     @SuppressWarnings({"unused"})
     public Map<License, Boolean> getSelectedLicenses() {
         return this.selectedLicenses;
-    }
-
-
-    @SuppressWarnings("unused")
-    public Map<String, Boolean> getSelectedBranches() {
-        return this.selectedBranches;
     }
 
     @SuppressWarnings("unused")
@@ -67,8 +67,8 @@ public class FilterManager {
         scanLicenses.forEach(license -> selectedLicenses.putIfAbsent(license, true));
     }
 
-    public void addBranches(Set<String> branches) {
-        branches.forEach(branch -> selectedBranches.putIfAbsent(branch, false));
+    public void addBuild(String build) {
+        selectableBuilds.add(MutablePair.of(build, false));
     }
 
     /**
@@ -85,13 +85,17 @@ public class FilterManager {
      *
      * @param root - The root dependency tree node.
      */
-    public void collectAllLicensesAndScopes(DependencyTree root) {
+    public void collectsFiltersInformation(DependencyTree root) {
         Enumeration<?> enumeration = root.breadthFirstEnumeration();
         while (enumeration.hasMoreElements()) {
             DependencyTree child = (DependencyTree) enumeration.nextElement();
             addLicenses(child.getLicenses());
             addScopes(child.getScopes());
         }
+    }
+
+    protected void clearBuilds() {
+        this.selectableBuilds = Lists.newArrayList();
     }
 
     /**
@@ -152,6 +156,18 @@ public class FilterManager {
                 .stream()
                 .filter(this::isSeveritySelected)
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * Return filtered issues according to the selected component and user filters.
+     *
+     * @param selectedNodes - Selected tree nodes that the user chose from the ui.
+     * @return filtered issues according to the selected component and user filters.
+     */
+    public Set<Issue> getFilteredScanIssues(List<DependencyTree> selectedNodes) {
+        Set<Issue> filteredIssues = Sets.newHashSet();
+        selectedNodes.forEach(node -> filteredIssues.addAll(filterIssues(node.getIssues())));
+        return filteredIssues;
     }
 
     /**

@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.npm.NpmDriver;
 import org.jfrog.build.extractor.npm.extractor.NpmDependencyTree;
+import org.jfrog.build.extractor.npm.types.NpmScope;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 
@@ -43,7 +44,7 @@ public class NpmTreeBuilder {
             return null;
         }
         JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev", "--prod"));
-        DependencyTree rootNode = NpmDependencyTree.createDependencyTree(npmLsResults);
+        DependencyTree rootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.PRODUCTION); // TODO
         JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
         JsonNode nameNode = packageJson.get("name");
         String packageName = getPackageName(logger, packageJson, npmLsResults);

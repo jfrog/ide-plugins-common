@@ -30,7 +30,11 @@ public class ProjectsMap extends TreeMap<ProjectsMap.ProjectKey, DependencyTree>
 
     @SuppressWarnings("WeakerAccess")
     public static ProjectKey createKey(String projectName, GeneralInfo generalInfo) {
-        return new ProjectKey(projectName, generalInfo.getPath());
+        return createKey(projectName, generalInfo.getPath());
+    }
+
+    public static ProjectKey createKey(String projectName, String path) {
+        return new ProjectKey(projectName, path);
     }
 
     /**

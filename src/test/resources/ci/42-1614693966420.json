@@ -14,6 +14,7 @@
   "durationMillis": 0,
   "artifactoryPrincipal": "yahavi",
   "artifactoryPluginVersion": "jfrog-cli-go/1.44.0",
+  "url": "https://ecosysjfrog.jfrog.io/ui/pipelines/myPipelines/default/test_cli/460/Artifactory?branch=dev",
   "vcs": [
     {
       "revision": "9ec95ff3a9cf92d587bf8fa4f6f4d31b46f75d82",
@@ -22,6 +23,9 @@
       "message": "Set oss.jfrog.org as the maven plugin example repo (#256)"
     }
   ],
+  "properties": {
+    "buildInfo.env.JFROG_BUILD_RESULTS": "PASS"
+  },
   "modules": [
     {
       "properties": {},
@@ -31,115 +35,226 @@
           "sha1": "54c50de04ee42695562925ac566588291be7e9ea",
           "md5": "bb985faec9144693bd4c4b3a1e10d3d2",
           "id": "etag:1.5.1",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "ef7592a30b1c5e05a78e96926df2e6b36b5544e7",
           "md5": "35c1ce8da6e89856a0dc03ead02e710a",
           "id": "debug:4.0.0",
-          "scopes": ["development"],
-          "requestedBy": [["npm-example:0.0.3"]]
+          "scopes": [
+            "development"
+          ],
+          "requestedBy": [
+            [
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "b433b4724e71fd8551d9885174851c5fc377e2c9",
           "md5": "3cc16e77b4704308b9290ab85d99d366",
           "id": "destroy:1.0.3",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "6872823535c692e2c2a0103826afd82c2e0ff175",
           "md5": "386b93c376477febdf7517c81d9af6a8",
           "id": "range-parser:1.0.3",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "ce8ab1b5ee8fbee2bfa3b633cab93d366b63418e",
           "md5": "6ca74b085877093c3afe6d55ea1bede1",
           "id": "debug:2.1.3",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "80aec64c9d6d97e65cc2a9caa93c0aa6abf73aaa",
           "md5": "75b59d28271e0b7a6625ae7ebfb02a43",
           "id": "depd:1.0.1",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "2f984b703934c628b72b72d70557b75ca906ea6c",
           "md5": "5983ab428937bea1e36fa74c893c84de",
           "id": "send:0.10.0",
-          "scopes": ["production"],
-          "requestedBy": [["npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "181a286ead397a39a92857cfb1d43052e356bff0",
           "md5": "c05fa5b391682967722f16601cf4e4d6",
           "id": "escape-html:1.0.1",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "d89c2124c6fdc1353d65a8b77bf1aac4b193708c",
           "md5": "eaf30122dc52dbfa7f0f6b8c51342dbc",
           "id": "ms:0.6.2",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "5d9c8fb77a245cd5eca291e5d2d005334bab0082",
           "md5": "c92619b4ba08176d5ee1ccddf89d4513",
           "id": "crc:3.2.1",
-          "scopes": ["production"],
-          "requestedBy": [["etag:1.5.1", "send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "etag:1.5.1",
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "865be94c2e7397ad8a57da6a633a6e2f30798b83",
           "md5": "6f7bd5c9c5bedaea4b3a1f038cde5b2b",
           "id": "ms:0.7.0",
-          "scopes": ["production"],
-          "requestedBy": [["debug:2.1.3", "send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "debug:2.1.3",
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "0c539f09291e8ffadde0c8a25850fb2cedc7022d",
           "md5": "8a14a79730be0c75464278d6771ba4c2",
           "id": "on-finished:2.1.0",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "574c8138ce1d2b5861f0b44579dbadd60c6615b2",
           "md5": "a50e4bf82f754914316bfca3dfbcf352",
           "id": "ms:2.1.3",
-          "scopes": ["development"],
-          "requestedBy": [["debug:4.0.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "development"
+          ],
+          "requestedBy": [
+            [
+              "debug:4.0.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "3582499206c9723714190edd74b4604feb4a614c",
           "md5": "fc33858c867c696922690a5ed718dffa",
           "id": "fresh:0.2.4",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         },
         {
           "sha1": "8c9b212898d8cd9f1a9436650ce7be202c9e9ff0",
           "md5": "eb434760da0acd7deaf83fac43d4f8fb",
           "id": "ee-first:1.0.5",
-          "scopes": ["production"],
+          "scopes": [
+            "production"
+          ],
           "requestedBy": [
-            ["on-finished:2.1.0", "send:0.10.0", "npm-example:0.0.3"]
+            [
+              "on-finished:2.1.0",
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
           ]
         },
         {
           "sha1": "58203eed86e3a5ef17aed2b7d9ebd47f0a60dd10",
           "md5": "a96a25013bf4693868ceb6d75983174d",
           "id": "mime:1.2.11",
-          "scopes": ["production"],
-          "requestedBy": [["send:0.10.0", "npm-example:0.0.3"]]
+          "scopes": [
+            "production"
+          ],
+          "requestedBy": [
+            [
+              "send:0.10.0",
+              "npm-example:0.0.3"
+            ]
+          ]
         }
       ]
     }

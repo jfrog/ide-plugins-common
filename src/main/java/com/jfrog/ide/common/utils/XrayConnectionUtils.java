@@ -1,14 +1,24 @@
 package com.jfrog.ide.common.utils;
 
+import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.xray.client.Xray;
+import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.impl.services.summary.ComponentsImpl;
 import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.system.Version;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpResponseException;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.jfrog.build.api.util.Log;
+import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
 import static com.jfrog.ide.common.utils.Constants.MINIMAL_XRAY_VERSION_SUPPORTED;
 
@@ -59,5 +69,31 @@ public class XrayConnectionUtils {
             }
         }
         return Pair.of(true, "");
+    }
+
+    public static XrayClientBuilder createXrayClientBuilder(ServerConfig serverConfig, Log logger) {
+        return (XrayClientBuilder) new XrayClientBuilder()
+                .setUrl(serverConfig.getXrayUrl())
+                .setUserName(serverConfig.getUsername())
+                .setPassword(serverConfig.getPassword())
+                .setInsecureTls(serverConfig.isInsecureTls())
+                .setSslContext(serverConfig.getSslContext())
+                .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getXrayUrl()))
+                .setConnectionRetries(serverConfig.getConnectionRetries())
+                .setTimeout(serverConfig.getConnectionTimeout())
+                .setLog(logger);
+    }
+
+    public static ArtifactoryDependenciesClientBuilder createDependenciesClientBuilder(ServerConfig serverConfig, Log logger) throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+        SSLContext sslContext = serverConfig.isInsecureTls() ?
+                SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
+                serverConfig.getSslContext();
+        return new ArtifactoryDependenciesClientBuilder()
+                .setArtifactoryUrl(serverConfig.getArtifactoryUrl())
+                .setUsername(serverConfig.getUsername())
+                .setPassword(serverConfig.getPassword())
+                .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()))
+                .setSslContext(sslContext)
+                .setLog(logger);
     }
 }
