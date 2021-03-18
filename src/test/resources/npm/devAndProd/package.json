@@ -1,0 +1,14 @@
+{
+  "name": "package-name4",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "progress": "2.0.3"
+  },
+  "devDependencies": {
+    "progress": "2.0.3"
+  }
+}
