@@ -1,9 +1,11 @@
 package com.jfrog.ide.common.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.utils.Sets;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.Vcs;
+import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.Test;
@@ -13,8 +15,7 @@ import java.io.InputStream;
 import java.text.ParseException;
 
 import static com.jfrog.ide.common.utils.Utils.createMapper;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.*;
 
 /**
  * @author yahavi
@@ -24,26 +25,27 @@ public class BuildArtifactsDownloaderTest {
 
     @Test
     public void testCreateBuildDependencyTree() throws IOException, ParseException {
-        try (InputStream io = getClass().getResourceAsStream("/ci/42-1614693966420.json")) {
+        try (InputStream io = getClass().getResourceAsStream("/ci/artifactory-build.json")) {
             Build build = mapper.readValue(io, Build.class);
             assertNotNull(build);
 
-            BuildArtifactsDownloader buildArtifactsDownloader = new BuildArtifactsDownloader(null, null, null, null, 0);
+            BuildArtifactsDownloader buildArtifactsDownloader = new BuildArtifactsDownloader(null, null, null, null, 0, new NullLog());
             DependencyTree actualBuildDependencyTree = buildArtifactsDownloader.createBuildDependencyTree(build);
 
             checkBuildInformation(actualBuildDependencyTree);
             DependencyTree actualModuleTree = checkAndGetModuleNode(actualBuildDependencyTree);
-            DependencyTree directDependencyTree = checkAndGetDirectDependencyNode(actualModuleTree);
+            checkArtifactsNode(actualModuleTree);
+            DependencyTree directDependencyTree = checkAndGetDirectDependenciesNode(actualModuleTree);
             checkAndGetTransitiveDependencyNode(directDependencyTree);
         }
     }
 
     private void checkBuildInformation(DependencyTree actualBuildDependencyTree) {
-        String expectedBuildName = "npm-build";
-        String expectedBuildNumber = "42";
+        String expectedBuildName = "maven-build";
+        String expectedBuildNumber = "1";
 
         assertEquals(actualBuildDependencyTree.getUserObject(), expectedBuildName + "/" + expectedBuildNumber);
-        assertEquals(actualBuildDependencyTree.getChildren().size(), 1);
+        assertEquals(actualBuildDependencyTree.getChildren().size(), 4);
 
         // Check general info
         BuildGeneralInfo buildGeneralInfo = (BuildGeneralInfo) actualBuildDependencyTree.getGeneralInfo();
@@ -51,8 +53,8 @@ public class BuildArtifactsDownloaderTest {
         assertEquals(buildGeneralInfo.getName(), expectedBuildName);
         assertEquals(buildGeneralInfo.getVersion(), expectedBuildNumber);
         assertEquals(buildGeneralInfo.getStatus(), BuildGeneralInfo.Status.PASSED);
-        assertEquals(buildGeneralInfo.getStarted().getTime(), 1614693966420L);
-        assertEquals(buildGeneralInfo.getPath(), "https://ecosysjfrog.jfrog.io/ui/pipelines/myPipelines/default/test_cli/460/Artifactory?branch=dev");
+        assertEquals(buildGeneralInfo.getStarted().getTime(), 1615993718989L);
+        assertEquals(buildGeneralInfo.getPath(), "https://bob.jfrog.io/ui/pipelines/myPipelines/default/maven_build/482/StepName");
 
         // Check VCS
         Vcs vcs = buildGeneralInfo.getVcs();
@@ -63,38 +65,44 @@ public class BuildArtifactsDownloaderTest {
     }
 
     private DependencyTree checkAndGetModuleNode(DependencyTree actualCommitTree) {
-        String expectedModuleId = "npm-example:0.0.3";
+        String expectedModuleId = "org.jfrog.test:multi1:3.7-SNAPSHOT";
 
-        DependencyTree actualModuleTree = actualCommitTree.getChildren().get(0);
-        assertEquals(actualModuleTree.getUserObject(), expectedModuleId);
+        DependencyTree actualModuleTree = getAndAssertChild(actualCommitTree, expectedModuleId);
         assertEquals(actualModuleTree.getGeneralInfo().getComponentId(), expectedModuleId);
         assertEquals(actualModuleTree.getChildren().size(), 2);
 
         return actualModuleTree;
     }
 
-    private DependencyTree checkAndGetDirectDependencyNode(DependencyTree actualModule) {
-        String expectedDirectDependency = "send:0.10.0";
+    private void checkArtifactsNode(DependencyTree actualModule) {
+        DependencyTree dependenciesNode = getAndAssertChild(actualModule, CiManagerBase.ARTIFACTS_NODE);
+        assertEquals(CollectionUtils.size(dependenciesNode.getChildren()), 4);
+        getAndAssertChild(dependenciesNode, "multi1-3.7-SNAPSHOT.jar");
+    }
 
-        DependencyTree actualDirectDependency = actualModule.getChildren().stream()
-                .filter(node -> expectedDirectDependency.equals(node.getUserObject()))
-                .findAny()
-                .orElse(null);
-        assertNotNull(actualDirectDependency, "Couldn't find direct dependency '" + expectedDirectDependency + "' between " + actualModule.getChildren());
-        assertEquals(actualDirectDependency.getScopes(), Sets.newHashSet(new Scope("Production")));
-        assertEquals(actualDirectDependency.getChildren().size(), 10);
+    private DependencyTree checkAndGetDirectDependenciesNode(DependencyTree actualModule) {
+        DependencyTree dependenciesNode = getAndAssertChild(actualModule, CiManagerBase.DEPENDENCIES_NODE);
+        DependencyTree actualDirectDependency = getAndAssertChild(dependenciesNode, "org.apache.commons:commons-email:1.1");
+        assertEquals(actualDirectDependency.getScopes(), Sets.newHashSet(new Scope("Compile")));
+        assertEquals(actualDirectDependency.getChildren().size(), 2);
 
         return actualDirectDependency;
     }
 
     private void checkAndGetTransitiveDependencyNode(DependencyTree actualDirectDependency) {
-        DependencyTree actualTransitiveDependency = actualDirectDependency.getChildren().stream()
-                .filter(node -> "etag:1.5.1".equals(node.getUserObject()))
+        DependencyTree actualTransitiveDependency = getAndAssertChild(actualDirectDependency, "javax.mail:mail:1.4");
+        assertEquals(actualTransitiveDependency.getScopes(), Sets.newHashSet(new Scope("Compile")));
+        assertTrue(CollectionUtils.isEmpty(actualTransitiveDependency.getChildren()));
+    }
+
+    private DependencyTree getAndAssertChild(DependencyTree node, String childName) {
+        DependencyTree childNode = node.getChildren().stream()
+                .filter(child -> childName.equals(child.getUserObject()))
                 .findAny()
                 .orElse(null);
-        assertNotNull(actualTransitiveDependency, "Couldn't find direct dependency '" + actualTransitiveDependency + "' between " + actualDirectDependency.getChildren());
-        assertEquals(actualTransitiveDependency.getScopes(), Sets.newHashSet(new Scope("Production")));
-        assertEquals(actualTransitiveDependency.getChildren().size(), 1);
-        assertEquals(actualTransitiveDependency.getChildAt(0).toString(), "crc:3.2.1");
+        assertNotNull(childNode, "Couldn't find node '" + childName + "' between " + node + ".");
+        return childNode;
     }
 }
+
+

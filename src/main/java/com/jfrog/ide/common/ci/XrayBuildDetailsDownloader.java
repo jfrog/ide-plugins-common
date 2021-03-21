@@ -29,13 +29,13 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 /**
  * @author yahavi
  **/
-public class XrayScanBuildResultsDownloader extends ConsumerRunnableBase {
+public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
     private final XrayClientBuilder xrayClientBuilder;
     private ProducerConsumerExecutor executor;
     private final DependencyTree root;
     private Log log;
 
-    public XrayScanBuildResultsDownloader(DependencyTree root, XrayClientBuilder xrayClientBuilder, Log log) {
+    public XrayBuildDetailsDownloader(DependencyTree root, XrayClientBuilder xrayClientBuilder, Log log) {
         this.xrayClientBuilder = xrayClientBuilder;
         this.root = root;
         this.log = log;
@@ -80,7 +80,7 @@ public class XrayScanBuildResultsDownloader extends ConsumerRunnableBase {
                 .forEach(err -> log.error(err.getError() + "/n" + err.getIdentifier()));
     }
 
-    private void populateBuildDependencyTree(DependencyTree buildDependencyTree, DetailsResponse response) {
+    void populateBuildDependencyTree(DependencyTree buildDependencyTree, DetailsResponse response) {
         Map<String, IssuesAndLicensesPair> artifactIssuesAndLicenses = Maps.newHashMap();
         Map<String, String> sha1ToSha256 = Maps.newHashMap();
         Map<String, Artifact> sha1ToComponent = Maps.newHashMap();

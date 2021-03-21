@@ -12,6 +12,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.jfrog.build.api.*;
 import org.jfrog.build.api.search.AqlSearchResult;
+import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
 import org.jfrog.build.extractor.clientConfiguration.client.ArtifactoryDependenciesClient;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
@@ -41,15 +42,17 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     private final ProgressIndicator indicator;
     private final AtomicInteger count;
     private final double total;
+    private final Log log;
 
     public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts,
                                     ArtifactoryDependenciesClientBuilder clientBuilder,
-                                    ProgressIndicator indicator, AtomicInteger count, double total) {
+                                    ProgressIndicator indicator, AtomicInteger count, double total, Log log) {
         this.buildArtifacts = buildArtifacts;
         this.clientBuilder = clientBuilder;
         this.indicator = indicator;
         this.count = count;
         this.total = total;
+        this.log = log;
     }
 
     @Override

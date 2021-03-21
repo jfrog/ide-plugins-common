@@ -42,9 +42,9 @@ public class CiManagerBase {
     public static final String DEPENDENCIES_NODE = "dependencies";
     public static final String ARTIFACTS_NODE = "artifacts";
     protected DependencyTree root = new DependencyTree();
-    private ServerConfig serverConfig;
+    private final ServerConfig serverConfig;
     private ScanCache scanCache;
-    private Log log;
+    private final Log log;
 
     public CiManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig) throws IOException {
         this.scanCache = new ScanCache(projectName, cachePath, log);
@@ -69,10 +69,10 @@ public class CiManagerBase {
             double total = buildArtifacts.size();
             // Create producer Runnables.
             ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, indicator, count, total)};
+                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, indicator, count, total, log)};
             // Create consumer Runnables.
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                    new XrayScanBuildResultsDownloader(root, xrayClientBuilder, log)
+                    new XrayBuildDetailsDownloader(root, xrayClientBuilder, log)
             };
             // Create the deployment executor.
             ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
