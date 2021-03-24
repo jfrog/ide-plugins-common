@@ -3,8 +3,11 @@ package com.jfrog.ide.common.ci;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
-import com.jfrog.ide.common.persistency.ScanCache;
+import com.jfrog.ide.common.persistency.BuildsScanCache;
+import com.jfrog.ide.common.persistency.SingleBuildCache;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
+import org.apache.commons.compress.utils.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
@@ -13,10 +16,7 @@ import org.jfrog.build.extractor.clientConfiguration.client.ArtifactoryDependenc
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
 import org.jfrog.build.extractor.producerConsumer.ProducerConsumerExecutor;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.License;
-import org.jfrog.build.extractor.scan.Scope;
+import org.jfrog.build.extractor.scan.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -42,12 +43,12 @@ public class CiManagerBase {
     public static final String DEPENDENCIES_NODE = "dependencies";
     public static final String ARTIFACTS_NODE = "artifacts";
     protected DependencyTree root = new DependencyTree();
+    private final BuildsScanCache buildsCache;
     private final ServerConfig serverConfig;
-    private ScanCache scanCache;
     private final Log log;
 
     public CiManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig) throws IOException {
-        this.scanCache = new ScanCache(projectName, cachePath, log);
+        this.buildsCache = new BuildsScanCache(projectName, cachePath, log);
         this.serverConfig = serverConfig;
         this.log = log;
     }
@@ -62,25 +63,70 @@ public class CiManagerBase {
             if (searchResult.getResults().isEmpty()) {
                 return;
             }
-            Queue<AqlSearchResult.SearchEntry> buildArtifacts = new ArrayBlockingQueue<>(searchResult.getResults().size(), false);
-            buildArtifacts.addAll(searchResult.getResults());
 
-            AtomicInteger count = new AtomicInteger();
-            double total = buildArtifacts.size();
-            // Create producer Runnables.
-            ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, indicator, count, total, log)};
-            // Create consumer Runnables.
-            ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                    new XrayBuildDetailsDownloader(root, xrayClientBuilder, log)
-            };
-            // Create the deployment executor.
-            ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
-            deploymentExecutor.start();
+            List<DependencyTree> cachedDependencyTrees = Lists.newArrayList();
+            List<AqlSearchResult.SearchEntry> newBuilds = createBuildsTreeFromCache(cachedDependencyTrees, searchResult.getResults());
+            if (!newBuilds.isEmpty()) {
+                Queue<AqlSearchResult.SearchEntry> buildArtifacts = new ArrayBlockingQueue<>(newBuilds.size(), false);
+                buildArtifacts.addAll(newBuilds);
+
+                AtomicInteger count = new AtomicInteger();
+                double total = buildArtifacts.size() * 2;
+                // Create producer Runnables.
+                ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
+                        new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, indicator, count, total, log)};
+                // Create consumer Runnables.
+                ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
+                        new XrayBuildDetailsDownloader(root, xrayClientBuilder, indicator, count, total, log)
+                };
+                // Create the deployment executor.
+                ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
+                deploymentExecutor.start();
+
+                // Cache dependency trees
+                for (DependencyTree child : root.getChildren()) {
+                    buildsCache.cacheDependencyTree(child);
+                }
+            }
+
+            // Cache dependency trees
+            for (DependencyTree cachedDependencyTree : cachedDependencyTrees) {
+                root.add(cachedDependencyTree);
+            }
 
         } catch (Exception exception) {
             log.error("Failed to build CI tree", exception);
         }
+    }
+
+    private List<AqlSearchResult.SearchEntry> createBuildsTreeFromCache(List<DependencyTree> cachedDependenciesTrees, List<AqlSearchResult.SearchEntry> searchResults) {
+        List<AqlSearchResult.SearchEntry> newBuilds = Lists.newArrayList();
+        for (AqlSearchResult.SearchEntry searchResult : searchResults) {
+            String buildName = searchResult.getPath();
+            String buildNumber = StringUtils.substringBefore(searchResult.getName(), "-");
+            String timestamp = StringUtils.substringBetween(searchResult.getName(), "-", ".json");
+            SingleBuildCache singleBuildCache = buildsCache.getBuildCache(buildName, buildNumber, timestamp);
+            if (singleBuildCache == null) {
+                newBuilds.add(searchResult);
+                continue;
+            }
+            Artifact artifact = singleBuildCache.get(buildName + ":" + buildNumber);
+            cachedDependenciesTrees.add(buildDependencyTree(artifact, singleBuildCache));
+        }
+
+        return newBuilds;
+    }
+
+    private DependencyTree buildDependencyTree(Artifact artifact, SingleBuildCache singleBuildCache) {
+        DependencyTree node = new DependencyTree(artifact.getGeneralInfo().getComponentId());
+        node.setGeneralInfo(artifact.getGeneralInfo());
+        node.setIssues(artifact.getIssues());
+        node.setLicenses(artifact.getLicenses());
+        node.setScopes(artifact.getScopes());
+        for (String child : artifact.getChildren()) {
+            node.add(buildDependencyTree(singleBuildCache.get(child), singleBuildCache));
+        }
+        return node;
     }
 
     /**
@@ -108,7 +154,7 @@ public class CiManagerBase {
                 ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$asc\":[\"created\"]}).limit(10)", buildsPattern);
     }
 
-    private long getLastModified(String date) throws ParseException {
+    private long getBuildTimestamp(String date) throws ParseException {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(Build.STARTED_FORMAT);
         Date parse = simpleDateFormat.parse(date);
         return parse.getTime();

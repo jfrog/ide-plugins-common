@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.extractor.scan.Artifact;
 
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -16,7 +17,8 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 @Setter
 @Getter
-class ScanCacheObject implements Comparable<ScanCacheObject> {
+class ScanCacheObject implements Serializable {
+    private static final long serialVersionUID = 0L;
     private static final long EXPIRATION = TimeUnit.DAYS.toMillis(7);
 
     @JsonProperty("artifact")
@@ -35,17 +37,12 @@ class ScanCacheObject implements Comparable<ScanCacheObject> {
     }
 
     /**
-     * Return true iff this artifact is older than 1 week. Relevant only for the time based cache.
+     * Return true iff this artifact is older than 1 week.
      *
      * @return true iff this artifact is older than 1 week.
      */
     @JsonIgnore
     boolean isExpired() {
         return System.currentTimeMillis() - lastUpdated > EXPIRATION;
-    }
-
-    @Override
-    public int compareTo(ScanCacheObject o) {
-        return Long.compare(getLastUpdated(), o.getLastUpdated());
     }
 }

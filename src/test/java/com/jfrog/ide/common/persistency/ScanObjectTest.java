@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 public class ScanObjectTest {
 
     @Test
-    public void testInvalidated() {
+    public void testIsExpired() {
         ScanCacheObject scanCacheObject = new ScanCacheObject();
         Assert.assertFalse(scanCacheObject.isExpired());
 

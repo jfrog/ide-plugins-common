@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
+import com.jfrog.ide.common.persistency.XrayScanCache;
 import com.jfrog.ide.common.utils.Constants;
 import com.jfrog.ide.common.utils.XrayConnectionUtils;
 import com.jfrog.xray.client.Xray;
@@ -59,7 +60,7 @@ public abstract class ScanManagerBase {
      * @throws IOException in case of an error in the scan cache initialization.
      */
     public ScanManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig, ComponentPrefix prefix) throws IOException {
-        this.scanCache = new ScanCache(projectName, cachePath, log);
+        this.scanCache = new XrayScanCache(projectName, cachePath, log);
         this.serverConfig = serverConfig;
         this.projectName = projectName;
         this.prefix = prefix;

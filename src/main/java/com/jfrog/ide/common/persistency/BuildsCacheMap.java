@@ -25,7 +25,7 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
  */
 @Getter
 @Setter
-class ScanCacheMap {
+class BuildsCacheMap {
 
     private static int CACHE_VERSION = 0;
     private static ObjectMapper objectMapper = createMapper();
@@ -37,12 +37,12 @@ class ScanCacheMap {
     @JsonProperty("expirable")
     private boolean expirable;
 
-    ScanCacheMap(boolean expirable) {
+    BuildsCacheMap(boolean expirable) {
         this.expirable = expirable;
         artifactsMap = expirable ? Collections.synchronizedMap(new TimeBasedMap()) : new ConcurrentHashMap<>();
     }
 
-    ScanCacheMap() {
+    BuildsCacheMap() {
         artifactsMap = expirable ? Collections.synchronizedMap(new TimeBasedMap()) : new ConcurrentHashMap<>();
     }
 
@@ -106,7 +106,7 @@ class ScanCacheMap {
      */
     void read(File file, Log logger) throws IOException {
         try {
-            ScanCacheMap scanCacheMap = objectMapper.readValue(file, ScanCacheMap.class);
+            BuildsCacheMap scanCacheMap = objectMapper.readValue(file, BuildsCacheMap.class);
             if (scanCacheMap.getVersion() != version) {
                 logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
                 return;

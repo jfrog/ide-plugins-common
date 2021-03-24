@@ -2,6 +2,7 @@ package com.jfrog.ide.common.ci;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.utils.Utils;
 import com.jfrog.xray.client.impl.XrayClient;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
@@ -32,11 +34,18 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
     private final XrayClientBuilder xrayClientBuilder;
     private ProducerConsumerExecutor executor;
+    private final ProgressIndicator indicator;
     private final DependencyTree root;
+    private final AtomicInteger count;
+    private final double total;
     private Log log;
 
-    public XrayBuildDetailsDownloader(DependencyTree root, XrayClientBuilder xrayClientBuilder, Log log) {
+    public XrayBuildDetailsDownloader(DependencyTree root, XrayClientBuilder xrayClientBuilder,
+                                      ProgressIndicator indicator, AtomicInteger count, double total, Log log) {
         this.xrayClientBuilder = xrayClientBuilder;
+        this.indicator = indicator;
+        this.count = count;
+        this.total = total;
         this.root = root;
         this.log = log;
     }
@@ -54,7 +63,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 DependencyTree buildDependencyTree = (DependencyTree) item;
                 GeneralInfo generalInfo = buildDependencyTree.getGeneralInfo();
                 try {
-                    DetailsResponse response = xrayClient.details().build(generalInfo.getName(), generalInfo.getVersion());
+                    DetailsResponse response = xrayClient.details().build(generalInfo.getArtifactId(), generalInfo.getVersion());
                     if (!response.getScanCompleted() || isNotEmpty(response.getErrors()) || isEmpty(response.getComponents())) {
                         if (CollectionUtils.isNotEmpty(response.getErrors())) {
                             printError(response);
@@ -67,6 +76,8 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                     }
                 } catch (IOException exception) {
                     log.error("Couldn't scan build", exception);
+                } finally {
+                    indicator.setFraction(count.incrementAndGet() / total);
                 }
             }
         } catch (InterruptedException ignored) {

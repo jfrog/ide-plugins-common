@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Lists;
 import com.jfrog.xray.client.services.summary.General;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
@@ -26,7 +27,10 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 public class Utils {
 
     public static ObjectMapper createMapper() {
-        return new ObjectMapper().configure(FAIL_ON_UNKNOWN_PROPERTIES, false).setSerializationInclusion(NON_NULL);
+        return new ObjectMapper()
+                .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .setSerializationInclusion(NON_NULL)
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
     }
 
     public static String createLicenseString(License license) {

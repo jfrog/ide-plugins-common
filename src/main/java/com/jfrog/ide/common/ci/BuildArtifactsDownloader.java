@@ -79,8 +79,8 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                     log.error("Couldn't retrieve build information", e);
                 } finally {
                     EntityUtils.consumeQuietly(entity);
+                    indicator.setFraction(count.incrementAndGet() / total);
                 }
-                indicator.setFraction(count.incrementAndGet() / total);
             }
         }
     }
@@ -97,8 +97,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                 .started(build.getStarted())
                 .status(buildProperties != null ? buildProperties.getProperty(BUILD_STATUS_PROP) : "")
                 .vcs(vcsList.get(0))
-                .name(build.getName())
-                .version(build.getNumber())
+                .componentId(build.getName() + ":" + build.getNumber())
                 .path(build.getUrl());
         DependencyTree dependencyTree = new DependencyTree(build.getName() + "/" + build.getNumber());
         dependencyTree.setScopes(Sets.newHashSet(new Scope()));
