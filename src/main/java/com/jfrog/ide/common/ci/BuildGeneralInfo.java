@@ -51,6 +51,11 @@ public class BuildGeneralInfo extends GeneralInfo {
         return this;
     }
 
+    public BuildGeneralInfo started(long started) {
+        this.started = new Date(started);
+        return this;
+    }
+
     public BuildGeneralInfo vcs(Vcs vcs) {
         this.vcs = vcs;
         return this;

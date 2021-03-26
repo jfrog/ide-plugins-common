@@ -80,7 +80,6 @@ public class ScanCacheTest {
 
             ScanCache scanCache2 = new XrayScanCache(projectName, tempDir, new NullLog());
             assertEquals(scanCache2.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
-            assertTrue(scanCache2.getScanCacheMap().isExpirable());
         } catch (IOException e) {
             Assert.fail(e.getMessage());
         }
@@ -123,7 +122,7 @@ public class ScanCacheTest {
             artifactsMap.put(artifactId, scanCacheObject);
 
             // Create ScanCacheMap with version -1
-            ScanCacheMap scanCacheMap = new ScanCacheMap(true);
+            ScanCacheMap scanCacheMap = new XrayScanCacheMap();
             scanCacheMap.setVersion(-1);
             scanCacheMap.setArtifactsMap(artifactsMap);
 

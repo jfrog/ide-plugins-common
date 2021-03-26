@@ -1,21 +1,15 @@
 package com.jfrog.ide.common.persistency;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jfrog.ide.common.ci.BuildGeneralInfo;
 import lombok.Getter;
 import lombok.Setter;
+import org.jfrog.build.api.Vcs;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.Artifact;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
  * The implementation of the scan cache. Contains a version and a map.
@@ -25,95 +19,46 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
  */
 @Getter
 @Setter
-class BuildsCacheMap {
+class BuildsCacheMap extends ScanCacheMap {
 
-    private static int CACHE_VERSION = 0;
-    private static ObjectMapper objectMapper = createMapper();
+    @JsonProperty("buildStatus")
+    private BuildGeneralInfo.Status buildStatus;
+    @JsonProperty("vcs")
+    private Vcs vcs;
 
-    @JsonProperty("version")
-    private int version = CACHE_VERSION;
-    @JsonProperty("artifactsMap")
-    private Map<String, ScanCacheObject> artifactsMap;
-    @JsonProperty("expirable")
-    private boolean expirable;
-
-    BuildsCacheMap(boolean expirable) {
-        this.expirable = expirable;
-        artifactsMap = expirable ? Collections.synchronizedMap(new TimeBasedMap()) : new ConcurrentHashMap<>();
+    BuildsCacheMap(BuildGeneralInfo.Status buildStatus, Vcs vcs) {
+        this();
+        this.buildStatus = buildStatus;
+        this.vcs = vcs;
     }
 
     BuildsCacheMap() {
-        artifactsMap = expirable ? Collections.synchronizedMap(new TimeBasedMap()) : new ConcurrentHashMap<>();
+        artifactsMap = new ConcurrentHashMap<>();
     }
 
-    public boolean isExpirable() {
-        return expirable;
+    public BuildGeneralInfo.Status getBuildStatus() {
+        return buildStatus;
     }
 
-    public void setExpirable(boolean expirable) {
-        this.expirable = expirable;
+    public void setBuildStatus(BuildGeneralInfo.Status buildStatus) {
+        this.buildStatus = buildStatus;
     }
 
-    /**
-     * Put an artifact in the map.
-     *
-     * @param artifact - The artifact to put.
-     */
-    void put(Artifact artifact) {
-        artifactsMap.put(artifact.getGeneralInfo().getComponentId(), new ScanCacheObject(artifact));
+    public Vcs getVcs() {
+        return vcs;
     }
 
-    /**
-     * Get an artifact from the map.
-     *
-     * @param id - The artifact id.
-     * @return artifact from the map or null if absent.
-     */
-    Artifact get(String id) {
-        ScanCacheObject scanCacheObject = artifactsMap.get(id);
-        if (scanCacheObject == null) {
-            return null;
-        }
-        return scanCacheObject.getArtifact();
+    public void setVcs(Vcs vcs) {
+        this.vcs = vcs;
     }
 
-    /**
-     * return true iff the map contains the artifact id.
-     *
-     * @param id - The id to search.
-     * @return true iff the map contains the artifact id.
-     */
-    boolean contains(String id) {
-        return artifactsMap.containsKey(id);
-    }
-
-    /**
-     * Write the version and the map to disk.
-     *
-     * @param file - The cache file.
-     * @throws IOException in case of I/O error during write.
-     */
-    void write(File file) throws IOException {
-        objectMapper.writeValue(file, this);
-    }
-
-    /**
-     * Load the cache map from disk. If version incorrect, it does nothing.
-     *
-     * @param file   - The cache file.
-     * @param logger - The logger.
-     * @throws IOException in case of I/O error during read.
-     */
+    @Override
     void read(File file, Log logger) throws IOException {
-        try {
-            BuildsCacheMap scanCacheMap = objectMapper.readValue(file, BuildsCacheMap.class);
-            if (scanCacheMap.getVersion() != version) {
-                logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
-                return;
-            }
-            this.artifactsMap = scanCacheMap.artifactsMap;
-        } catch (JsonParseException | JsonMappingException e) {
-            logger.error("Failed reading cache file, zapping the old cache and starting a new one.");
+        BuildsCacheMap buildsCacheMap = (BuildsCacheMap) readCommonCache(file, logger);
+        if (buildsCacheMap == null) {
+            return;
         }
+        this.buildStatus = buildsCacheMap.buildStatus;
+        this.vcs = buildsCacheMap.vcs;
     }
 }

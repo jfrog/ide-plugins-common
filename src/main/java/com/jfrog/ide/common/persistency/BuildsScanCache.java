@@ -2,9 +2,7 @@ package com.jfrog.ide.common.persistency;
 
 import com.jfrog.ide.common.ci.BuildGeneralInfo;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,7 +13,9 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Enumeration;
-import java.util.stream.Collectors;
+
+import static com.jfrog.ide.common.ci.Utils.ARTIFACTS_NODE;
+import static com.jfrog.ide.common.persistency.Utils.dependencyNodeToArtifact;
 
 /**
  * @author yahavi
@@ -60,17 +60,23 @@ public class BuildsScanCache {
     public void cacheDependencyTree(DependencyTree ciDependencyTree) throws IOException {
         BuildGeneralInfo generalInfo = (BuildGeneralInfo) ciDependencyTree.getGeneralInfo();
         SingleBuildCache buildCache = new SingleBuildCache(generalInfo.getArtifactId(), generalInfo.getVersion(),
-                Long.toString(generalInfo.getStarted().getTime()), buildsDir, logger);
-        Enumeration<?> enumeration = ciDependencyTree.breadthFirstEnumeration();
-        while (enumeration.hasMoreElements()) {
-            DependencyTree node = (DependencyTree) enumeration.nextElement();
-            Artifact artifact = new Artifact(node.getGeneralInfo(), node.getIssues(), node.getLicenses());
-            artifact.setScopes(node.getScopes());
-            artifact.setChildren(node.getChildren().stream()
-                    .map(DependencyTree::getGeneralInfo)
-                    .map(GeneralInfo::getComponentId)
-                    .collect(Collectors.toSet()));
-            buildCache.add(artifact);
+                Long.toString(generalInfo.getStarted().getTime()), buildsDir, logger, generalInfo.getStatus(), generalInfo.getVcs());
+
+        // Add build
+        buildCache.add(dependencyNodeToArtifact(ciDependencyTree, false));
+
+        // Add modules
+        for (DependencyTree module : ciDependencyTree.getChildren()) {
+            buildCache.add(dependencyNodeToArtifact(module));
+            for (DependencyTree artifactsOrDependenciesNode : module.getChildren()) {
+
+                // Add dependencies and artifacts
+                boolean isArtifactsNode = ARTIFACTS_NODE.equals(artifactsOrDependenciesNode.getUserObject());
+                Enumeration<?> enumeration = artifactsOrDependenciesNode.breadthFirstEnumeration();
+                while (enumeration.hasMoreElements()) {
+                    buildCache.add(dependencyNodeToArtifact((DependencyTree) enumeration.nextElement(), isArtifactsNode));
+                }
+            }
         }
         buildCache.write();
     }

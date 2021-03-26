@@ -11,9 +11,7 @@ import org.jfrog.build.extractor.scan.Artifact;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 
@@ -25,34 +23,17 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
  */
 @Getter
 @Setter
-class ScanCacheMap {
+abstract class ScanCacheMap {
 
     private static int CACHE_VERSION = 0;
-    private static ObjectMapper objectMapper = createMapper();
+    static ObjectMapper objectMapper = createMapper();
 
     @JsonProperty("version")
-    private int version = CACHE_VERSION;
+    int version = CACHE_VERSION;
     @JsonProperty("artifactsMap")
-    private Map<String, ScanCacheObject> artifactsMap;
-    @JsonProperty("expirable")
-    private boolean expirable;
+    Map<String, ScanCacheObject> artifactsMap;
 
-    ScanCacheMap(boolean expirable) {
-        this.expirable = expirable;
-        artifactsMap = expirable ? Collections.synchronizedMap(new TimeBasedMap()) : new ConcurrentHashMap<>();
-    }
-
-    ScanCacheMap() {
-        artifactsMap = expirable ? Collections.synchronizedMap(new TimeBasedMap()) : new ConcurrentHashMap<>();
-    }
-
-    public boolean isExpirable() {
-        return expirable;
-    }
-
-    public void setExpirable(boolean expirable) {
-        this.expirable = expirable;
-    }
+    abstract void read(File file, Log logger) throws IOException;
 
     /**
      * Put an artifact in the map.
@@ -97,23 +78,19 @@ class ScanCacheMap {
         objectMapper.writeValue(file, this);
     }
 
-    /**
-     * Load the cache map from disk. If version incorrect, it does nothing.
-     *
-     * @param file   - The cache file.
-     * @param logger - The logger.
-     * @throws IOException in case of I/O error during read.
-     */
-    void read(File file, Log logger) throws IOException {
+    ScanCacheMap readCommonCache(File file, Log logger) throws IOException {
         try {
-            ScanCacheMap scanCacheMap = objectMapper.readValue(file, ScanCacheMap.class);
+            ScanCacheMap scanCacheMap = objectMapper.readValue(file, getClass());
             if (scanCacheMap.getVersion() != version) {
                 logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
-                return;
+                return null;
             }
             this.artifactsMap = scanCacheMap.artifactsMap;
+            return scanCacheMap;
         } catch (JsonParseException | JsonMappingException e) {
             logger.error("Failed reading cache file, zapping the old cache and starting a new one.");
         }
+        return null;
     }
+
 }

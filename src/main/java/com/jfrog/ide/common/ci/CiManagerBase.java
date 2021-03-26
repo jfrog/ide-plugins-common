@@ -1,6 +1,5 @@
 package com.jfrog.ide.common.ci;
 
-import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
@@ -8,7 +7,6 @@ import com.jfrog.ide.common.persistency.SingleBuildCache;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
-import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
@@ -23,15 +21,15 @@ import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static com.jfrog.ide.common.ci.Utils.createArtifactsNode;
+import static com.jfrog.ide.common.ci.Utils.createDependenciesNode;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createDependenciesClientBuilder;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
@@ -40,8 +38,6 @@ import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL
  * @author yahavi
  **/
 public class CiManagerBase {
-    public static final String DEPENDENCIES_NODE = "dependencies";
-    public static final String ARTIFACTS_NODE = "artifacts";
     protected DependencyTree root = new DependencyTree();
     private final BuildsScanCache buildsCache;
     private final ServerConfig serverConfig;
@@ -111,7 +107,39 @@ public class CiManagerBase {
                 continue;
             }
             Artifact artifact = singleBuildCache.get(buildName + ":" + buildNumber);
-            cachedDependenciesTrees.add(buildDependencyTree(artifact, singleBuildCache));
+            DependencyTree buildDependencyTree = new DependencyTree(artifact.getGeneralInfo().getComponentId());
+            GeneralInfo buildGeneralInfo = new BuildGeneralInfo()
+                    .started(Long.parseLong(timestamp))
+                    .status(singleBuildCache.getBuildStatus().toString())
+                    .vcs(singleBuildCache.getVcs())
+                    .componentId(buildName + ":" + buildNumber);
+            buildDependencyTree.setGeneralInfo(buildGeneralInfo);
+
+            // Populate modules
+            for (String moduleId : artifact.getChildren()) {
+                Artifact moduleComponents = singleBuildCache.get(moduleId);
+                DependencyTree module = new DependencyTree(moduleId);
+                module.setGeneralInfo(moduleComponents.getGeneralInfo());
+                buildDependencyTree.add(module);
+
+                // Populate artifacts node
+                DependencyTree artifactsNode = createArtifactsNode(moduleId);
+                module.add(artifactsNode);
+                // Populate dependencies node
+                DependencyTree dependenciesNode = createDependenciesNode(moduleId);
+                module.add(dependenciesNode);
+
+                for (String componentId : moduleComponents.getChildren()) {
+                    Artifact component = singleBuildCache.get(componentId);
+                    DependencyTree subTree = buildDependencyTree(component, singleBuildCache);
+                    if (component.getGeneralInfo().getArtifact()) {
+                        artifactsNode.add(subTree);
+                    } else {
+                        dependenciesNode.add(subTree);
+                    }
+                }
+            }
+            cachedDependenciesTrees.add(buildDependencyTree);
         }
 
         return newBuilds;
@@ -121,8 +149,8 @@ public class CiManagerBase {
         DependencyTree node = new DependencyTree(artifact.getGeneralInfo().getComponentId());
         node.setGeneralInfo(artifact.getGeneralInfo());
         node.setIssues(artifact.getIssues());
-        node.setLicenses(artifact.getLicenses());
-        node.setScopes(artifact.getScopes());
+        node.setLicenses(artifact.getLicenses().isEmpty() ? newHashSet(new License()) : artifact.getLicenses());
+        node.setScopes(artifact.getScopes().isEmpty() ? newHashSet(new Scope()) : artifact.getScopes());
         for (String child : artifact.getChildren()) {
             node.add(buildDependencyTree(singleBuildCache.get(child), singleBuildCache));
         }
@@ -133,8 +161,8 @@ public class CiManagerBase {
      * Recursively, add all dependencies list licenses to the licenses set.
      */
     public Set<License> getAllLicenses() {
-        Set<License> allLicences = Sets.newHashSet();
-        root.collectAllScopesAndLicenses(Sets.newHashSet(), allLicences);
+        Set<License> allLicences = newHashSet();
+        root.collectAllScopesAndLicenses(newHashSet(), allLicences);
         return allLicences;
     }
 
@@ -142,8 +170,8 @@ public class CiManagerBase {
      * Recursively, add all dependencies list scopes to the scopes set.
      */
     public Set<Scope> getAllScopes() {
-        Set<Scope> allScopes = Sets.newHashSet();
-        root.collectAllScopesAndLicenses(allScopes, Sets.newHashSet());
+        Set<Scope> allScopes = newHashSet();
+        root.collectAllScopesAndLicenses(allScopes, newHashSet());
         return allScopes;
     }
 
@@ -153,11 +181,4 @@ public class CiManagerBase {
                 "\"path\":{\"$match\":\"%s\"}}" +
                 ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$asc\":[\"created\"]}).limit(10)", buildsPattern);
     }
-
-    private long getBuildTimestamp(String date) throws ParseException {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(Build.STARTED_FORMAT);
-        Date parse = simpleDateFormat.parse(date);
-        return parse.getTime();
-    }
-
 }

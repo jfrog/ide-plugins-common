@@ -1,7 +1,10 @@
 package com.jfrog.ide.common.persistency;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.jfrog.build.api.util.Log;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,7 +25,7 @@ public class XrayScanCache extends ScanCache {
      * @throws IOException in case of I/O problem in the paths.
      */
     public XrayScanCache(String projectName, Path basePath, Log logger) throws IOException {
-        scanCacheMap = new ScanCacheMap(true);
+        scanCacheMap = new XrayScanCacheMap();
         file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8)) + "XrayScanCache.json").toFile();
         logger.debug("Project cache path: " + file.getAbsolutePath());
         if (!file.exists()) {

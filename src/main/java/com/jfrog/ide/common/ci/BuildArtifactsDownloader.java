@@ -27,6 +27,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static com.jfrog.ide.common.ci.Utils.createArtifactsNode;
+import static com.jfrog.ide.common.ci.Utils.createDependenciesNode;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.apache.commons.lang3.ArrayUtils.isEmpty;
 
@@ -117,18 +119,14 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
             moduleNode.setGeneralInfo(moduleGeneralInfo);
 
             // Populate artifacts
-            DependencyTree artifactsNode = new DependencyTree(CiManagerBase.ARTIFACTS_NODE);
-            GeneralInfo artifactsGeneralInfo = new GeneralInfo().componentId(module.getId()).pkgType("Module artifacts");
-            artifactsNode.setGeneralInfo(artifactsGeneralInfo);
+            DependencyTree artifactsNode = createArtifactsNode(module.getId());
             moduleNode.add(artifactsNode);
             if (CollectionUtils.isNotEmpty(module.getArtifacts())) {
                 populateArtifacts(artifactsNode, module);
             }
 
             // Populate dependencies
-            DependencyTree dependenciesNode = new DependencyTree(CiManagerBase.DEPENDENCIES_NODE);
-            GeneralInfo dependenciesGeneralInfo = new GeneralInfo().componentId(module.getId()).pkgType("Module dependencies");
-            dependenciesNode.setGeneralInfo(dependenciesGeneralInfo);
+            DependencyTree dependenciesNode = createDependenciesNode(module.getId());
             moduleNode.add(dependenciesNode);
             if (CollectionUtils.isNotEmpty(module.getDependencies())) {
                 populateDependencies(dependenciesNode, module);
@@ -146,8 +144,6 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                     .sha1(artifact.getSha1());
             DependencyTree artifactNode = new DependencyTree(artifact.getName());
             artifactNode.setGeneralInfo(artifactGeneralInfo);
-            artifactNode.setScopes(Sets.newHashSet(new Scope()));
-            artifactNode.setLicenses(Sets.newHashSet(new License()));
             artifactsNode.add(artifactNode);
         }
     }

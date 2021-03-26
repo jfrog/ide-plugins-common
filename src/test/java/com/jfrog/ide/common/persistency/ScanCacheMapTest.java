@@ -25,7 +25,7 @@ public class ScanCacheMapTest {
         String oldArtifact = "oldArtifact";
 
         // Create a scan cache that may contain only artifacts newer than 1 week
-        ScanCacheMap scanCacheMap = new ScanCacheMap(true);
+        ScanCacheMap scanCacheMap = new XrayScanCacheMap();
         Map<String, ScanCacheObject> artifactsMap = scanCacheMap.getArtifactsMap();
 
         // Add an artifact and make sure it's included in the cache
@@ -43,7 +43,7 @@ public class ScanCacheMapTest {
     @Test
     public void testTimeBasedConcurrency() {
         // Create a scan cache that may contain only artifacts newer than 1 week
-        Map<String, ScanCacheObject> scanCacheMap = new ScanCacheMap(true).getArtifactsMap();
+        Map<String, ScanCacheObject> scanCacheMap = new XrayScanCacheMap().getArtifactsMap();
 
         // Populate the scan cache concurrently with 50000 expired artifacts and 50000 eligible artifacts
         LongStream.range(0, 100000)

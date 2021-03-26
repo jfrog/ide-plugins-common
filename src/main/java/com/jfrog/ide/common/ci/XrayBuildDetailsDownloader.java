@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static com.jfrog.ide.common.ci.Utils.ARTIFACTS_NODE;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -119,7 +120,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
 
         for (DependencyTree module : buildDependencyTree.getChildren()) {
             for (DependencyTree artifactsOrDependencies : module.getChildren()) {
-                boolean isArtifactNode = artifactsOrDependencies.getUserObject().equals(CiManagerBase.ARTIFACTS_NODE);
+                boolean isArtifactNode = artifactsOrDependencies.getUserObject().equals(ARTIFACTS_NODE);
                 for (DependencyTree child : artifactsOrDependencies.getChildren()) {
                     populateComponents(child, sha1ToComponent, sha1ToSha256, artifactIssuesAndLicenses, isArtifactNode);
                 }
