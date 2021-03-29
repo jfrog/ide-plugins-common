@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 
 import static org.testng.Assert.*;
 
@@ -42,7 +43,8 @@ public class NpmTreeBuilderTest {
     enum Project {
         EMPTY("package-name1", "empty"),
         DEPENDENCY("package-name2", "dependency", progress, debug),
-        DEPENDENCY_PACKAGE_LOCK("package-name3", "dependencyPackageLock", progress, debug);
+        DEPENDENCY_PACKAGE_LOCK("package-name3", "dependencyPackageLock", progress, debug),
+        DEV_AND_PROD("package-name4", "devAndProd", progress);
 
         private final DependencyTree[] children;
         private final String name;
@@ -77,48 +79,42 @@ public class NpmTreeBuilderTest {
     @DataProvider
     private Object[][] npmTreeBuilderProvider() {
         return new Object[][]{
-                {Project.EMPTY, false, false},
-                {Project.EMPTY, true, false},
-                {Project.DEPENDENCY, false, false},
-                {Project.DEPENDENCY, true, true},
-                {Project.DEPENDENCY_PACKAGE_LOCK, false, true},
-                {Project.DEPENDENCY_PACKAGE_LOCK, true, true},
+                {Project.EMPTY, false, 0},
+                {Project.EMPTY, true, 0},
+                {Project.DEPENDENCY, false, 0},
+                {Project.DEPENDENCY, true, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, false, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, true, 2},
+                {Project.DEV_AND_PROD, false, 0},
+                {Project.DEV_AND_PROD, true, 1},
         };
     }
 
     @SuppressWarnings("unused")
     @Test(dataProvider = "npmTreeBuilderProvider")
-    private void npmTreeBuilderTest(Project project, boolean install, boolean expectChildren) {
+    private void npmTreeBuilderTest(Project project, boolean install, int expectedChildren) {
         try {
             if (install) {
                 npmDriver.install(tempProject, Lists.newArrayList(), null);
             }
             NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath(), null);
-            DependencyTree DependencyTree = npmTreeBuilder.buildTree(new NullLog());
-            assertNotNull(DependencyTree);
+            DependencyTree dependencyTree = npmTreeBuilder.buildTree(new NullLog());
+            assertNotNull(dependencyTree);
             String projectName = project.name;
             if (!install && ArrayUtils.isNotEmpty(project.children)) {
                 projectName += " (Not installed)";
             }
-            checkGeneralInfo(DependencyTree.getGeneralInfo(), projectName, tempProject);
-            if (!expectChildren) {
-                assertTrue(DependencyTree.isLeaf());
-                return;
-            }
-            assertEquals(DependencyTree.getChildren().size(), 2);
-            for (DependencyTree child : DependencyTree.getChildren()) {
-                assertEquals(child.getScopes().size(), 1);
-                switch (child.toString()) {
-                    case "progress:2.0.3":
-                        assertEquals(child.getScopes().toArray()[0], new Scope("production"));
-                        break;
-                    case "debug:4.1.1":
-                        assertEquals(child.getScopes().toArray()[0], new Scope("development"));
-                        break;
-                    default:
-                        fail("Unexpected dependency " + child.toString());
-                }
-                assertEquals(child.getParent().toString(), projectName);
+            checkGeneralInfo(dependencyTree.getGeneralInfo(), projectName, tempProject);
+            assertEquals(dependencyTree.getChildren().size(), expectedChildren);
+            switch (expectedChildren) {
+                case 0:
+                    noChildrenScenario(dependencyTree);
+                    break;
+                case 1:
+                    oneChildScenario(dependencyTree, projectName);
+                    break;
+                case 2:
+                    twoChildrenScenario(dependencyTree, projectName);
             }
         } catch (IOException e) {
             fail(e.getMessage(), e);
@@ -132,5 +128,33 @@ public class NpmTreeBuilderTest {
         assertEquals(actual.getPkgType(), "npm");
         assertEquals(actual.getArtifactId(), name);
         assertEquals(actual.getVersion(), "0.0.1");
+    }
+
+    private void noChildrenScenario(DependencyTree dependencyTree) {
+        assertTrue(dependencyTree.isLeaf());
+    }
+
+    private void oneChildScenario(DependencyTree dependencyTree, String expectedProjectName) {
+        DependencyTree child = dependencyTree.getChildren().get(0);
+        assertEquals("progress:2.0.3", child.toString());
+        Set<Scope> expectedScopes = Sets.newHashSet(new Scope("production"), new Scope("development"));
+        assertEquals(child.getScopes(), expectedScopes);
+        assertEquals(child.getParent().toString(), expectedProjectName);
+    }
+
+    private void twoChildrenScenario(DependencyTree dependencyTree, String expectedProjectName) {
+        for (DependencyTree child : dependencyTree.getChildren()) {
+            switch (child.toString()) {
+                case "progress:2.0.3":
+                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("production")));
+                    break;
+                case "debug:4.1.1":
+                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("development")));
+                    break;
+                default:
+                    fail("Unexpected dependency " + child.toString());
+            }
+            assertEquals(child.getParent().toString(), expectedProjectName);
+        }
     }
 }
