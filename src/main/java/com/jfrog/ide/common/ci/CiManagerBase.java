@@ -3,7 +3,6 @@ package com.jfrog.ide.common.ci;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
-import com.jfrog.ide.common.persistency.SingleBuildCache;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -14,7 +13,10 @@ import org.jfrog.build.extractor.clientConfiguration.client.ArtifactoryDependenc
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
 import org.jfrog.build.extractor.producerConsumer.ProducerConsumerExecutor;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
-import org.jfrog.build.extractor.scan.*;
+import org.jfrog.build.extractor.scan.DependencyTree;
+import org.jfrog.build.extractor.scan.GeneralInfo;
+import org.jfrog.build.extractor.scan.License;
+import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -28,8 +30,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.Sets.newHashSet;
-import static com.jfrog.ide.common.ci.Utils.createArtifactsNode;
-import static com.jfrog.ide.common.ci.Utils.createDependenciesNode;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createDependenciesClientBuilder;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
@@ -81,7 +81,7 @@ public class CiManagerBase {
 
                 // Cache dependency trees
                 for (DependencyTree child : root.getChildren()) {
-                    buildsCache.cacheDependencyTree(child);
+                    buildsCache.saveDependencyTree(child);
                 }
             }
 
@@ -101,60 +101,14 @@ public class CiManagerBase {
             String buildName = searchResult.getPath();
             String buildNumber = StringUtils.substringBefore(searchResult.getName(), "-");
             String timestamp = StringUtils.substringBetween(searchResult.getName(), "-", ".json");
-            SingleBuildCache singleBuildCache = buildsCache.getBuildCache(buildName, buildNumber, timestamp);
-            if (singleBuildCache == null) {
+            DependencyTree buildDependencyTree = buildsCache.loadDependencyTree(buildName, buildNumber, timestamp);
+            if (buildDependencyTree == null) {
                 newBuilds.add(searchResult);
                 continue;
             }
-            Artifact artifact = singleBuildCache.get(buildName + ":" + buildNumber);
-            DependencyTree buildDependencyTree = new DependencyTree(artifact.getGeneralInfo().getComponentId());
-            GeneralInfo buildGeneralInfo = new BuildGeneralInfo()
-                    .started(Long.parseLong(timestamp))
-                    .status(singleBuildCache.getBuildStatus().toString())
-                    .vcs(singleBuildCache.getVcs())
-                    .componentId(buildName + ":" + buildNumber);
-            buildDependencyTree.setGeneralInfo(buildGeneralInfo);
-
-            // Populate modules
-            for (String moduleId : artifact.getChildren()) {
-                Artifact moduleComponents = singleBuildCache.get(moduleId);
-                DependencyTree module = new DependencyTree(moduleId);
-                module.setGeneralInfo(moduleComponents.getGeneralInfo());
-                buildDependencyTree.add(module);
-
-                // Populate artifacts node
-                DependencyTree artifactsNode = createArtifactsNode(moduleId);
-                module.add(artifactsNode);
-                // Populate dependencies node
-                DependencyTree dependenciesNode = createDependenciesNode(moduleId);
-                module.add(dependenciesNode);
-
-                for (String componentId : moduleComponents.getChildren()) {
-                    Artifact component = singleBuildCache.get(componentId);
-                    DependencyTree subTree = buildDependencyTree(component, singleBuildCache);
-                    if (component.getGeneralInfo().getArtifact()) {
-                        artifactsNode.add(subTree);
-                    } else {
-                        dependenciesNode.add(subTree);
-                    }
-                }
-            }
             cachedDependenciesTrees.add(buildDependencyTree);
         }
-
         return newBuilds;
-    }
-
-    private DependencyTree buildDependencyTree(Artifact artifact, SingleBuildCache singleBuildCache) {
-        DependencyTree node = new DependencyTree(artifact.getGeneralInfo().getComponentId());
-        node.setGeneralInfo(artifact.getGeneralInfo());
-        node.setIssues(artifact.getIssues());
-        node.setLicenses(artifact.getLicenses().isEmpty() ? newHashSet(new License()) : artifact.getLicenses());
-        node.setScopes(artifact.getScopes().isEmpty() ? newHashSet(new Scope()) : artifact.getScopes());
-        for (String child : artifact.getChildren()) {
-            node.add(buildDependencyTree(singleBuildCache.get(child), singleBuildCache));
-        }
-        return node;
     }
 
     /**

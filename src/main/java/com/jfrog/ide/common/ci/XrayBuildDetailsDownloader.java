@@ -92,7 +92,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 .forEach(err -> log.error(err.getError() + "/n" + err.getIdentifier()));
     }
 
-    void populateBuildDependencyTree(DependencyTree buildDependencyTree, DetailsResponse response) {
+    public void populateBuildDependencyTree(DependencyTree buildDependencyTree, DetailsResponse response) {
         Map<String, IssuesAndLicensesPair> artifactIssuesAndLicenses = Maps.newHashMap();
         Map<String, String> sha1ToSha256 = Maps.newHashMap();
         Map<String, Artifact> sha1ToComponent = Maps.newHashMap();

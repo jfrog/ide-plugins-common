@@ -87,7 +87,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
         }
     }
 
-    DependencyTree createBuildDependencyTree(Build build) throws ParseException {
+    public DependencyTree createBuildDependencyTree(Build build) throws ParseException {
         List<Vcs> vcsList = build.getVcs();
         if (CollectionUtils.isEmpty(vcsList)) {
             log.warn("Build '" + build.getName() + "/" + build.getNumber() + "' does not contain the branch VCS information");

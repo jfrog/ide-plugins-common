@@ -2,7 +2,7 @@ package com.jfrog.ide.common.persistency;
 
 import com.jfrog.ide.common.ci.BuildGeneralInfo;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.DependencyTree;
+import org.jfrog.build.extractor.scan.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +14,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Enumeration;
 
-import static com.jfrog.ide.common.ci.Utils.ARTIFACTS_NODE;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.jfrog.ide.common.ci.Utils.*;
 import static com.jfrog.ide.common.persistency.Utils.dependencyNodeToArtifact;
 
 /**
@@ -47,26 +48,16 @@ public class BuildsScanCache {
         }
     }
 
-    public SingleBuildCache getBuildCache(String buildName, String buildNumber, String timestamp) {
-        try {
-            return SingleBuildCache.getBuildCache(buildName, buildNumber, timestamp, buildsDir, logger);
-        } catch (IOException exception) {
-            logger.error(String.format("Failed reading cache file for build %s/%s, " +
-                    "zapping the old cache and starting a new one", buildName, buildNumber));
-        }
-        return null;
-    }
-
-    public void cacheDependencyTree(DependencyTree ciDependencyTree) throws IOException {
-        BuildGeneralInfo generalInfo = (BuildGeneralInfo) ciDependencyTree.getGeneralInfo();
+    public void saveDependencyTree(DependencyTree buildDependencyTree) throws IOException {
+        BuildGeneralInfo generalInfo = (BuildGeneralInfo) buildDependencyTree.getGeneralInfo();
         SingleBuildCache buildCache = new SingleBuildCache(generalInfo.getArtifactId(), generalInfo.getVersion(),
                 Long.toString(generalInfo.getStarted().getTime()), buildsDir, logger, generalInfo.getStatus(), generalInfo.getVcs());
 
         // Add build
-        buildCache.add(dependencyNodeToArtifact(ciDependencyTree, false));
+        buildCache.add(dependencyNodeToArtifact(buildDependencyTree, false));
 
         // Add modules
-        for (DependencyTree module : ciDependencyTree.getChildren()) {
+        for (DependencyTree module : buildDependencyTree.getChildren()) {
             buildCache.add(dependencyNodeToArtifact(module));
             for (DependencyTree artifactsOrDependenciesNode : module.getChildren()) {
 
@@ -79,5 +70,68 @@ public class BuildsScanCache {
             }
         }
         buildCache.write();
+    }
+
+    public DependencyTree loadDependencyTree(String buildName, String buildNumber, String timestamp) {
+        SingleBuildCache singleBuildCache = getBuildCache(buildName, buildNumber, timestamp);
+        if (singleBuildCache == null) {
+            return null;
+        }
+        Artifact artifact = singleBuildCache.get(buildName + ":" + buildNumber);
+        DependencyTree buildDependencyTree = new DependencyTree(artifact.getGeneralInfo().getComponentId());
+        GeneralInfo buildGeneralInfo = new BuildGeneralInfo()
+                .started(Long.parseLong(timestamp))
+                .status(singleBuildCache.getBuildStatus().toString())
+                .vcs(singleBuildCache.getVcs())
+                .componentId(buildName + ":" + buildNumber);
+        buildDependencyTree.setGeneralInfo(buildGeneralInfo);
+
+        // Populate modules
+        for (String moduleId : artifact.getChildren()) {
+            Artifact moduleComponents = singleBuildCache.get(moduleId);
+            DependencyTree module = new DependencyTree(moduleId);
+            module.setGeneralInfo(moduleComponents.getGeneralInfo());
+            buildDependencyTree.add(module);
+
+            // Populate artifacts node
+            DependencyTree artifactsNode = createArtifactsNode(moduleId);
+            module.add(artifactsNode);
+            // Populate dependencies node
+            DependencyTree dependenciesNode = createDependenciesNode(moduleId);
+            module.add(dependenciesNode);
+
+            for (String componentId : moduleComponents.getChildren()) {
+                Artifact component = singleBuildCache.get(componentId);
+                DependencyTree subTree = buildDependencyTree(component, singleBuildCache);
+                if (component.getGeneralInfo().getArtifact()) {
+                    artifactsNode.add(subTree);
+                } else {
+                    dependenciesNode.add(subTree);
+                }
+            }
+        }
+        return buildDependencyTree;
+    }
+
+    private SingleBuildCache getBuildCache(String buildName, String buildNumber, String timestamp) {
+        try {
+            return SingleBuildCache.getBuildCache(buildName, buildNumber, timestamp, buildsDir, logger);
+        } catch (IOException exception) {
+            logger.error(String.format("Failed reading cache file for build %s/%s, " +
+                    "zapping the old cache and starting a new one", buildName, buildNumber));
+        }
+        return null;
+    }
+
+    private DependencyTree buildDependencyTree(Artifact artifact, SingleBuildCache singleBuildCache) {
+        DependencyTree node = new DependencyTree(artifact.getGeneralInfo().getComponentId());
+        node.setGeneralInfo(artifact.getGeneralInfo());
+        node.setIssues(artifact.getIssues());
+        node.setLicenses(artifact.getLicenses().isEmpty() ? newHashSet(new License()) : artifact.getLicenses());
+        node.setScopes(artifact.getScopes().isEmpty() ? newHashSet(new Scope()) : artifact.getScopes());
+        for (String child : artifact.getChildren()) {
+            node.add(buildDependencyTree(singleBuildCache.get(child), singleBuildCache));
+        }
+        return node;
     }
 }
