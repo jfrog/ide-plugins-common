@@ -144,6 +144,8 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                     .sha1(artifact.getSha1());
             DependencyTree artifactNode = new DependencyTree(artifact.getName());
             artifactNode.setGeneralInfo(artifactGeneralInfo);
+            artifactNode.setScopes(Sets.newHashSet(new Scope()));
+            artifactNode.setLicenses(Sets.newHashSet(new License()));
             artifactsNode.add(artifactNode);
         }
     }

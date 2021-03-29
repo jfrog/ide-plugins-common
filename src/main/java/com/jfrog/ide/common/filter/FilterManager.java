@@ -24,14 +24,14 @@ public class FilterManager {
     private final Map<Scope, Boolean> selectedScopes = Maps.newHashMap();
 
     protected FilterManager() {
-        for (Severity severity : Severity.NEW_SEVERITIES) {
+        for (Severity severity : Severity.values()) {
             selectedSeverities.put(severity, true);
         }
     }
 
     @SuppressWarnings({"unused"})
     protected void setSelectedSeverities(Map<Severity, Boolean> selectedSeverities) {
-        for (Severity severity : Severity.NEW_SEVERITIES) {
+        for (Severity severity : Severity.values()) {
             if (selectedSeverities.containsKey(severity)) {
                 this.selectedSeverities.put(severity, selectedSeverities.get(severity));
             }

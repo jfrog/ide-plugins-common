@@ -95,7 +95,7 @@ public class CiManagerBase {
         }
     }
 
-    private List<AqlSearchResult.SearchEntry> createBuildsTreeFromCache(List<DependencyTree> cachedDependenciesTrees, List<AqlSearchResult.SearchEntry> searchResults) {
+    private List<AqlSearchResult.SearchEntry> createBuildsTreeFromCache(List<DependencyTree> cachedDependencyTrees, List<AqlSearchResult.SearchEntry> searchResults) {
         List<AqlSearchResult.SearchEntry> newBuilds = Lists.newArrayList();
         for (AqlSearchResult.SearchEntry searchResult : searchResults) {
             String buildName = searchResult.getPath();
@@ -106,7 +106,7 @@ public class CiManagerBase {
                 newBuilds.add(searchResult);
                 continue;
             }
-            cachedDependenciesTrees.add(buildDependencyTree);
+            cachedDependencyTrees.add(buildDependencyTree);
         }
         return newBuilds;
     }

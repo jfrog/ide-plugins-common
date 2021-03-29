@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.persistency;
 
+import com.google.common.collect.Sets;
 import com.jfrog.ide.common.ci.BuildGeneralInfo;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.*;
@@ -13,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Enumeration;
+import java.util.Set;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static com.jfrog.ide.common.ci.Utils.*;
@@ -58,16 +60,22 @@ public class BuildsScanCache {
 
         // Add modules
         for (DependencyTree module : buildDependencyTree.getChildren()) {
-            buildCache.add(dependencyNodeToArtifact(module));
+            Set<String> moduleChildren = Sets.newHashSet();
             for (DependencyTree artifactsOrDependenciesNode : module.getChildren()) {
 
                 // Add dependencies and artifacts
                 boolean isArtifactsNode = ARTIFACTS_NODE.equals(artifactsOrDependenciesNode.getUserObject());
-                Enumeration<?> enumeration = artifactsOrDependenciesNode.breadthFirstEnumeration();
-                while (enumeration.hasMoreElements()) {
-                    buildCache.add(dependencyNodeToArtifact((DependencyTree) enumeration.nextElement(), isArtifactsNode));
+                for (DependencyTree child : artifactsOrDependenciesNode.getChildren()) {
+                    moduleChildren.add(child.getGeneralInfo().getComponentId());
+                    Enumeration<?> enumeration = child.breadthFirstEnumeration();
+                    while (enumeration.hasMoreElements()) {
+                        DependencyTree node = (DependencyTree) enumeration.nextElement();
+                        buildCache.add(dependencyNodeToArtifact(node, isArtifactsNode));
+                    }
                 }
             }
+            Artifact moduleArtifact = new Artifact(module.getGeneralInfo(), module.getIssues(), module.getLicenses(), module.getScopes(), moduleChildren);
+            buildCache.add(moduleArtifact);
         }
         buildCache.write();
     }
@@ -78,13 +86,14 @@ public class BuildsScanCache {
             return null;
         }
         Artifact artifact = singleBuildCache.get(buildName + ":" + buildNumber);
-        DependencyTree buildDependencyTree = new DependencyTree(artifact.getGeneralInfo().getComponentId());
+        DependencyTree buildDependencyTree = new DependencyTree(artifact.getGeneralInfo().getComponentId().replace(":", "/"));
         GeneralInfo buildGeneralInfo = new BuildGeneralInfo()
                 .started(Long.parseLong(timestamp))
                 .status(singleBuildCache.getBuildStatus().toString())
                 .vcs(singleBuildCache.getVcs())
                 .componentId(buildName + ":" + buildNumber);
         buildDependencyTree.setGeneralInfo(buildGeneralInfo);
+        buildDependencyTree.setScopes(Sets.newHashSet(new Scope()));
 
         // Populate modules
         for (String moduleId : artifact.getChildren()) {

@@ -19,10 +19,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
-import java.util.Enumeration;
 
+import static com.jfrog.ide.common.TestUtils.getAndAssertChild;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 /**
  * @author yahavi
@@ -64,31 +65,32 @@ public class BuildScanCacheTest {
 
             DependencyTree actualDependencyTree = buildsScanCache.loadDependencyTree("maven-build", "1", "1615993718989");
 
-            Enumeration<?> expectedTreeEnumeration = expectedDependencyTree.depthFirstEnumeration();
-            Enumeration<?> actualTreeEnumeration = actualDependencyTree.depthFirstEnumeration();
-            while (expectedTreeEnumeration.hasMoreElements()) {
-                assertTrue(actualTreeEnumeration.hasMoreElements());
-                DependencyTree expectedNode = (DependencyTree) expectedTreeEnumeration.nextElement();
-                DependencyTree actualNode = (DependencyTree) actualTreeEnumeration.nextElement();
+            compareTrees(actualDependencyTree, expectedDependencyTree);
+        }
+    }
 
-                assertEquals(actualNode.getUserObject(), expectedNode.getUserObject());
+    private void compareTrees(DependencyTree actualNode, DependencyTree expectedNode) {
+        assertEquals(actualNode.getUserObject(), expectedNode.getUserObject());
 
-                GeneralInfo expectedGeneralInfo = expectedNode.getGeneralInfo();
-                GeneralInfo actualGeneralInfo = actualNode.getGeneralInfo();
+        GeneralInfo expectedGeneralInfo = expectedNode.getGeneralInfo();
+        GeneralInfo actualGeneralInfo = actualNode.getGeneralInfo();
 
-                assertEquals(actualGeneralInfo.getComponentId(), expectedGeneralInfo.getComponentId());
-                assertEquals(actualGeneralInfo.getName(), expectedGeneralInfo.getName());
-                assertEquals(actualGeneralInfo.getVersion(), expectedGeneralInfo.getVersion());
-                assertEquals(actualGeneralInfo.getArtifactId(), expectedGeneralInfo.getArtifactId());
-                assertEquals(actualGeneralInfo.getGroupId(), expectedGeneralInfo.getGroupId());
-                assertEquals(actualGeneralInfo.getArtifact(), expectedGeneralInfo.getArtifact());
-                assertEquals(actualGeneralInfo.getPkgType(), expectedGeneralInfo.getPkgType());
-                assertEquals(actualGeneralInfo.getSha1(), expectedGeneralInfo.getSha1());
+        assertEquals(actualGeneralInfo.getComponentId(), expectedGeneralInfo.getComponentId());
+        assertEquals(actualGeneralInfo.getName(), expectedGeneralInfo.getName());
+        assertEquals(actualGeneralInfo.getVersion(), expectedGeneralInfo.getVersion());
+        assertEquals(actualGeneralInfo.getArtifactId(), expectedGeneralInfo.getArtifactId());
+        assertEquals(actualGeneralInfo.getGroupId(), expectedGeneralInfo.getGroupId());
+        assertEquals(actualGeneralInfo.getArtifact(), expectedGeneralInfo.getArtifact());
+        assertEquals(actualGeneralInfo.getPkgType(), expectedGeneralInfo.getPkgType());
+        assertEquals(actualGeneralInfo.getSha1(), expectedGeneralInfo.getSha1());
 
-                assertEquals(actualNode.getIssues(), expectedNode.getIssues());
-                assertEquals(actualNode.getLicenses(), expectedNode.getLicenses());
-                assertEquals(actualNode.getScopes(), expectedNode.getScopes());
-            }
+        assertEquals(actualNode.getIssues(), expectedNode.getIssues());
+        assertEquals(actualNode.getLicenses(), expectedNode.getLicenses());
+        assertEquals(actualNode.getScopes(), expectedNode.getScopes());
+
+        for (DependencyTree expectedChild : expectedNode.getChildren()) {
+            DependencyTree actualChild = getAndAssertChild(actualNode, expectedChild.getUserObject().toString());
+            compareTrees(actualChild, expectedChild);
         }
     }
 }
