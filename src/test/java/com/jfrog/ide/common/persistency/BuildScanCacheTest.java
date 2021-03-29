@@ -1,35 +1,23 @@
 package com.jfrog.ide.common.persistency;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jfrog.ide.common.ci.BuildArtifactsDownloader;
-import com.jfrog.ide.common.ci.XrayBuildDetailsDownloader;
-import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
-import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.apache.commons.io.FileUtils;
-import org.jfrog.build.api.Build;
+import org.apache.commons.io.IOUtils;
 import org.jfrog.build.api.util.NullLog;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.ParseException;
 
-import static com.jfrog.ide.common.TestUtils.getAndAssertChild;
-import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 
 /**
  * @author yahavi
  **/
 public class BuildScanCacheTest {
-    private final ObjectMapper mapper = createMapper();
     private Path tempProject;
 
     @BeforeMethod
@@ -44,53 +32,36 @@ public class BuildScanCacheTest {
     }
 
     @Test
-    public void loadAndSaveTest() throws IOException, ParseException {
-        try (InputStream artifactoryBuildStream = getClass().getResourceAsStream("/ci/artifactory-build.json");
-             InputStream xrayDetailsStream = getClass().getResourceAsStream("/ci/xray-details-build.json")) {
-            // Create build dependency tree
-            Build build = mapper.readValue(artifactoryBuildStream, Build.class);
-            assertNotNull(build);
-            BuildArtifactsDownloader buildArtifactsDownloader = new BuildArtifactsDownloader(null, null, null, null, 0, new NullLog());
-            DependencyTree expectedDependencyTree = buildArtifactsDownloader.createBuildDependencyTree(build);
+    public void cacheNotExistTest() throws IOException {
+        BuildsScanCache buildsScanCache = new BuildsScanCache("build-not-exist-test", tempProject, new NullLog());
 
-            // Populate build dependency tree with Xray data
-            DetailsResponse buildDetails = mapper.readValue(xrayDetailsStream, DetailsResponseImpl.class);
-            assertNotNull(buildDetails);
-            XrayBuildDetailsDownloader xrayBuildDetailsDownloader = new XrayBuildDetailsDownloader(null, null, null, null, 0, null);
-            xrayBuildDetailsDownloader.populateBuildDependencyTree(expectedDependencyTree, buildDetails);
-
-            // Save build cache
-            BuildsScanCache buildsScanCache = new BuildsScanCache("build-cache-test", tempProject, new NullLog());
-            buildsScanCache.saveDependencyTree(expectedDependencyTree);
-
-            DependencyTree actualDependencyTree = buildsScanCache.loadDependencyTree("maven-build", "1", "1615993718989");
-
-            compareTrees(actualDependencyTree, expectedDependencyTree);
-        }
+        byte[] res = buildsScanCache.load("build-not-exist", "42", BuildsScanCache.Type.BUILD_INFO);
+        assertNull(res);
     }
 
-    private void compareTrees(DependencyTree actualNode, DependencyTree expectedNode) {
-        assertEquals(actualNode.getUserObject(), expectedNode.getUserObject());
+    @Test
+    public void buildInfoCacheTest() throws IOException {
+        BuildsScanCache buildsScanCache = new BuildsScanCache("build-cache-test", tempProject, new NullLog());
 
-        GeneralInfo expectedGeneralInfo = expectedNode.getGeneralInfo();
-        GeneralInfo actualGeneralInfo = actualNode.getGeneralInfo();
+        // Save build info cache
+        byte[] expectedBuildInfo = IOUtils.resourceToByteArray("/ci/artifactory-build.json");
+        buildsScanCache.save(expectedBuildInfo, "maven-build", "1", BuildsScanCache.Type.BUILD_INFO);
 
-        assertEquals(actualGeneralInfo.getComponentId(), expectedGeneralInfo.getComponentId());
-        assertEquals(actualGeneralInfo.getName(), expectedGeneralInfo.getName());
-        assertEquals(actualGeneralInfo.getVersion(), expectedGeneralInfo.getVersion());
-        assertEquals(actualGeneralInfo.getArtifactId(), expectedGeneralInfo.getArtifactId());
-        assertEquals(actualGeneralInfo.getGroupId(), expectedGeneralInfo.getGroupId());
-        assertEquals(actualGeneralInfo.getArtifact(), expectedGeneralInfo.getArtifact());
-        assertEquals(actualGeneralInfo.getPkgType(), expectedGeneralInfo.getPkgType());
-        assertEquals(actualGeneralInfo.getSha1(), expectedGeneralInfo.getSha1());
+        // Load build info cache
+        byte[] actualBuildInfo = buildsScanCache.load("maven-build", "1", BuildsScanCache.Type.BUILD_INFO);
+        assertEquals(actualBuildInfo, expectedBuildInfo);
+    }
 
-        assertEquals(actualNode.getIssues(), expectedNode.getIssues());
-        assertEquals(actualNode.getLicenses(), expectedNode.getLicenses());
-        assertEquals(actualNode.getScopes(), expectedNode.getScopes());
+    @Test
+    public void xrayScanCacheTest() throws IOException {
+        BuildsScanCache buildsScanCache = new BuildsScanCache("xray-scan-cache-test", tempProject, new NullLog());
 
-        for (DependencyTree expectedChild : expectedNode.getChildren()) {
-            DependencyTree actualChild = getAndAssertChild(actualNode, expectedChild.getUserObject().toString());
-            compareTrees(actualChild, expectedChild);
-        }
+        // Save build info cache
+        byte[] expectedBuildInfo = IOUtils.resourceToByteArray("/ci/xray-details-build.json");
+        buildsScanCache.save(expectedBuildInfo, "maven-build", "1", BuildsScanCache.Type.XRAY_BUILD_SCAN);
+
+        // Load build info cache
+        byte[] actualBuildInfo = buildsScanCache.load("maven-build", "1", BuildsScanCache.Type.XRAY_BUILD_SCAN);
+        assertEquals(actualBuildInfo, expectedBuildInfo);
     }
 }

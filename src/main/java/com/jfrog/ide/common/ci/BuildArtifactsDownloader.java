@@ -5,7 +5,10 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.log.ProgressIndicator;
+import com.jfrog.ide.common.persistency.BuildsScanCache;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -42,15 +45,17 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     private final ArtifactoryDependenciesClientBuilder clientBuilder;
     private final Queue<AqlSearchResult.SearchEntry> buildArtifacts;
     private final ProgressIndicator indicator;
+    private final BuildsScanCache buildsCache;
     private final AtomicInteger count;
     private final double total;
     private final Log log;
 
     public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts,
-                                    ArtifactoryDependenciesClientBuilder clientBuilder,
+                                    ArtifactoryDependenciesClientBuilder clientBuilder, BuildsScanCache buildsCache,
                                     ProgressIndicator indicator, AtomicInteger count, double total, Log log) {
         this.buildArtifacts = buildArtifacts;
         this.clientBuilder = clientBuilder;
+        this.buildsCache = buildsCache;
         this.indicator = indicator;
         this.count = count;
         this.total = total;
@@ -68,23 +73,53 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                     break;
                 }
                 AqlSearchResult.SearchEntry searchEntry = buildArtifacts.remove();
-                String downloadUrl = baseRepoUrl + searchEntry.getPath() + "/" + searchEntry.getName();
-                HttpEntity entity = null;
-                try (CloseableHttpResponse response = client.downloadArtifact(downloadUrl)) {
-                    entity = response.getEntity();
-                    Build build = mapper.readValue(entity.getContent(), Build.class);
-                    DependencyTree buildDependencyTree = createBuildDependencyTree(build);
+                String buildName = searchEntry.getPath();
+                String buildNumber = StringUtils.substringBefore(searchEntry.getName(), "-");
+                DependencyTree buildDependencyTree = null;
+                try {
+                    buildDependencyTree = ObjectUtils.firstNonNull(
+                            tryLoadFromCache(mapper, buildName, buildNumber),
+                            downloadBuildInfo(mapper, buildName, buildNumber, searchEntry, client, baseRepoUrl));
+                } finally {
                     if (buildDependencyTree != null) {
                         executor.put(buildDependencyTree);
                     }
-                } catch (ParseException | IOException e) {
-                    log.error("Couldn't retrieve build information", e);
-                } finally {
-                    EntityUtils.consumeQuietly(entity);
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
             }
         }
+    }
+
+    private DependencyTree tryLoadFromCache(ObjectMapper mapper, String buildName, String buildNumber) {
+        try {
+            byte[] buffer = buildsCache.load(buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
+            if (buffer != null) {
+                Build build = mapper.readValue(buffer, Build.class);
+                return createBuildDependencyTree(build);
+            }
+        } catch (IOException | ParseException e) {
+            String msg = String.format("Failed reading cache file for '%s%s', zapping the old cache and starting a new one.", buildName, buildNumber);
+            log.error(msg, e);
+        }
+        return null;
+    }
+
+    private DependencyTree downloadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber,
+                                             AqlSearchResult.SearchEntry searchEntry, ArtifactoryDependenciesClient client, String baseRepoUrl) {
+        String downloadUrl = baseRepoUrl + searchEntry.getPath() + "/" + searchEntry.getName();
+        HttpEntity entity = null;
+        try (CloseableHttpResponse response = client.downloadArtifact(downloadUrl)) {
+            entity = response.getEntity();
+            byte[] content = IOUtils.toByteArray(entity.getContent());
+            Build build = mapper.readValue(content, Build.class);
+            buildsCache.save(content, buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
+            return createBuildDependencyTree(build);
+        } catch (IOException | ParseException e) {
+            log.error("Couldn't retrieve build information", e);
+        } finally {
+            EntityUtils.consumeQuietly(entity);
+        }
+        return null;
     }
 
     public DependencyTree createBuildDependencyTree(Build build) throws ParseException {

@@ -1,19 +1,25 @@
 package com.jfrog.ide.common.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.apache.commons.collections4.Transformer;
+import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.testng.collections.Sets;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,26 +33,39 @@ import static org.testng.Assert.assertNotNull;
  * @author yahavi
  **/
 public class XrayBuildDetailsDownloaderTest {
-    private final ObjectMapper mapper = createMapper();
     private final Transformer<Issue, Issue> issueTransformer = issue -> {
         issue.setComponent("");
         return issue;
     };
+    private final ObjectMapper mapper = createMapper();
+    private Path tempProject;
+
+    @BeforeMethod
+    public void setUp(Object[] testArgs) throws IOException {
+        tempProject = Files.createTempDirectory("ide-plugins-common-build-cache");
+        FileUtils.forceDeleteOnExit(tempProject.toFile());
+    }
+
+    @AfterMethod
+    public void tearDown() throws IOException {
+        FileUtils.forceDelete(tempProject.toFile());
+    }
 
     @Test
     public void testPopulateBuildDependencyTree() throws IOException, ParseException {
+        BuildsScanCache buildsScanCache = new BuildsScanCache("maven-build", tempProject, new NullLog());
         try (InputStream artifactoryBuildStream = getClass().getResourceAsStream("/ci/artifactory-build.json");
              InputStream xrayDetailsStream = getClass().getResourceAsStream("/ci/xray-details-build.json")) {
             // Create build dependency tree
             Build build = mapper.readValue(artifactoryBuildStream, Build.class);
             assertNotNull(build);
-            BuildArtifactsDownloader buildArtifactsDownloader = new BuildArtifactsDownloader(null, null, null, null, 0, new NullLog());
+            BuildArtifactsDownloader buildArtifactsDownloader = new BuildArtifactsDownloader(null, null, buildsScanCache, null, null, 0, new NullLog());
             DependencyTree buildDependencyTree = buildArtifactsDownloader.createBuildDependencyTree(build);
 
             // Populate build dependency tree with Xray data
             DetailsResponse buildDetails = mapper.readValue(xrayDetailsStream, DetailsResponseImpl.class);
             assertNotNull(buildDetails);
-            XrayBuildDetailsDownloader xrayBuildDetailsDownloader = new XrayBuildDetailsDownloader(null, null, null, null, 0, null);
+            XrayBuildDetailsDownloader xrayBuildDetailsDownloader = new XrayBuildDetailsDownloader(null, buildsScanCache, null, null, null, 0, null);
             xrayBuildDetailsDownloader.populateBuildDependencyTree(buildDependencyTree, buildDetails);
 
             // Get artifacts and dependencies nodes

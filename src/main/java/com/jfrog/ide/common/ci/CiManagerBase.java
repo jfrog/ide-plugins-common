@@ -4,8 +4,6 @@ import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
-import org.apache.commons.compress.utils.Lists;
-import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
@@ -23,7 +21,6 @@ import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -60,55 +57,24 @@ public class CiManagerBase {
                 return;
             }
 
-            List<DependencyTree> cachedDependencyTrees = Lists.newArrayList();
-            List<AqlSearchResult.SearchEntry> newBuilds = createBuildsTreeFromCache(cachedDependencyTrees, searchResult.getResults());
-            if (!newBuilds.isEmpty()) {
-                Queue<AqlSearchResult.SearchEntry> buildArtifacts = new ArrayBlockingQueue<>(newBuilds.size(), false);
-                buildArtifacts.addAll(newBuilds);
+            Queue<AqlSearchResult.SearchEntry> buildArtifacts = new ArrayBlockingQueue<>(searchResult.getResults().size(), false);
+            buildArtifacts.addAll(searchResult.getResults());
 
-                AtomicInteger count = new AtomicInteger();
-                double total = buildArtifacts.size() * 2;
-                // Create producer Runnables.
-                ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                        new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, indicator, count, total, log)};
-                // Create consumer Runnables.
-                ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                        new XrayBuildDetailsDownloader(root, xrayClientBuilder, indicator, count, total, log)
-                };
-                // Create the deployment executor.
-                ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
-                deploymentExecutor.start();
-
-                // Cache dependency trees
-                for (DependencyTree child : root.getChildren()) {
-                    buildsCache.saveDependencyTree(child);
-                }
-            }
-
-            // Cache dependency trees
-            for (DependencyTree cachedDependencyTree : cachedDependencyTrees) {
-                root.add(cachedDependencyTree);
-            }
-
+            AtomicInteger count = new AtomicInteger();
+            double total = buildArtifacts.size() * 2;
+            // Create producer Runnables.
+            ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
+                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, buildsCache, indicator, count, total, log)};
+            // Create consumer Runnables.
+            ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
+                    new XrayBuildDetailsDownloader(root, buildsCache, xrayClientBuilder, indicator, count, total, log)
+            };
+            // Create the deployment executor.
+            ProducerConsumerExecutor deploymentExecutor = new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE);
+            deploymentExecutor.start();
         } catch (Exception exception) {
             log.error("Failed to build CI tree", exception);
         }
-    }
-
-    private List<AqlSearchResult.SearchEntry> createBuildsTreeFromCache(List<DependencyTree> cachedDependencyTrees, List<AqlSearchResult.SearchEntry> searchResults) {
-        List<AqlSearchResult.SearchEntry> newBuilds = Lists.newArrayList();
-        for (AqlSearchResult.SearchEntry searchResult : searchResults) {
-            String buildName = searchResult.getPath();
-            String buildNumber = StringUtils.substringBefore(searchResult.getName(), "-");
-            String timestamp = StringUtils.substringBetween(searchResult.getName(), "-", ".json");
-            DependencyTree buildDependencyTree = buildsCache.loadDependencyTree(buildName, buildNumber, timestamp);
-            if (buildDependencyTree == null) {
-                newBuilds.add(searchResult);
-                continue;
-            }
-            cachedDependencyTrees.add(buildDependencyTree);
-        }
-        return newBuilds;
     }
 
     /**

@@ -1,8 +1,10 @@
 package com.jfrog.ide.common.ci;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.log.ProgressIndicator;
+import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.ide.common.utils.Utils;
 import com.jfrog.xray.client.impl.XrayClient;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
@@ -10,6 +12,7 @@ import com.jfrog.xray.client.services.details.DetailsResponse;
 import com.jfrog.xray.client.services.summary.Error;
 import com.jfrog.xray.client.services.summary.*;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
@@ -25,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.jfrog.ide.common.ci.Utils.ARTIFACTS_NODE;
+import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -36,14 +40,16 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
     private final XrayClientBuilder xrayClientBuilder;
     private ProducerConsumerExecutor executor;
     private final ProgressIndicator indicator;
+    private final BuildsScanCache buildsCache;
     private final DependencyTree root;
     private final AtomicInteger count;
     private final double total;
     private Log log;
 
-    public XrayBuildDetailsDownloader(DependencyTree root, XrayClientBuilder xrayClientBuilder,
+    public XrayBuildDetailsDownloader(DependencyTree root, BuildsScanCache buildsCache, XrayClientBuilder xrayClientBuilder,
                                       ProgressIndicator indicator, AtomicInteger count, double total, Log log) {
         this.xrayClientBuilder = xrayClientBuilder;
+        this.buildsCache = buildsCache;
         this.indicator = indicator;
         this.count = count;
         this.total = total;
@@ -53,6 +59,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
 
     @Override
     public void consumerRun() {
+        ObjectMapper mapper = createMapper();
         try (XrayClient xrayClient = xrayClientBuilder.build()) {
             while (!Thread.interrupted()) {
                 ProducerConsumerItem item = executor.take();
@@ -63,12 +70,14 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 }
                 DependencyTree buildDependencyTree = (DependencyTree) item;
                 GeneralInfo generalInfo = buildDependencyTree.getGeneralInfo();
+                String buildName = generalInfo.getArtifactId();
+                String buildNumber = generalInfo.getVersion();
                 try {
-                    DetailsResponse response = xrayClient.details().build(generalInfo.getArtifactId(), generalInfo.getVersion());
-                    if (!response.getScanCompleted() || isNotEmpty(response.getErrors()) || isEmpty(response.getComponents())) {
-                        if (CollectionUtils.isNotEmpty(response.getErrors())) {
-                            printError(response);
-                        }
+                    DetailsResponse response = ObjectUtils.firstNonNull(
+                            tryLoadFromCache(mapper, buildDependencyTree, buildName, buildNumber),
+                            downloadBuildDetails(xrayClient, buildName, buildNumber)
+                    );
+                    if (response == null) {
                         continue;
                     }
                     populateBuildDependencyTree(buildDependencyTree, response);
@@ -83,7 +92,34 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
             }
         } catch (InterruptedException ignored) {
         }
+    }
 
+    private DetailsResponse tryLoadFromCache(ObjectMapper mapper, DependencyTree buildDependencyTree, String buildName, String buildNumber) {
+        try {
+            byte[] buffer = buildsCache.load(buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
+            if (buffer != null) {
+                DetailsResponse detailsResponse = mapper.readValue(buffer, DetailsResponse.class);
+                populateBuildDependencyTree(buildDependencyTree, detailsResponse);
+            }
+        } catch (IOException e) {
+            String msg = String.format("Failed reading cache file for '%s%s', zapping the old cache and starting a new one.", buildName, buildNumber);
+            log.error(msg, e);
+        }
+        return null;
+    }
+
+    private DetailsResponse downloadBuildDetails(XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
+        DetailsResponse response = xrayClient.details().build(buildName, buildNumber);
+        if (!response.getScanCompleted() || isNotEmpty(response.getErrors()) || isEmpty(response.getComponents())) {
+            if (CollectionUtils.isNotEmpty(response.getErrors())) {
+                printError(response);
+            }
+            return null;
+        }
+        ObjectMapper mapper = createMapper();
+        byte[] buffer = mapper.writeValueAsBytes(response);
+
+        return response;
     }
 
     private void printError(DetailsResponse response) {
