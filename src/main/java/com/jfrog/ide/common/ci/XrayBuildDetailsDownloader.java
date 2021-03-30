@@ -6,8 +6,7 @@ import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.xray.client.impl.XrayClient;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.details.DetailsResponse;
-import com.jfrog.xray.client.services.summary.Error;
-import org.apache.commons.collections4.CollectionUtils;
+import com.jfrog.xray.client.services.details.Error;
 import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
@@ -21,7 +20,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
-import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 
 /**
  * @author yahavi
@@ -84,21 +82,16 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
 
     private boolean downloadBuildDetails(ObjectMapper mapper, XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
         DetailsResponse response = xrayClient.details().build(buildName, buildNumber);
-        if (!response.getScanCompleted() || isNotEmpty(response.getErrors()) || isEmpty(response.getComponents())) {
-            if (CollectionUtils.isNotEmpty(response.getErrors())) {
-                printError(response);
+        if (!response.getScanCompleted() || response.getError() != null || isEmpty(response.getComponents())) {
+            if (response.getError() != null) {
+                Error error = response.getError();
+                log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + " " +
+                        error.getErrorCode() + ": " + error.getMessage());
             }
             return false;
         }
-        byte[] buffer = mapper.writeValueAsBytes(response);
-        buildsCache.save(buffer, buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
+        buildsCache.save(mapper.writeValueAsBytes(response), buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
         return true;
-    }
-
-    private void printError(DetailsResponse response) {
-        response.getErrors().stream()
-                .map(err -> (Error) err)
-                .forEach(err -> log.error(err.getError() + "/n" + err.getIdentifier()));
     }
 
     @Override
