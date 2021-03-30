@@ -1,9 +1,12 @@
 package com.jfrog.ide.common.ci;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
+import com.jfrog.xray.client.services.details.DetailsResponse;
+import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
@@ -21,12 +24,14 @@ import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createDependenciesClientBuilder;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
@@ -36,6 +41,7 @@ import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL
  **/
 public class CiManagerBase {
     protected DependencyTree root = new DependencyTree();
+    private final ObjectMapper mapper = createMapper();
     private final BuildsScanCache buildsCache;
     private final ServerConfig serverConfig;
     private final Log log;
@@ -75,6 +81,20 @@ public class CiManagerBase {
         } catch (Exception exception) {
             log.error("Failed to build CI tree", exception);
         }
+    }
+
+    public DependencyTree loadBuildTree(String buildName, String buildNumber) throws IOException, ParseException {
+        CiDependencyTree buildDependencyTree = new CiDependencyTree();
+
+        // Load build info from cache
+        Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber, log);
+        buildDependencyTree.createBuildDependencyTree(build);
+
+        // Load Xray 'details/build' response from cache
+        DetailsResponse detailsResponse = buildsCache.loadDetailsResponse(mapper, buildName, buildNumber, log);
+        buildDependencyTree.populateBuildDependencyTree(detailsResponse);
+
+        return buildDependencyTree;
     }
 
     /**

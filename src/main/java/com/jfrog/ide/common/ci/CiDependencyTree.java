@@ -29,17 +29,20 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  **/
 public class CiDependencyTree extends DependencyTree implements ProducerConsumerItem {
     public static final String BUILD_STATUS_PROP = BuildInfoProperties.BUILD_INFO_ENVIRONMENT_PREFIX + "JFROG_BUILD_RESULTS";
+    private static final String NO_VCS_FMT = "Build '%s/%s' does not contain the branch VCS information.";
 
-    private final Build build;
-
-    public CiDependencyTree(Build build) {
-        this.build = build;
+    public CiDependencyTree() {
+        super();
     }
 
-    public void createBuildDependencyTree() throws ParseException, IOException {
+    public CiDependencyTree(Object userObject) {
+        super(userObject);
+    }
+
+    public void createBuildDependencyTree(Build build) throws ParseException, IOException {
         List<Vcs> vcsList = build.getVcs();
         if (CollectionUtils.isEmpty(vcsList)) {
-            throw new IOException("Build '" + build.getName() + "/" + build.getNumber() + "' does not contain the branch VCS information");
+            throw new IOException(String.format(NO_VCS_FMT, build.getName(), build.getNumber()));
         }
 
         Properties buildProperties = build.getProperties();

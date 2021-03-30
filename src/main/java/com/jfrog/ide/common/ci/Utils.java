@@ -8,6 +8,7 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
  **/
 public class Utils {
 
+    public static final String BUILD_RET_ERR_FMT = "Couldn't retrieve build information for build '%s/%s'.";
     public static final String DEPENDENCIES_NODE = "dependencies";
     public static final String ARTIFACTS_NODE = "artifacts";
 

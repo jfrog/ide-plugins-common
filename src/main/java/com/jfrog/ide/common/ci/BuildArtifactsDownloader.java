@@ -20,6 +20,7 @@ import java.text.ParseException;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
@@ -62,37 +63,23 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                 String buildName = searchEntry.getPath();
                 String buildNumber = StringUtils.substringBefore(searchEntry.getName(), "-");
                 try {
-                    Build build = tryLoadFromCache(mapper, buildName, buildNumber);
+                    Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber, log);
                     if (build == null) {
                         build = downloadBuildInfo(mapper, buildName, buildNumber, searchEntry, client, baseRepoUrl);
                     }
                     if (build == null) {
                         continue;
                     }
-                    CiDependencyTree buildDependencyTree = new CiDependencyTree(build);
-                    buildDependencyTree.createBuildDependencyTree();
+                    CiDependencyTree buildDependencyTree = new CiDependencyTree();
+                    buildDependencyTree.createBuildDependencyTree(build);
                     executor.put(buildDependencyTree);
                 } catch (ParseException | IOException e) {
-                    String msg = String.format("Couldn't retrieve build information for build '%s/%s'.", buildName, buildNumber);
-                    log.error(msg, e);
+                    log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
                 } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
             }
         }
-    }
-
-    private Build tryLoadFromCache(ObjectMapper mapper, String buildName, String buildNumber) {
-        try {
-            byte[] buffer = buildsCache.load(buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
-            if (buffer != null) {
-                return mapper.readValue(buffer, Build.class);
-            }
-        } catch (IOException e) {
-            String msg = String.format("Failed reading cache file for '%s%s', zapping the old cache and starting a new one.", buildName, buildNumber);
-            log.error(msg, e);
-        }
-        return null;
     }
 
     private Build downloadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber,

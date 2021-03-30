@@ -1,6 +1,10 @@
 package com.jfrog.ide.common.persistency;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
+import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.apache.commons.io.IOUtils;
+import org.jfrog.build.api.Build;
 import org.jfrog.build.api.util.Log;
 
 import java.io.*;
@@ -18,12 +22,12 @@ import java.util.zip.ZipOutputStream;
  * @author yahavi
  **/
 public class BuildsScanCache {
-
     public enum Type {
         BUILD_INFO,
         XRAY_BUILD_SCAN;
     }
 
+    private static final String INVALID_CACHE_FMT = "Failed reading cache file for '%s%s', zapping the old cache and starting a new one.";
     public static final int MAX_BUILDS = 100;
     public static final int MAX_FILES = MAX_BUILDS * 2;
     private String[] currentBuildScanCaches = new String[]{};
@@ -72,10 +76,33 @@ public class BuildsScanCache {
         }
     }
 
+    public Build loadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber, Log log) {
+        try {
+            byte[] buffer = load(buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
+            if (buffer != null) {
+                return mapper.readValue(buffer, Build.class);
+            }
+        } catch (IOException e) {
+            log.error(String.format(INVALID_CACHE_FMT, buildName, buildNumber), e);
+        }
+        return null;
+    }
+
+    public DetailsResponse loadDetailsResponse(ObjectMapper mapper, String buildName, String buildNumber, Log log) {
+        try {
+            byte[] buffer = load(buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
+            if (buffer != null) {
+                return mapper.readValue(buffer, DetailsResponseImpl.class);
+            }
+        } catch (IOException e) {
+            log.error(String.format(INVALID_CACHE_FMT, buildName, buildNumber), e);
+        }
+        return null;
+    }
+
     private File getBuildFile(String buildName, String buildNumber, Type type) {
         String buildIdentifier = String.format("%s_%s", buildName, buildNumber);
         String fileName = type.toString() + Base64.getEncoder().encodeToString(buildIdentifier.getBytes(StandardCharsets.UTF_8)) + ".zip";
         return buildsDir.resolve(fileName).toFile();
     }
-
 }

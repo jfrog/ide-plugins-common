@@ -5,7 +5,6 @@ import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.xray.client.impl.XrayClient;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
-import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import com.jfrog.xray.client.services.summary.Error;
 import org.apache.commons.collections4.CollectionUtils;
@@ -19,6 +18,7 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
@@ -63,20 +63,17 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 String buildName = generalInfo.getArtifactId();
                 String buildNumber = generalInfo.getVersion();
                 try {
-                    DetailsResponse response = tryLoadFromCache(mapper, buildName, buildNumber);
-                    if (response == null) {
-                        response = downloadBuildDetails(mapper, xrayClient, buildName, buildNumber);
-                    }
-                    if (response == null) {
+                    if (buildsCache.loadDetailsResponse(mapper, buildName, buildNumber, log) == null &&
+                            !downloadBuildDetails(mapper, xrayClient, buildName, buildNumber)) {
                         continue;
                     }
-                    buildDependencyTree.populateBuildDependencyTree(response);
+                    CiDependencyTree dependencyTree = new CiDependencyTree(buildDependencyTree.getUserObject());
+                    dependencyTree.setGeneralInfo(generalInfo);
                     synchronized (root) {
-                        root.add(buildDependencyTree);
+                        root.add(dependencyTree);
                     }
                 } catch (IOException e) {
-                    String msg = String.format("Couldn't scan build '%s/%s'", buildName, buildNumber);
-                    log.error(msg, e);
+                    log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
                 } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
@@ -85,30 +82,17 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
         }
     }
 
-    private DetailsResponse tryLoadFromCache(ObjectMapper mapper, String buildName, String buildNumber) {
-        try {
-            byte[] buffer = buildsCache.load(buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
-            if (buffer != null) {
-                return mapper.readValue(buffer, DetailsResponseImpl.class);
-            }
-        } catch (IOException e) {
-            String msg = String.format("Failed reading cache file for '%s%s', zapping the old cache and starting a new one.", buildName, buildNumber);
-            log.error(msg, e);
-        }
-        return null;
-    }
-
-    private DetailsResponse downloadBuildDetails(ObjectMapper mapper, XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
+    private boolean downloadBuildDetails(ObjectMapper mapper, XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
         DetailsResponse response = xrayClient.details().build(buildName, buildNumber);
         if (!response.getScanCompleted() || isNotEmpty(response.getErrors()) || isEmpty(response.getComponents())) {
             if (CollectionUtils.isNotEmpty(response.getErrors())) {
                 printError(response);
             }
-            return null;
+            return false;
         }
         byte[] buffer = mapper.writeValueAsBytes(response);
         buildsCache.save(buffer, buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
-        return response;
+        return true;
     }
 
     private void printError(DetailsResponse response) {
