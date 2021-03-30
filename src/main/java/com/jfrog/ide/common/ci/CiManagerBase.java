@@ -99,6 +99,6 @@ public class CiManagerBase {
         return String.format("items.find({" +
                 "\"repo\":\"artifactory-build-info\"," +
                 "\"path\":{\"$match\":\"%s\"}}" +
-                ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$asc\":[\"created\"]}).limit(10)", buildsPattern);
+                ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(10)", buildsPattern);
     }
 }
