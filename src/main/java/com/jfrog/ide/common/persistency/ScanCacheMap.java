@@ -78,19 +78,16 @@ abstract class ScanCacheMap {
         objectMapper.writeValue(file, this);
     }
 
-    ScanCacheMap readCommonCache(File file, Log logger) throws IOException {
+    void readCommonCache(File file, Log logger) throws IOException {
         try {
             ScanCacheMap scanCacheMap = objectMapper.readValue(file, getClass());
             if (scanCacheMap.getVersion() != version) {
                 logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
-                return null;
+                return;
             }
             this.artifactsMap = scanCacheMap.artifactsMap;
-            return scanCacheMap;
         } catch (JsonParseException | JsonMappingException e) {
             logger.error("Failed reading cache file, zapping the old cache and starting a new one.");
         }
-        return null;
     }
-
 }

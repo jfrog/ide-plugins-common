@@ -1,10 +1,7 @@
 package com.jfrog.ide.common.persistency;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import org.jfrog.build.api.util.Log;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

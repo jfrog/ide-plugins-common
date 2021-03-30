@@ -24,8 +24,10 @@ import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
+ * Produces build dependency trees and also save them in cache.
+ *
  * @author yahavi
- **/
+ */
 public class BuildArtifactsDownloader extends ProducerRunnableBase {
     public static final String BUILD_INFO_REPO = "/artifactory-build-info/";
 
@@ -70,10 +72,10 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                     if (build == null) {
                         continue;
                     }
-                    CiDependencyTree buildDependencyTree = new CiDependencyTree();
+                    BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
                     buildDependencyTree.createBuildDependencyTree(build);
                     executor.put(buildDependencyTree);
-                } catch (ParseException | IOException e) {
+                } catch (ParseException | IllegalArgumentException e) {
                     log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
                 } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
@@ -82,6 +84,17 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
         }
     }
 
+    /**
+     * Download build info from Artifactory and save it in the builds cache.
+     *
+     * @param mapper      - The object mapper
+     * @param buildName   - Build name
+     * @param buildNumber - Build number
+     * @param searchEntry - The AQL search results entry
+     * @param client      - Artifactory dependencies client
+     * @param baseRepoUrl - Artifactory build info repository
+     * @return the requested build or null if not found.
+     */
     private Build downloadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber,
                                     AqlSearchResult.SearchEntry searchEntry, ArtifactoryDependenciesClient client, String baseRepoUrl) {
         String downloadUrl = baseRepoUrl + searchEntry.getPath() + "/" + searchEntry.getName();

@@ -2,7 +2,6 @@ package com.jfrog.ide.common.persistency;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.jfrog.build.api.util.NullLog;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -33,7 +32,7 @@ public class BuildScanCacheTest {
 
     @Test
     public void cacheNotExistTest() throws IOException {
-        BuildsScanCache buildsScanCache = new BuildsScanCache("build-not-exist-test", tempProject, new NullLog());
+        BuildsScanCache buildsScanCache = new BuildsScanCache("build-not-exist-test", tempProject);
 
         byte[] res = buildsScanCache.load("build-not-exist", "42", BuildsScanCache.Type.BUILD_INFO);
         assertNull(res);
@@ -41,7 +40,7 @@ public class BuildScanCacheTest {
 
     @Test
     public void buildInfoCacheTest() throws IOException {
-        BuildsScanCache buildsScanCache = new BuildsScanCache("build-cache-test", tempProject, new NullLog());
+        BuildsScanCache buildsScanCache = new BuildsScanCache("build-cache-test", tempProject);
 
         // Save build info cache
         byte[] expectedBuildInfo = IOUtils.resourceToByteArray("/ci/artifactory-build.json");
@@ -54,7 +53,7 @@ public class BuildScanCacheTest {
 
     @Test
     public void xrayScanCacheTest() throws IOException {
-        BuildsScanCache buildsScanCache = new BuildsScanCache("xray-scan-cache-test", tempProject, new NullLog());
+        BuildsScanCache buildsScanCache = new BuildsScanCache("xray-scan-cache-test", tempProject);
 
         // Save build info cache
         byte[] expectedBuildInfo = IOUtils.resourceToByteArray("/ci/xray-details-build.json");

@@ -9,6 +9,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
+ * Represents general build information.
+ * Each root node in the build dependency tree will be populated with BuildGeneralInfo.
+ *
  * @author yahavi
  **/
 public class BuildGeneralInfo extends GeneralInfo {
@@ -48,11 +51,6 @@ public class BuildGeneralInfo extends GeneralInfo {
 
     public BuildGeneralInfo started(String started) throws ParseException {
         this.started = DATE_FORMAT.parse(started);
-        return this;
-    }
-
-    public BuildGeneralInfo started(long started) {
-        this.started = new Date(started);
         return this;
     }
 

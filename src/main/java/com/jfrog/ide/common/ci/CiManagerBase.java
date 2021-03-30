@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
+import com.jfrog.ide.common.utils.Constants;
+import com.jfrog.ide.common.utils.XrayConnectionUtils;
+import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.jfrog.build.api.Build;
@@ -15,7 +18,6 @@ import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
 import org.jfrog.build.extractor.producerConsumer.ProducerConsumerExecutor;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
 import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 
@@ -31,14 +33,17 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createDependenciesClientBuilder;
+import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.isArtifactoryVersionSupported;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
-import static com.jfrog.ide.common.utils.XrayConnectionUtils.createDependenciesClientBuilder;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
 
 /**
+ * Managing the CI dependency tree creation process.
+ *
  * @author yahavi
- **/
+ */
 public class CiManagerBase {
     protected DependencyTree root = new DependencyTree();
     private final ObjectMapper mapper = createMapper();
@@ -47,17 +52,32 @@ public class CiManagerBase {
     private final Log log;
 
     public CiManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig) throws IOException {
-        this.buildsCache = new BuildsScanCache(projectName, cachePath, log);
+        this.buildsCache = new BuildsScanCache(projectName, cachePath);
         this.serverConfig = serverConfig;
         this.log = log;
     }
 
-    public void buildCiTree(String buildsPattern, String projectPath, ProgressIndicator indicator) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    /**
+     * Build the builds dependency tree.
+     *
+     * @param buildsPattern - The build pattern configured in the IDE configuration
+     * @param indicator     - The progress indicator to show
+     * @throws NoSuchAlgorithmException in case of error during creating the Artifactory dependencies client.
+     * @throws KeyStoreException        in case of error during creating the Artifactory dependencies client.
+     * @throws KeyManagementException   in case of error during creating the Artifactory dependencies client.
+     */
+    public void buildCiTree(String buildsPattern, ProgressIndicator indicator) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
-        root.setGeneralInfo(new GeneralInfo().path(projectPath));
-        ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
+        if (!isXrayVersionSupported(xrayClientBuilder)) {
+            return;
+        }
+        ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
         try (ArtifactoryDependenciesClient dependenciesClient = dependenciesClientBuilder.build()) {
+            if (!isArtifactoryVersionSupported(dependenciesClient.getArtifactoryVersion())) {
+                log.error("Unsupported JFrog Artifactory version: Required JFrog Artifactory version " + Constants.MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI + " and above.");
+                return;
+            }
             AqlSearchResult searchResult = dependenciesClient.searchArtifactsByAql(createAql(buildsPattern));
             if (searchResult.getResults().isEmpty()) {
                 return;
@@ -84,7 +104,7 @@ public class CiManagerBase {
     }
 
     public DependencyTree loadBuildTree(String buildName, String buildNumber) throws IOException, ParseException {
-        CiDependencyTree buildDependencyTree = new CiDependencyTree();
+        BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
 
         // Load build info from cache
         Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber, log);
@@ -120,5 +140,23 @@ public class CiManagerBase {
                 "\"repo\":\"artifactory-build-info\"," +
                 "\"path\":{\"$match\":\"%s\"}}" +
                 ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(10)", buildsPattern);
+    }
+
+    /**
+     * Return true iff xray version is sufficient.
+     *
+     * @param xrayClientBuilder - The xray client builder.
+     * @return true iff Xray version is sufficient.
+     */
+    private boolean isXrayVersionSupported(XrayClientBuilder xrayClientBuilder) {
+        try (Xray xrayClient = xrayClientBuilder.build()) {
+            if (XrayConnectionUtils.isXrayVersionSupported(xrayClient.system().version())) {
+                return true;
+            }
+            log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + Constants.MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI + " and above.");
+        } catch (IOException e) {
+            log.error("JFrog Xray Scan failed. Please check your credentials.", e);
+        }
+        return false;
     }
 }

@@ -31,7 +31,7 @@ public class BuildArtifactsDownloaderTest {
             Build build = mapper.readValue(io, Build.class);
             assertNotNull(build);
 
-            CiDependencyTree actualBuildDependencyTree = new CiDependencyTree();
+            BuildDependencyTree actualBuildDependencyTree = new BuildDependencyTree();
             actualBuildDependencyTree.createBuildDependencyTree(build);
 
             checkBuildInformation(actualBuildDependencyTree);

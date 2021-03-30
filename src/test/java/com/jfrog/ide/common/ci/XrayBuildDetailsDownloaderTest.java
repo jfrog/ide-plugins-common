@@ -39,7 +39,7 @@ public class XrayBuildDetailsDownloaderTest {
             // Create build dependency tree
             Build build = mapper.readValue(artifactoryBuildStream, Build.class);
             assertNotNull(build);
-            CiDependencyTree buildDependencyTree = new CiDependencyTree();
+            BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
             buildDependencyTree.createBuildDependencyTree(build);
 
             // Populate build dependency tree with Xray data

@@ -56,7 +56,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                     executor.put(item);
                     break;
                 }
-                CiDependencyTree buildDependencyTree = (CiDependencyTree) item;
+                BuildDependencyTree buildDependencyTree = (BuildDependencyTree) item;
                 GeneralInfo generalInfo = buildDependencyTree.getGeneralInfo();
                 String buildName = generalInfo.getArtifactId();
                 String buildNumber = generalInfo.getVersion();
@@ -65,7 +65,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                             !downloadBuildDetails(mapper, xrayClient, buildName, buildNumber)) {
                         continue;
                     }
-                    CiDependencyTree dependencyTree = new CiDependencyTree(buildDependencyTree.getUserObject());
+                    BuildDependencyTree dependencyTree = new BuildDependencyTree(buildDependencyTree.getUserObject());
                     dependencyTree.setGeneralInfo(generalInfo);
                     synchronized (root) {
                         root.add(dependencyTree);
@@ -85,7 +85,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
         if (!response.getScanCompleted() || response.getError() != null || isEmpty(response.getComponents())) {
             if (response.getError() != null) {
                 Error error = response.getError();
-                log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + " " +
+                log.warn(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + " " +
                         error.getErrorCode() + ": " + error.getMessage());
             }
             return false;

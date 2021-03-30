@@ -15,7 +15,6 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,24 +24,33 @@ import static org.apache.commons.lang3.ArrayUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
+ * Represents the dependency tree of a builds.
+ *
  * @author yahavi
  **/
-public class CiDependencyTree extends DependencyTree implements ProducerConsumerItem {
+public class BuildDependencyTree extends DependencyTree implements ProducerConsumerItem {
     public static final String BUILD_STATUS_PROP = BuildInfoProperties.BUILD_INFO_ENVIRONMENT_PREFIX + "JFROG_BUILD_RESULTS";
     private static final String NO_VCS_FMT = "Build '%s/%s' does not contain the branch VCS information.";
 
-    public CiDependencyTree() {
+    public BuildDependencyTree() {
         super();
     }
 
-    public CiDependencyTree(Object userObject) {
+    public BuildDependencyTree(Object userObject) {
         super(userObject);
     }
 
-    public void createBuildDependencyTree(Build build) throws ParseException, IOException {
+    /**
+     * Create the build dependency tree from the provided build info.
+     *
+     * @param build - The build info
+     * @throws ParseException           in case of parse exception in the build info started time.
+     * @throws IllegalArgumentException in case the VCS information is missing in the build.
+     */
+    public void createBuildDependencyTree(Build build) throws ParseException, IllegalArgumentException {
         List<Vcs> vcsList = build.getVcs();
         if (CollectionUtils.isEmpty(vcsList)) {
-            throw new IOException(String.format(NO_VCS_FMT, build.getName(), build.getNumber()));
+            throw new IllegalArgumentException(String.format(NO_VCS_FMT, build.getName(), build.getNumber()));
         }
 
         Properties buildProperties = build.getProperties();
@@ -142,10 +150,20 @@ public class CiDependencyTree extends DependencyTree implements ProducerConsumer
         return dependencyTree;
     }
 
+    /**
+     * Populate build dependency tree with issues and licenses.
+     *
+     * @param response - The response from 'details/build' Xray REST API
+     */
     public void populateBuildDependencyTree(DetailsResponse response) {
-        Map<String, IssuesAndLicensesPair> artifactIssuesAndLicenses = Maps.newHashMap();
+        // Component to issues and licenses mapping
+        Map<String, IssuesAndLicensesPair> componentIssuesAndLicenses = Maps.newHashMap();
+        // Sha1 to Sha256 mapping
         Map<String, String> sha1ToSha256 = Maps.newHashMap();
+        // Component to Xray Artifact mapping
         Map<String, com.jfrog.xray.client.services.summary.Artifact> sha1ToComponent = Maps.newHashMap();
+
+        // Populate the above mappings. We will use the information to populate the dependency tree efficiently.
         for (com.jfrog.xray.client.services.summary.Artifact component : response.getComponents()) {
             General general = component.getGeneral();
             sha1ToComponent.put(general.getSha1(), component);
@@ -153,10 +171,10 @@ public class CiDependencyTree extends DependencyTree implements ProducerConsumer
 
             if (CollectionUtils.isNotEmpty(general.getParentSha256())) {
                 for (String parentSha256 : general.getParentSha256()) {
-                    IssuesAndLicensesPair issuesAndLicenses = artifactIssuesAndLicenses.get(parentSha256);
+                    IssuesAndLicensesPair issuesAndLicenses = componentIssuesAndLicenses.get(parentSha256);
                     if (issuesAndLicenses == null) {
                         issuesAndLicenses = new IssuesAndLicensesPair();
-                        artifactIssuesAndLicenses.put(parentSha256, issuesAndLicenses);
+                        componentIssuesAndLicenses.put(parentSha256, issuesAndLicenses);
                     }
                     if (component.getIssues() != null) {
                         issuesAndLicenses.issues.addAll(component.getIssues());
@@ -168,16 +186,27 @@ public class CiDependencyTree extends DependencyTree implements ProducerConsumer
             }
         }
 
+        // Populate the build modules
         for (DependencyTree module : getChildren()) {
             for (DependencyTree artifactsOrDependencies : module.getChildren()) {
                 boolean isArtifactNode = artifactsOrDependencies.getUserObject().equals(ARTIFACTS_NODE);
                 for (DependencyTree child : artifactsOrDependencies.getChildren()) {
-                    populateComponents(child, sha1ToComponent, sha1ToSha256, artifactIssuesAndLicenses, isArtifactNode);
+                    // Populate dependencies and artifacts
+                    populateComponents(child, sha1ToComponent, sha1ToSha256, componentIssuesAndLicenses, isArtifactNode);
                 }
             }
         }
     }
 
+    /**
+     * Populate issues and artifacts with issues and licenses.
+     *
+     * @param buildDependencyTree       - The build dependency tree to populate
+     * @param sha1ToComponent           - Sha1 to component mapping
+     * @param sha1ToSha256              - Sha1 to sha256 mapping
+     * @param artifactIssuesAndLicenses - Artifact to issues and licenses mapping
+     * @param isArtifact                - True if the components are artifacts. False if the components are dependencies
+     */
     private void populateComponents(DependencyTree buildDependencyTree, Map<String, com.jfrog.xray.client.services.summary.Artifact> sha1ToComponent,
                                     Map<String, String> sha1ToSha256, Map<String, IssuesAndLicensesPair> artifactIssuesAndLicenses,
                                     boolean isArtifact) {

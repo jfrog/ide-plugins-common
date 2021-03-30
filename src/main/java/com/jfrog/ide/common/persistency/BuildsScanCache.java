@@ -19,24 +19,24 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 /**
+ * Represents the cache for the builds information.
+ * The build infos and the Xray's 'details/build' responses are stored in different ZIP files.
+ *
  * @author yahavi
- **/
+ */
 public class BuildsScanCache {
-    public enum Type {
-        BUILD_INFO,
-        XRAY_BUILD_SCAN;
-    }
+    public enum Type {BUILD_INFO, XRAY_BUILD_SCAN}
 
-    private static final String INVALID_CACHE_FMT = "Failed reading cache file for '%s%s', zapping the old cache and starting a new one.";
+    private static final String INVALID_CACHE_FMT = "Failed reading cache file for '%s/%s', zapping the old cache and starting a new one.";
     public static final int MAX_BUILDS = 100;
+    // Each build should have 1 build info file and 1 Xray scan results file
     public static final int MAX_FILES = MAX_BUILDS * 2;
+
     private String[] currentBuildScanCaches = new String[]{};
     private final Path buildsDir;
-    private final Log logger;
 
-    public BuildsScanCache(String projectName, Path basePath, Log logger) throws IOException {
+    public BuildsScanCache(String projectName, Path basePath) throws IOException {
         this.buildsDir = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8))).resolve(projectName);
-        this.logger = logger;
         if (!Files.exists(buildsDir)) {
             Files.createDirectories(buildsDir);
             return;
@@ -54,6 +54,15 @@ public class BuildsScanCache {
         }
     }
 
+    /**
+     * Save build info or Xray scan results.
+     *
+     * @param content     - The content to save
+     * @param buildName   - Build name
+     * @param buildNumber - Build number
+     * @param type        - BUILD_INFO or XRAY_BUILD_SCAN
+     * @throws IOException in case of error during writing the cache file.
+     */
     public void save(byte[] content, String buildName, String buildNumber, Type type) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(getBuildFile(buildName, buildNumber, type));
              ZipOutputStream zos = new ZipOutputStream(fos)) {
@@ -63,7 +72,16 @@ public class BuildsScanCache {
         }
     }
 
-    public byte[] load(String buildName, String buildNumber, Type type) throws IOException {
+    /**
+     * Load build info or Xray scan results from cache.
+     *
+     * @param buildName   - Build name
+     * @param buildNumber - Build number
+     * @param type        - BUILD_INFO or XRAY_BUILD_SCAN
+     * @return the cache content or null if doesn't exist.
+     * @throws IOException in case of error during reading the cache file.
+     */
+    byte[] load(String buildName, String buildNumber, Type type) throws IOException {
         File buildFile = getBuildFile(buildName, buildNumber, type);
         if (!buildFile.exists()) {
             return null;
@@ -76,6 +94,15 @@ public class BuildsScanCache {
         }
     }
 
+    /**
+     * Load the build info cache of the input build.
+     *
+     * @param mapper      - The object mapper
+     * @param buildName   - Build name
+     * @param buildNumber - build number
+     * @param log         - The logger
+     * @return {@link Build} or null if cache does not exist.
+     */
     public Build loadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber, Log log) {
         try {
             byte[] buffer = load(buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
@@ -88,6 +115,15 @@ public class BuildsScanCache {
         return null;
     }
 
+    /**
+     * Load the Xray 'details/build' cache of the input build.
+     *
+     * @param mapper      - The object mapper
+     * @param buildName   - Build name
+     * @param buildNumber - build number
+     * @param log         - The logger
+     * @return {@link DetailsResponse} or null if cache does not exist.
+     */
     public DetailsResponse loadDetailsResponse(ObjectMapper mapper, String buildName, String buildNumber, Log log) {
         try {
             byte[] buffer = load(buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
