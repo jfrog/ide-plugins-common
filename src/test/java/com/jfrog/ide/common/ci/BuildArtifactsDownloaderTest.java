@@ -1,23 +1,16 @@
 package com.jfrog.ide.common.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jfrog.ide.common.persistency.BuildsScanCache;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.utils.Sets;
-import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.Vcs;
-import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Scope;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.ParseException;
 
 import static com.jfrog.ide.common.TestUtils.getAndAssertChild;
@@ -31,20 +24,6 @@ import static org.testng.Assert.*;
  **/
 public class BuildArtifactsDownloaderTest {
     private final ObjectMapper mapper = createMapper();
-    private BuildsScanCache buildsScanCache;
-    private Path tempProject;
-
-    @BeforeMethod
-    public void setUp(Object[] testArgs) throws IOException {
-        tempProject = Files.createTempDirectory("ide-plugins-common-build-cache");
-        FileUtils.forceDeleteOnExit(tempProject.toFile());
-        buildsScanCache = new BuildsScanCache("maven-build", tempProject, new NullLog());
-    }
-
-    @AfterMethod
-    public void tearDown() throws IOException {
-        FileUtils.forceDelete(tempProject.toFile());
-    }
 
     @Test
     public void testCreateBuildDependencyTree() throws IOException, ParseException {
@@ -52,8 +31,8 @@ public class BuildArtifactsDownloaderTest {
             Build build = mapper.readValue(io, Build.class);
             assertNotNull(build);
 
-            BuildArtifactsDownloader buildArtifactsDownloader = new BuildArtifactsDownloader(null, null, buildsScanCache, null, null, 0, new NullLog());
-            DependencyTree actualBuildDependencyTree = buildArtifactsDownloader.createBuildDependencyTree(build);
+            CiDependencyTree actualBuildDependencyTree = new CiDependencyTree(build);
+            actualBuildDependencyTree.createBuildDependencyTree();
 
             checkBuildInformation(actualBuildDependencyTree);
             DependencyTree actualModuleTree = checkAndGetModuleNode(actualBuildDependencyTree);

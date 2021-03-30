@@ -1,45 +1,31 @@
 package com.jfrog.ide.common.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
-import org.jfrog.build.api.*;
+import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
 import org.jfrog.build.extractor.clientConfiguration.client.ArtifactoryDependenciesClient;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.License;
-import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
-import static com.jfrog.ide.common.ci.Utils.createArtifactsNode;
-import static com.jfrog.ide.common.ci.Utils.createDependenciesNode;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
-import static org.apache.commons.lang3.ArrayUtils.isEmpty;
 
 /**
  * @author yahavi
  **/
 public class BuildArtifactsDownloader extends ProducerRunnableBase {
-    public static final String BUILD_STATUS_PROP = BuildInfoProperties.BUILD_INFO_ENVIRONMENT_PREFIX + "JFROG_BUILD_RESULTS";
     public static final String BUILD_INFO_REPO = "/artifactory-build-info/";
 
     private final ArtifactoryDependenciesClientBuilder clientBuilder;
@@ -75,37 +61,42 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                 AqlSearchResult.SearchEntry searchEntry = buildArtifacts.remove();
                 String buildName = searchEntry.getPath();
                 String buildNumber = StringUtils.substringBefore(searchEntry.getName(), "-");
-                DependencyTree buildDependencyTree = null;
                 try {
-                    buildDependencyTree = ObjectUtils.firstNonNull(
-                            tryLoadFromCache(mapper, buildName, buildNumber),
-                            downloadBuildInfo(mapper, buildName, buildNumber, searchEntry, client, baseRepoUrl));
-                } finally {
-                    if (buildDependencyTree != null) {
-                        executor.put(buildDependencyTree);
+                    Build build = tryLoadFromCache(mapper, buildName, buildNumber);
+                    if (build == null) {
+                        build = downloadBuildInfo(mapper, buildName, buildNumber, searchEntry, client, baseRepoUrl);
                     }
+                    if (build == null) {
+                        continue;
+                    }
+                    CiDependencyTree buildDependencyTree = new CiDependencyTree(build);
+                    buildDependencyTree.createBuildDependencyTree();
+                    executor.put(buildDependencyTree);
+                } catch (ParseException | IOException e) {
+                    String msg = String.format("Couldn't retrieve build information for build '%s/%s'.", buildName, buildNumber);
+                    log.error(msg, e);
+                } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
             }
         }
     }
 
-    private DependencyTree tryLoadFromCache(ObjectMapper mapper, String buildName, String buildNumber) {
+    private Build tryLoadFromCache(ObjectMapper mapper, String buildName, String buildNumber) {
         try {
             byte[] buffer = buildsCache.load(buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
             if (buffer != null) {
-                Build build = mapper.readValue(buffer, Build.class);
-                return createBuildDependencyTree(build);
+                return mapper.readValue(buffer, Build.class);
             }
-        } catch (IOException | ParseException e) {
+        } catch (IOException e) {
             String msg = String.format("Failed reading cache file for '%s%s', zapping the old cache and starting a new one.", buildName, buildNumber);
             log.error(msg, e);
         }
         return null;
     }
 
-    private DependencyTree downloadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber,
-                                             AqlSearchResult.SearchEntry searchEntry, ArtifactoryDependenciesClient client, String baseRepoUrl) {
+    private Build downloadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber,
+                                    AqlSearchResult.SearchEntry searchEntry, ArtifactoryDependenciesClient client, String baseRepoUrl) {
         String downloadUrl = baseRepoUrl + searchEntry.getPath() + "/" + searchEntry.getName();
         HttpEntity entity = null;
         try (CloseableHttpResponse response = client.downloadArtifact(downloadUrl)) {
@@ -113,118 +104,12 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
             byte[] content = IOUtils.toByteArray(entity.getContent());
             Build build = mapper.readValue(content, Build.class);
             buildsCache.save(content, buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
-            return createBuildDependencyTree(build);
-        } catch (IOException | ParseException e) {
+            return build;
+        } catch (IOException e) {
             log.error("Couldn't retrieve build information", e);
         } finally {
             EntityUtils.consumeQuietly(entity);
         }
         return null;
     }
-
-    public DependencyTree createBuildDependencyTree(Build build) throws ParseException {
-        List<Vcs> vcsList = build.getVcs();
-        if (CollectionUtils.isEmpty(vcsList)) {
-            log.warn("Build '" + build.getName() + "/" + build.getNumber() + "' does not contain the branch VCS information");
-            return null;
-        }
-
-        Properties buildProperties = build.getProperties();
-        GeneralInfo buildGeneralInfo = new BuildGeneralInfo()
-                .started(build.getStarted())
-                .status(buildProperties != null ? buildProperties.getProperty(BUILD_STATUS_PROP) : "")
-                .vcs(vcsList.get(0))
-                .componentId(build.getName() + ":" + build.getNumber())
-                .path(build.getUrl());
-        DependencyTree dependencyTree = new DependencyTree(build.getName() + "/" + build.getNumber());
-        dependencyTree.setScopes(Sets.newHashSet(new Scope()));
-        dependencyTree.setGeneralInfo(buildGeneralInfo);
-        if (CollectionUtils.isNotEmpty(build.getModules())) {
-            populateModulesDependencyTree(dependencyTree, build);
-        }
-        return dependencyTree;
-    }
-
-    private void populateModulesDependencyTree(DependencyTree buildDependencyTree, Build build) {
-        for (Module module : build.getModules()) {
-            GeneralInfo moduleGeneralInfo = new GeneralInfo()
-                    .componentId(module.getId())
-                    .pkgType(module.getType());
-            DependencyTree moduleNode = new DependencyTree(module.getId());
-            moduleNode.setGeneralInfo(moduleGeneralInfo);
-
-            // Populate artifacts
-            DependencyTree artifactsNode = createArtifactsNode(module.getId());
-            moduleNode.add(artifactsNode);
-            if (CollectionUtils.isNotEmpty(module.getArtifacts())) {
-                populateArtifacts(artifactsNode, module);
-            }
-
-            // Populate dependencies
-            DependencyTree dependenciesNode = createDependenciesNode(module.getId());
-            moduleNode.add(dependenciesNode);
-            if (CollectionUtils.isNotEmpty(module.getDependencies())) {
-                populateDependencies(dependenciesNode, module);
-            }
-
-            buildDependencyTree.add(moduleNode);
-        }
-    }
-
-    private void populateArtifacts(DependencyTree artifactsNode, Module module) {
-        for (Artifact artifact : module.getArtifacts()) {
-            GeneralInfo artifactGeneralInfo = new GeneralInfo()
-                    .componentId(artifact.getName())
-                    .pkgType(artifact.getType())
-                    .sha1(artifact.getSha1());
-            DependencyTree artifactNode = new DependencyTree(artifact.getName());
-            artifactNode.setGeneralInfo(artifactGeneralInfo);
-            artifactNode.setScopes(Sets.newHashSet(new Scope()));
-            artifactNode.setLicenses(Sets.newHashSet(new License()));
-            artifactsNode.add(artifactNode);
-        }
-    }
-
-    private void populateDependencies(DependencyTree dependenciesNode, Module module) {
-        Set<Dependency> directDependencies = Sets.newHashSet();
-        Multimap<String, Dependency> parentToChildren = HashMultimap.create();
-        for (Dependency dependency : module.getDependencies()) {
-            String[][] requestedBy = dependency.getRequestedBy();
-            if (isEmpty(requestedBy) || isEmpty(requestedBy[0])) {
-                directDependencies.add(dependency);
-                continue;
-            }
-
-            for (String[] parent : requestedBy) {
-                String directParent = parent[0];
-                if (StringUtils.isBlank(requestedBy[0][0]) || StringUtils.equals(requestedBy[0][0], module.getId())) {
-                    directDependencies.add(dependency);
-                } else {
-                    parentToChildren.put(directParent, dependency);
-                }
-            }
-        }
-
-        for (Dependency directDependency : directDependencies) {
-            dependenciesNode.add(populateTransitiveDependencies(directDependency, parentToChildren));
-        }
-    }
-
-    private DependencyTree populateTransitiveDependencies(Dependency dependency, Multimap<String, Dependency> parentToChildren) {
-        GeneralInfo dependencyGeneralInfo = new GeneralInfo()
-                .componentId(dependency.getId())
-                .pkgType(dependency.getType())
-                .sha1(dependency.getSha1());
-        DependencyTree dependencyTree = new DependencyTree(dependency.getId());
-        dependencyTree.setGeneralInfo(dependencyGeneralInfo);
-        Collection<String> scopes = CollectionUtils.emptyIfNull(dependency.getScopes());
-        dependencyTree.setScopes(scopes.stream().map(Scope::new).collect(Collectors.toSet()));
-        dependencyTree.setLicenses(Sets.newHashSet(new License()));
-
-        for (Dependency child : parentToChildren.get(dependency.getId())) {
-            dependencyTree.add(populateTransitiveDependencies(child, parentToChildren));
-        }
-        return dependencyTree;
-    }
-
 }

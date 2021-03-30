@@ -1,18 +1,14 @@
 package com.jfrog.ide.common.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
-import com.jfrog.ide.common.utils.Utils;
 import com.jfrog.xray.client.impl.XrayClient;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
+import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import com.jfrog.xray.client.services.summary.Error;
-import com.jfrog.xray.client.services.summary.*;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
@@ -21,17 +17,11 @@ import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
-import static com.jfrog.ide.common.ci.Utils.ARTIFACTS_NODE;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * @author yahavi
@@ -68,24 +58,25 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                     executor.put(item);
                     break;
                 }
-                DependencyTree buildDependencyTree = (DependencyTree) item;
+                CiDependencyTree buildDependencyTree = (CiDependencyTree) item;
                 GeneralInfo generalInfo = buildDependencyTree.getGeneralInfo();
                 String buildName = generalInfo.getArtifactId();
                 String buildNumber = generalInfo.getVersion();
                 try {
-                    DetailsResponse response = ObjectUtils.firstNonNull(
-                            tryLoadFromCache(mapper, buildDependencyTree, buildName, buildNumber),
-                            downloadBuildDetails(xrayClient, buildName, buildNumber)
-                    );
+                    DetailsResponse response = tryLoadFromCache(mapper, buildName, buildNumber);
+                    if (response == null) {
+                        response = downloadBuildDetails(mapper, xrayClient, buildName, buildNumber);
+                    }
                     if (response == null) {
                         continue;
                     }
-                    populateBuildDependencyTree(buildDependencyTree, response);
+                    buildDependencyTree.populateBuildDependencyTree(response);
                     synchronized (root) {
                         root.add(buildDependencyTree);
                     }
-                } catch (IOException exception) {
-                    log.error("Couldn't scan build", exception);
+                } catch (IOException e) {
+                    String msg = String.format("Couldn't scan build '%s/%s'", buildName, buildNumber);
+                    log.error(msg, e);
                 } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
@@ -94,12 +85,11 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
         }
     }
 
-    private DetailsResponse tryLoadFromCache(ObjectMapper mapper, DependencyTree buildDependencyTree, String buildName, String buildNumber) {
+    private DetailsResponse tryLoadFromCache(ObjectMapper mapper, String buildName, String buildNumber) {
         try {
             byte[] buffer = buildsCache.load(buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
             if (buffer != null) {
-                DetailsResponse detailsResponse = mapper.readValue(buffer, DetailsResponse.class);
-                populateBuildDependencyTree(buildDependencyTree, detailsResponse);
+                return mapper.readValue(buffer, DetailsResponseImpl.class);
             }
         } catch (IOException e) {
             String msg = String.format("Failed reading cache file for '%s%s', zapping the old cache and starting a new one.", buildName, buildNumber);
@@ -108,7 +98,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
         return null;
     }
 
-    private DetailsResponse downloadBuildDetails(XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
+    private DetailsResponse downloadBuildDetails(ObjectMapper mapper, XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
         DetailsResponse response = xrayClient.details().build(buildName, buildNumber);
         if (!response.getScanCompleted() || isNotEmpty(response.getErrors()) || isEmpty(response.getComponents())) {
             if (CollectionUtils.isNotEmpty(response.getErrors())) {
@@ -116,9 +106,8 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
             }
             return null;
         }
-        ObjectMapper mapper = createMapper();
         byte[] buffer = mapper.writeValueAsBytes(response);
-
+        buildsCache.save(buffer, buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
         return response;
     }
 
@@ -126,82 +115,6 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
         response.getErrors().stream()
                 .map(err -> (Error) err)
                 .forEach(err -> log.error(err.getError() + "/n" + err.getIdentifier()));
-    }
-
-    public void populateBuildDependencyTree(DependencyTree buildDependencyTree, DetailsResponse response) {
-        Map<String, IssuesAndLicensesPair> artifactIssuesAndLicenses = Maps.newHashMap();
-        Map<String, String> sha1ToSha256 = Maps.newHashMap();
-        Map<String, Artifact> sha1ToComponent = Maps.newHashMap();
-        for (Artifact component : response.getComponents()) {
-            General general = component.getGeneral();
-            sha1ToComponent.put(general.getSha1(), component);
-            sha1ToSha256.put(general.getSha1(), general.getSha256());
-
-            if (CollectionUtils.isNotEmpty(general.getParentSha256())) {
-                for (String parentSha256 : general.getParentSha256()) {
-                    IssuesAndLicensesPair issuesAndLicenses = artifactIssuesAndLicenses.get(parentSha256);
-                    if (issuesAndLicenses == null) {
-                        issuesAndLicenses = new IssuesAndLicensesPair();
-                        artifactIssuesAndLicenses.put(parentSha256, issuesAndLicenses);
-                    }
-                    if (component.getIssues() != null) {
-                        issuesAndLicenses.issues.addAll(component.getIssues());
-                    }
-                    if (component.getLicenses() != null) {
-                        issuesAndLicenses.licenses.addAll(component.getLicenses());
-                    }
-                }
-            }
-        }
-
-        for (DependencyTree module : buildDependencyTree.getChildren()) {
-            for (DependencyTree artifactsOrDependencies : module.getChildren()) {
-                boolean isArtifactNode = artifactsOrDependencies.getUserObject().equals(ARTIFACTS_NODE);
-                for (DependencyTree child : artifactsOrDependencies.getChildren()) {
-                    populateComponents(child, sha1ToComponent, sha1ToSha256, artifactIssuesAndLicenses, isArtifactNode);
-                }
-            }
-        }
-    }
-
-    private void populateComponents(DependencyTree buildDependencyTree, Map<String, Artifact> sha1ToComponent,
-                                    Map<String, String> sha1ToSha256, Map<String, IssuesAndLicensesPair> artifactIssuesAndLicenses,
-                                    boolean isArtifact) {
-        Enumeration<?> bfs = buildDependencyTree.depthFirstEnumeration();
-        while (bfs.hasMoreElements()) {
-            DependencyTree buildArtifact = (DependencyTree) bfs.nextElement();
-            String nodeSha1 = buildArtifact.getGeneralInfo().getSha1();
-            if (isBlank(nodeSha1)) {
-                // Sha1 does not exist in node
-                continue;
-            }
-            Artifact artifact = sha1ToComponent.get(nodeSha1);
-            if (artifact == null) {
-                // Artifact not found in Xray scan
-                continue;
-            }
-
-            if (artifact.getIssues() != null) {
-                buildArtifact.setIssues(artifact.getIssues().stream()
-                        .map(Utils::toIssue).collect(Collectors.toSet()));
-            }
-            if (artifact.getLicenses() != null) {
-                buildArtifact.setLicenses(artifact.getLicenses().stream()
-                        .map(Utils::toLicense).collect(Collectors.toSet()));
-            }
-
-            if (!isArtifact) {
-                continue;
-            }
-            String nodeSha256 = sha1ToSha256.get(nodeSha1);
-            IssuesAndLicensesPair issuesAndLicenses = artifactIssuesAndLicenses.get(nodeSha256);
-            if (issuesAndLicenses != null) {
-                buildArtifact.getIssues()
-                        .addAll(issuesAndLicenses.issues.stream().map(Utils::toIssue).collect(Collectors.toList()));
-                buildArtifact.getLicenses()
-                        .addAll(issuesAndLicenses.licenses.stream().map(Utils::toLicense).collect(Collectors.toList()));
-            }
-        }
     }
 
     @Override
@@ -212,10 +125,5 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
     @Override
     public void setLog(Log log) {
         this.log = log;
-    }
-
-    private static class IssuesAndLicensesPair {
-        private final Set<Issue> issues = Sets.newHashSet();
-        private final Set<License> licenses = Sets.newHashSet();
     }
 }
