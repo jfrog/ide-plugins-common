@@ -5,6 +5,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.utils.Sets;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.Vcs;
+import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.Test;
@@ -32,7 +33,7 @@ public class BuildArtifactsDownloaderTest {
             assertNotNull(build);
 
             BuildDependencyTree actualBuildDependencyTree = new BuildDependencyTree();
-            actualBuildDependencyTree.createBuildDependencyTree(build);
+            actualBuildDependencyTree.createBuildDependencyTree(build, new NullLog());
 
             checkBuildInformation(actualBuildDependencyTree);
             DependencyTree actualModuleTree = checkAndGetModuleNode(actualBuildDependencyTree);

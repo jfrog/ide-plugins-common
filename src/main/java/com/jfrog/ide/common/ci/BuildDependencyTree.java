@@ -1,19 +1,15 @@
 package com.jfrog.ide.common.ci;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import com.jfrog.xray.client.services.summary.General;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jfrog.build.api.Artifact;
 import org.jfrog.build.api.*;
 import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.License;
-import org.jfrog.build.extractor.scan.Scope;
+import org.jfrog.build.api.util.Log;
+import org.jfrog.build.extractor.scan.*;
 
 import java.text.ParseException;
 import java.util.*;
@@ -47,10 +43,11 @@ public class BuildDependencyTree extends DependencyTree implements ProducerConsu
      * @throws ParseException           in case of parse exception in the build info started time.
      * @throws IllegalArgumentException in case the VCS information is missing in the build.
      */
-    public void createBuildDependencyTree(Build build) throws ParseException, IllegalArgumentException {
+    public void createBuildDependencyTree(Build build, Log logger) throws ParseException, IllegalArgumentException {
         List<Vcs> vcsList = build.getVcs();
         if (CollectionUtils.isEmpty(vcsList)) {
-            throw new IllegalArgumentException(String.format(NO_VCS_FMT, build.getName(), build.getNumber()));
+            logger.debug(String.format(NO_VCS_FMT, build.getName(), build.getNumber()));
+            vcsList = Lists.newArrayList(new Vcs());
         }
 
         Properties buildProperties = build.getProperties();
@@ -156,6 +153,12 @@ public class BuildDependencyTree extends DependencyTree implements ProducerConsu
      * @param response - The response from 'details/build' Xray REST API
      */
     public void populateBuildDependencyTree(DetailsResponse response) {
+        if (response == null) {
+            // If no response from Xray, the dependency tree components status is unknown.
+            // Populate all nodes with dummy unknown level issues to show the unknown icon in tree nodes.
+            populateTreeWithUnknownIssues();
+            return;
+        }
         // Component to issues and licenses mapping
         Map<String, IssuesAndLicensesPair> componentIssuesAndLicenses = Maps.newHashMap();
         // Sha1 to Sha256 mapping
@@ -244,6 +247,14 @@ public class BuildDependencyTree extends DependencyTree implements ProducerConsu
                 buildArtifact.getLicenses()
                         .addAll(issuesAndLicenses.licenses.stream().map(com.jfrog.ide.common.utils.Utils::toLicense).collect(Collectors.toList()));
             }
+        }
+    }
+
+    private void populateTreeWithUnknownIssues() {
+        Enumeration<?> bfs = depthFirstEnumeration();
+        while (bfs.hasMoreElements()) {
+            DependencyTree node = (DependencyTree) bfs.nextElement();
+            node.setIssues(Sets.newHashSet(new org.jfrog.build.extractor.scan.Issue("", "", "", "", Severity.Unknown, "", null)));
         }
     }
 

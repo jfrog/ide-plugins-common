@@ -5,6 +5,7 @@ import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.apache.commons.collections4.Transformer;
 import org.jfrog.build.api.Build;
+import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
@@ -40,7 +41,7 @@ public class XrayBuildDetailsDownloaderTest {
             Build build = mapper.readValue(artifactoryBuildStream, Build.class);
             assertNotNull(build);
             BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
-            buildDependencyTree.createBuildDependencyTree(build);
+            buildDependencyTree.createBuildDependencyTree(build, new NullLog());
 
             // Populate build dependency tree with Xray data
             DetailsResponse buildDetails = mapper.readValue(xrayDetailsStream, DetailsResponseImpl.class);

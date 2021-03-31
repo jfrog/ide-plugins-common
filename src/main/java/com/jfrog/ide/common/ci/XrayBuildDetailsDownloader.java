@@ -7,6 +7,7 @@ import com.jfrog.xray.client.impl.XrayClient;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import com.jfrog.xray.client.services.details.Error;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
@@ -61,18 +62,13 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 String buildName = generalInfo.getArtifactId();
                 String buildNumber = generalInfo.getVersion();
                 try {
-                    if (buildsCache.loadDetailsResponse(mapper, buildName, buildNumber, log) == null &&
-                            !downloadBuildDetails(mapper, xrayClient, buildName, buildNumber)) {
-                        continue;
-                    }
-                    BuildDependencyTree dependencyTree = new BuildDependencyTree(buildDependencyTree.getUserObject());
-                    dependencyTree.setGeneralInfo(generalInfo);
-                    synchronized (root) {
-                        root.add(dependencyTree);
+                    if (buildsCache.loadDetailsResponse(mapper, buildName, buildNumber, log) == null) {
+                        downloadBuildDetails(mapper, xrayClient, buildName, buildNumber);
                     }
                 } catch (IOException e) {
-                    log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
+                    log.debug(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + ". " + ExceptionUtils.getRootCauseMessage(e));
                 } finally {
+                    addResults(buildDependencyTree, generalInfo);
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
             }
@@ -80,18 +76,25 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
         }
     }
 
-    private boolean downloadBuildDetails(ObjectMapper mapper, XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
+    private void downloadBuildDetails(ObjectMapper mapper, XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
         DetailsResponse response = xrayClient.details().build(buildName, buildNumber);
         if (!response.getScanCompleted() || response.getError() != null || isEmpty(response.getComponents())) {
             if (response.getError() != null) {
                 Error error = response.getError();
-                log.warn(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + " " +
+                log.debug(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + " " +
                         error.getErrorCode() + ": " + error.getMessage());
             }
-            return false;
+            return;
         }
         buildsCache.save(mapper.writeValueAsBytes(response), buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
-        return true;
+    }
+
+    private void addResults(BuildDependencyTree buildDependencyTree, GeneralInfo generalInfo) {
+        BuildDependencyTree dependencyTree = new BuildDependencyTree(buildDependencyTree.getUserObject());
+        dependencyTree.setGeneralInfo(generalInfo);
+        synchronized (root) {
+            root.add(dependencyTree);
+        }
     }
 
     @Override

@@ -14,6 +14,7 @@ import org.jfrog.build.api.util.Log;
 import java.io.IOException;
 
 import static com.jfrog.ide.common.utils.Constants.MINIMAL_XRAY_VERSION_SUPPORTED;
+import static com.jfrog.ide.common.utils.Constants.MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI;
 
 /**
  * @author yahavi
@@ -35,10 +36,20 @@ public class XrayConnectionUtils {
             return "ERROR: Unsupported Xray version: " + xrayVersion.getVersion() + ", version " +
                     MINIMAL_XRAY_VERSION_SUPPORTED + " or above is required.";
         }
+
+        public static String unsupportedForCi(Version xrayVersion) {
+            return "ERROR: Unsupported Xray version for CI integration: " + xrayVersion.getVersion() + ", version " +
+                    MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI + " or above is required. " +
+                    "You can still use Xray for local projects scanning.";
+        }
     }
 
     public static boolean isXrayVersionSupported(Version version) {
         return version.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED);
+    }
+
+    public static boolean isXrayVersionForCiSupported(Version version) {
+        return version.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI);
     }
 
     /**

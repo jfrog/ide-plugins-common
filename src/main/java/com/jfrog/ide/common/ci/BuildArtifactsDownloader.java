@@ -73,7 +73,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                         continue;
                     }
                     BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
-                    buildDependencyTree.createBuildDependencyTree(build);
+                    buildDependencyTree.createBuildDependencyTree(build, log);
                     executor.put(buildDependencyTree);
                 } catch (ParseException | IllegalArgumentException e) {
                     log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);

@@ -5,8 +5,6 @@ import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.ide.common.utils.Constants;
-import com.jfrog.ide.common.utils.XrayConnectionUtils;
-import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.jfrog.build.api.Build;
@@ -69,13 +67,10 @@ public class CiManagerBase {
     public void buildCiTree(String buildsPattern, ProgressIndicator indicator) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
-        if (!isXrayVersionSupported(xrayClientBuilder)) {
-            return;
-        }
         ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
         try (ArtifactoryDependenciesClient dependenciesClient = dependenciesClientBuilder.build()) {
             if (!isArtifactoryVersionSupported(dependenciesClient.getArtifactoryVersion())) {
-                log.error("Unsupported JFrog Artifactory version: Required JFrog Artifactory version " + Constants.MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI + " and above.");
+                log.error("Unsupported JFrog Artifactory version: Required JFrog Artifactory version " + Constants.MINIMAL_ARTIFACTORY_VERSION_SUPPORTED + " and above.");
                 return;
             }
             AqlSearchResult searchResult = dependenciesClient.searchArtifactsByAql(createAql(buildsPattern));
@@ -103,14 +98,17 @@ public class CiManagerBase {
         }
     }
 
-    public DependencyTree loadBuildTree(String buildName, String buildNumber) throws IOException, ParseException {
+    public BuildDependencyTree loadBuildTree(String buildName, String buildNumber) throws IOException, ParseException {
         BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
 
         // Load build info from cache
         Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber, log);
-        buildDependencyTree.createBuildDependencyTree(build);
+        if (build == null) {
+            throw new IOException(String.format("Couldn't find build info object in cache for '%s/%s'.", buildName, buildNumber));
+        }
+        buildDependencyTree.createBuildDependencyTree(build, log);
 
-        // Load Xray 'details/build' response from cache
+        // If the build scanned by Xray, load Xray 'details/build' response from cache
         DetailsResponse detailsResponse = buildsCache.loadDetailsResponse(mapper, buildName, buildNumber, log);
         buildDependencyTree.populateBuildDependencyTree(detailsResponse);
 
@@ -140,23 +138,5 @@ public class CiManagerBase {
                 "\"repo\":\"artifactory-build-info\"," +
                 "\"path\":{\"$match\":\"%s\"}}" +
                 ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(10)", buildsPattern);
-    }
-
-    /**
-     * Return true iff xray version is sufficient.
-     *
-     * @param xrayClientBuilder - The xray client builder.
-     * @return true iff Xray version is sufficient.
-     */
-    private boolean isXrayVersionSupported(XrayClientBuilder xrayClientBuilder) {
-        try (Xray xrayClient = xrayClientBuilder.build()) {
-            if (XrayConnectionUtils.isXrayVersionSupported(xrayClient.system().version())) {
-                return true;
-            }
-            log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + Constants.MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI + " and above.");
-        } catch (IOException e) {
-            log.error("JFrog Xray Scan failed. Please check your credentials.", e);
-        }
-        return false;
     }
 }
