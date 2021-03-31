@@ -54,6 +54,10 @@ public class BuildsScanCache {
         }
     }
 
+    public void createDirectories() throws IOException {
+        Files.createDirectories(buildsDir);
+    }
+
     /**
      * Save build info or Xray scan results.
      *

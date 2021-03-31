@@ -69,6 +69,7 @@ public class CiManagerBase {
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
         ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
         try (ArtifactoryDependenciesClient dependenciesClient = dependenciesClientBuilder.build()) {
+            buildsCache.createDirectories();
             if (!isArtifactoryVersionSupported(dependenciesClient.getArtifactoryVersion())) {
                 log.error("Unsupported JFrog Artifactory version: Required JFrog Artifactory version " + Constants.MINIMAL_ARTIFACTORY_VERSION_SUPPORTED + " and above.");
                 return;
