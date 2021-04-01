@@ -23,6 +23,9 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 
 /**
+ * Consumes {@link BuildDependencyTree} that produced by {@link BuildArtifactsDownloader}.
+ * The consumer downloads Xray build scan results and save them in the local cache.
+ *
  * @author yahavi
  **/
 public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
@@ -57,18 +60,17 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                     executor.put(item);
                     break;
                 }
-                BuildDependencyTree buildDependencyTree = (BuildDependencyTree) item;
-                GeneralInfo generalInfo = buildDependencyTree.getGeneralInfo();
+                BuildGeneralInfo generalInfo = (BuildGeneralInfo) item;
                 String buildName = generalInfo.getArtifactId();
                 String buildNumber = generalInfo.getVersion();
                 try {
-                    if (buildsCache.loadDetailsResponse(mapper, buildName, buildNumber, log) == null) {
+                    if (buildsCache.loadScanResults(mapper, buildName, buildNumber) == null) {
                         downloadBuildDetails(mapper, xrayClient, buildName, buildNumber);
                     }
                 } catch (IOException e) {
                     log.debug(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + ". " + ExceptionUtils.getRootCauseMessage(e));
                 } finally {
-                    addResults(buildDependencyTree, generalInfo);
+                    addResults(generalInfo);
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
             }
@@ -86,11 +88,11 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
             }
             return;
         }
-        buildsCache.save(mapper.writeValueAsBytes(response), buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
+        buildsCache.save(mapper.writeValueAsBytes(response), buildName, buildNumber, BuildsScanCache.Type.BUILD_SCAN_RESULTS);
     }
 
-    private void addResults(BuildDependencyTree buildDependencyTree, GeneralInfo generalInfo) {
-        BuildDependencyTree dependencyTree = new BuildDependencyTree(buildDependencyTree.getUserObject());
+    private void addResults(GeneralInfo generalInfo) {
+        BuildDependencyTree dependencyTree = new BuildDependencyTree(generalInfo.getComponentId().replace(":", "/"));
         dependencyTree.setGeneralInfo(generalInfo);
         synchronized (root) {
             root.add(dependencyTree);

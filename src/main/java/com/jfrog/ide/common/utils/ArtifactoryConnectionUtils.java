@@ -12,7 +12,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 
-import static com.jfrog.ide.common.utils.Constants.MINIMAL_ARTIFACTORY_VERSION_SUPPORTED;
+import static com.jfrog.ide.common.utils.Constants.RECOMMENDED_ARTIFACTORY_VERSION_SUPPORTED;
 
 /**
  * Represents connection utils for Artifactory.
@@ -32,13 +32,9 @@ public class ArtifactoryConnectionUtils {
         }
 
         public static String unsupported(ArtifactoryVersion artifactoryVersion) {
-            return "ERROR: Unsupported Artifactory version: " + artifactoryVersion.toString() + ", version " +
-                    MINIMAL_ARTIFACTORY_VERSION_SUPPORTED + " or above is required.";
+            return "Detected Artifactory version: " + artifactoryVersion.toString() + ". Version " + RECOMMENDED_ARTIFACTORY_VERSION_SUPPORTED +
+                    " or above is recommended to get extended VCS information and hierarchical build dependencies tree.";
         }
-    }
-
-    public static boolean isArtifactoryVersionSupported(ArtifactoryVersion version) {
-        return version.isAtLeast(MINIMAL_ARTIFACTORY_VERSION_SUPPORTED);
     }
 
     public static ArtifactoryDependenciesClientBuilder createDependenciesClientBuilder(ServerConfig serverConfig, Log logger) throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {

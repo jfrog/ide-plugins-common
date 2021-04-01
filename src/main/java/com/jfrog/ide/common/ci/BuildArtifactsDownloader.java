@@ -21,10 +21,12 @@ import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
+import static com.jfrog.ide.common.ci.Utils.createBuildGeneralInfo;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
- * Produces build dependency trees and also save them in cache.
+ * Download build info artifacts from Artifactory, save them in cache and produce the build general info to the consumer -
+ * {@link XrayBuildDetailsDownloader}.
  *
  * @author yahavi
  */
@@ -59,22 +61,24 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
             String baseRepoUrl = client.getArtifactoryUrl() + BUILD_INFO_REPO;
             while (!buildArtifacts.isEmpty()) {
                 if (Thread.interrupted()) {
+                    // Stop the producer if the thread received an interruption event
                     break;
                 }
                 AqlSearchResult.SearchEntry searchEntry = buildArtifacts.remove();
                 String buildName = searchEntry.getPath();
                 String buildNumber = StringUtils.substringBefore(searchEntry.getName(), "-");
                 try {
-                    Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber, log);
+                    Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber);
                     if (build == null) {
                         build = downloadBuildInfo(mapper, buildName, buildNumber, searchEntry, client, baseRepoUrl);
                     }
                     if (build == null) {
+                        // Build not found in Artifactory
                         continue;
                     }
-                    BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
-                    buildDependencyTree.createBuildDependencyTree(build, log);
-                    executor.put(buildDependencyTree);
+
+                    // Create and produce the build general info to the consumer
+                    executor.put(createBuildGeneralInfo(build, log));
                 } catch (ParseException | IllegalArgumentException e) {
                     log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
                 } finally {

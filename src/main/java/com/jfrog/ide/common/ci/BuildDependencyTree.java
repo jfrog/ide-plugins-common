@@ -1,18 +1,25 @@
 package com.jfrog.ide.common.ci;
 
-import com.google.common.collect.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import com.jfrog.xray.client.services.summary.General;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.Artifact;
-import org.jfrog.build.api.*;
-import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
+import org.jfrog.build.api.Build;
+import org.jfrog.build.api.Dependency;
+import org.jfrog.build.api.Module;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.*;
 
 import java.text.ParseException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.jfrog.ide.common.ci.Utils.*;
@@ -20,14 +27,11 @@ import static org.apache.commons.lang3.ArrayUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
- * Represents the dependency tree of a builds.
+ * Represents the dependency tree of a CI build.
  *
  * @author yahavi
  **/
-public class BuildDependencyTree extends DependencyTree implements ProducerConsumerItem {
-    public static final String BUILD_STATUS_PROP = BuildInfoProperties.BUILD_INFO_ENVIRONMENT_PREFIX + "JFROG_BUILD_RESULTS";
-    private static final String NO_VCS_FMT = "Build '%s/%s' does not contain the branch VCS information.";
-
+public class BuildDependencyTree extends DependencyTree {
     public BuildDependencyTree() {
         super();
     }
@@ -40,26 +44,12 @@ public class BuildDependencyTree extends DependencyTree implements ProducerConsu
      * Create the build dependency tree from the provided build info.
      *
      * @param build - The build info
-     * @throws ParseException           in case of parse exception in the build info started time.
-     * @throws IllegalArgumentException in case the VCS information is missing in the build.
+     * @throws ParseException in case of parse exception in the build info started time.
      */
-    public void createBuildDependencyTree(Build build, Log logger) throws ParseException, IllegalArgumentException {
-        List<Vcs> vcsList = build.getVcs();
-        if (CollectionUtils.isEmpty(vcsList)) {
-            logger.debug(String.format(NO_VCS_FMT, build.getName(), build.getNumber()));
-            vcsList = Lists.newArrayList(new Vcs());
-        }
-
-        Properties buildProperties = build.getProperties();
-        GeneralInfo buildGeneralInfo = new BuildGeneralInfo()
-                .started(build.getStarted())
-                .status(buildProperties != null ? buildProperties.getProperty(BUILD_STATUS_PROP) : "")
-                .vcs(vcsList.get(0))
-                .componentId(build.getName() + ":" + build.getNumber())
-                .path(build.getUrl());
+    public void createBuildDependencyTree(Build build, Log logger) throws ParseException {
         setUserObject(build.getName() + "/" + build.getNumber());
         setScopes(Sets.newHashSet(new Scope()));
-        setGeneralInfo(buildGeneralInfo);
+        setGeneralInfo(createBuildGeneralInfo(build, logger));
         if (CollectionUtils.isNotEmpty(build.getModules())) {
             populateModulesDependencyTree(this, build);
         }

@@ -2,6 +2,7 @@ package com.jfrog.ide.common.ci;
 
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.Vcs;
+import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 
 import java.text.ParseException;
@@ -14,7 +15,7 @@ import java.util.Date;
  *
  * @author yahavi
  **/
-public class BuildGeneralInfo extends GeneralInfo {
+public class BuildGeneralInfo extends GeneralInfo implements ProducerConsumerItem {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat(Build.STARTED_FORMAT);
 
     public enum Status {PASSED, FAILED, UNKNOWN}

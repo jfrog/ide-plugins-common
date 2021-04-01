@@ -15,6 +15,7 @@ public class XrayScanCache extends ScanCache {
 
     /**
      * Construct an Xray scan cache.
+     * This cache stores {@link org.jfrog.build.extractor.scan.Artifact} and we use it for local projects Xray scans.
      *
      * @param projectName - The IDE project name. If this is an npm project, it is a full path to the directory containing the package.json.
      * @param basePath    - The directory for the cache.

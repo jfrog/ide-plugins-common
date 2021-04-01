@@ -25,31 +25,38 @@ import java.util.zip.ZipOutputStream;
  * @author yahavi
  */
 public class BuildsScanCache {
-    public enum Type {BUILD_INFO, XRAY_BUILD_SCAN}
+    public enum Type {BUILD_INFO, BUILD_SCAN_RESULTS}
 
     private static final String INVALID_CACHE_FMT = "Failed reading cache file for '%s/%s', zapping the old cache and starting a new one.";
     public static final int MAX_BUILDS = 100;
     // Each build should have 1 build info file and 1 Xray scan results file
     public static final int MAX_FILES = MAX_BUILDS * 2;
 
-    private String[] currentBuildScanCaches = new String[]{};
     private final Path buildsDir;
+    private final Log log;
 
-    public BuildsScanCache(String projectName, Path basePath) throws IOException {
+    public BuildsScanCache(String projectName, Path basePath, Log log) throws IOException {
         this.buildsDir = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8))).resolve(projectName);
+        this.log = log;
         if (!Files.exists(buildsDir)) {
             Files.createDirectories(buildsDir);
             return;
         }
-        this.currentBuildScanCaches = Arrays.stream(buildsDir.toFile().listFiles())
-                .map(File::getName)
-                .sorted()
-                .toArray(String[]::new);
         cleanUpOldBuilds();
     }
 
+    /**
+     * This builds cache saves only 100 newest builds. This cleanup method deletes builds 101 and older.
+     *
+     * @throws IOException in case of any IO error.
+     */
     private void cleanUpOldBuilds() throws IOException {
+        String[] currentBuildScanCaches = Arrays.stream(buildsDir.toFile().listFiles())
+                .map(File::getName)
+                .sorted()
+                .toArray(String[]::new);
         for (int i = MAX_FILES; i < currentBuildScanCaches.length; i++) {
+            log.debug("Deleting " + currentBuildScanCaches[i]);
             Files.delete(Paths.get(currentBuildScanCaches[i]));
         }
     }
@@ -90,7 +97,7 @@ public class BuildsScanCache {
         if (!buildFile.exists()) {
             return null;
         }
-        try (FileInputStream fis = new FileInputStream(getBuildFile(buildName, buildNumber, type));
+        try (FileInputStream fis = new FileInputStream(buildFile);
              BufferedInputStream bis = new BufferedInputStream(fis);
              ZipInputStream zis = new ZipInputStream(bis)) {
             zis.getNextEntry();
@@ -104,10 +111,9 @@ public class BuildsScanCache {
      * @param mapper      - The object mapper
      * @param buildName   - Build name
      * @param buildNumber - build number
-     * @param log         - The logger
      * @return {@link Build} or null if cache does not exist.
      */
-    public Build loadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber, Log log) {
+    public Build loadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber) {
         try {
             byte[] buffer = load(buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
             if (buffer != null) {
@@ -125,12 +131,11 @@ public class BuildsScanCache {
      * @param mapper      - The object mapper
      * @param buildName   - Build name
      * @param buildNumber - build number
-     * @param log         - The logger
      * @return {@link DetailsResponse} or null if cache does not exist.
      */
-    public DetailsResponse loadDetailsResponse(ObjectMapper mapper, String buildName, String buildNumber, Log log) {
+    public DetailsResponse loadScanResults(ObjectMapper mapper, String buildName, String buildNumber) {
         try {
-            byte[] buffer = load(buildName, buildNumber, BuildsScanCache.Type.XRAY_BUILD_SCAN);
+            byte[] buffer = load(buildName, buildNumber, BuildsScanCache.Type.BUILD_SCAN_RESULTS);
             if (buffer != null) {
                 return mapper.readValue(buffer, DetailsResponseImpl.class);
             }
