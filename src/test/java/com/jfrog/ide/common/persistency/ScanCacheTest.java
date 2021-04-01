@@ -1,9 +1,9 @@
 package com.jfrog.ide.common.persistency;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Files;
 import com.jfrog.xray.client.impl.services.summary.ArtifactImpl;
 import com.jfrog.xray.client.impl.services.summary.GeneralImpl;
+import com.jfrog.xray.client.services.summary.Artifact;
 import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.testng.Assert;
@@ -13,6 +13,7 @@ import org.testng.annotations.Test;
 import org.testng.collections.Maps;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -27,10 +28,9 @@ public class ScanCacheTest {
 
     private Path tempDir;
 
-    @SuppressWarnings("UnstableApiUsage")
     @BeforeMethod
-    public void setUp() {
-        tempDir = Files.createTempDir().toPath();
+    public void setUp() throws IOException {
+        tempDir = Files.createTempDirectory("ScanCacheTest");
         tempDir.toFile().deleteOnExit();
     }
 
@@ -40,22 +40,10 @@ public class ScanCacheTest {
     }
 
     @Test
-    public void testInvalidated() {
-        ScanCacheObject scanCacheObject = new ScanCacheObject();
-        Assert.assertFalse(scanCacheObject.isInvalidated());
-
-        scanCacheObject.setLastUpdated(0);
-        Assert.assertTrue(scanCacheObject.isInvalidated());
-
-        scanCacheObject.setLastUpdated(System.currentTimeMillis() - 6 * 24 * 60 * 60 * 1000);
-        Assert.assertFalse(scanCacheObject.isInvalidated());
-    }
-
-    @Test
     public void testGetScanCacheEmpty() {
         String projectName = "not_exits";
         try {
-            ScanCache scanCache = new ScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
             assertNotNull(scanCache);
             assertNull(scanCache.get("not_exits"));
         } catch (IOException e) {
@@ -68,10 +56,10 @@ public class ScanCacheTest {
         String projectName = "Goliath";
         String artifactId = "ant:tony:1.2.3";
         try {
-            ScanCache scanCache = new ScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
             assertNotNull(scanCache);
 
-            ArtifactImpl artifact = createArtifact(artifactId);
+            Artifact artifact = createArtifact(artifactId);
             scanCache.add(artifact);
             assertEquals(scanCache.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
         } catch (IOException e) {
@@ -84,13 +72,13 @@ public class ScanCacheTest {
         String projectName = "Pegasus";
         String artifactId = "red:skull:3.3.3";
         try {
-            ScanCache scanCache1 = new ScanCache(projectName, tempDir, new NullLog());
-            ArtifactImpl artifact = createArtifact(artifactId);
+            ScanCache scanCache1 = new XrayScanCache(projectName, tempDir, new NullLog());
+            Artifact artifact = createArtifact(artifactId);
 
             scanCache1.add(artifact);
             scanCache1.write();
 
-            ScanCache scanCache2 = new ScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache2 = new XrayScanCache(projectName, tempDir, new NullLog());
             assertEquals(scanCache2.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
         } catch (IOException e) {
             Assert.fail(e.getMessage());
@@ -102,8 +90,8 @@ public class ScanCacheTest {
         String projectName = "Exodus";
         String artifactId = "tony:stark:3.3.3";
         try {
-            ScanCache scanCache = new ScanCache(projectName, tempDir, new NullLog());
-            ArtifactImpl artifact = createArtifact(artifactId);
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            Artifact artifact = createArtifact(artifactId);
 
             scanCache.add(artifact);
             scanCache.add(createArtifact(artifactId));
@@ -111,7 +99,7 @@ public class ScanCacheTest {
             assertEquals(scanCache.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
 
             // Read again
-            scanCache = new ScanCache(projectName, tempDir, new NullLog());
+            scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
             assertEquals(scanCache.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
         } catch (IOException e) {
             Assert.fail(e.getMessage());
@@ -126,7 +114,7 @@ public class ScanCacheTest {
             // Create ScanCacheObject
             ScanCacheObject scanCacheObject = new ScanCacheObject() {
                 @SuppressWarnings("unused")
-                int fuel = 50;
+                final int fuel = 50;
             };
 
             // Create artifacts map
@@ -134,25 +122,25 @@ public class ScanCacheTest {
             artifactsMap.put(artifactId, scanCacheObject);
 
             // Create ScanCacheMap with version -1
-            ScanCacheMap scanCacheMap = new ScanCacheMap();
+            ScanCacheMap scanCacheMap = new XrayScanCacheMap();
             scanCacheMap.setVersion(-1);
             scanCacheMap.setArtifactsMap(artifactsMap);
 
             // Create ScanCache and flush
-            ScanCache scanCache = new ScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
             scanCache.setScanCacheMap(scanCacheMap);
             scanCache.write();
             Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), -1);
             Assert.assertEquals(scanCache.getScanCacheMap().getArtifactsMap().get(artifactId), scanCacheObject);
 
             // Read from disk and expect no errors - But empty cache
-            scanCache = new ScanCache(projectName, tempDir, new NullLog());
+            scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
             Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 0);
             Assert.assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
 
             // Write and check again
             scanCache.write();
-            scanCache = new ScanCache(projectName, tempDir, new NullLog());
+            scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
             Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 0);
             Assert.assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
         } catch (IOException e) {
@@ -166,7 +154,7 @@ public class ScanCacheTest {
      * @param id - Artifact id.
      * @return empty artifact.
      */
-    private ArtifactImpl createArtifact(String id) {
+    private Artifact createArtifact(String id) {
         ArtifactImpl artifact = new ArtifactImpl();
         GeneralImpl general = new GeneralImpl();
         general.setComponentId(id);

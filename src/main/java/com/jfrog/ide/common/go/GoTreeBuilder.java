@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
-import org.jfrog.build.extractor.scan.DependenciesTree;
+import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.Scope;
 
@@ -32,13 +32,13 @@ public class GoTreeBuilder {
         this.logger = logger;
     }
 
-    public DependenciesTree buildTree() throws IOException {
+    public DependencyTree buildTree() throws IOException {
         if (!goDriver.isInstalled()) {
             logger.error("Could not scan go project dependencies, because go CLI is not in the PATH.");
             return null;
         }
 
-        DependenciesTree rootNode = createDependenciesTree();
+        DependencyTree rootNode = createDependencyTree();
         rootNode.setGeneralInfo(new GeneralInfo()
                 .componentId(rootNode.getUserObject().toString())
                 .pkgType("go")
@@ -50,19 +50,19 @@ public class GoTreeBuilder {
         return rootNode;
     }
 
-    private DependenciesTree createDependenciesTree() throws IOException {
+    private DependencyTree createDependencyTree() throws IOException {
         // Run go mod graph.
         CommandResults goGraphResult = goDriver.modGraph(false);
         String[] dependenciesGraph = goGraphResult.getRes().split("\\r?\\n");
 
         // Create root node.
         String rootPackageName = goDriver.getModuleName();
-        DependenciesTree rootNode = new DependenciesTree(goDriver.getModuleName());
+        DependencyTree rootNode = new DependencyTree(goDriver.getModuleName());
 
-        // Build dependencies tree.
+        // Build dependency tree.
         Map<String, List<String>> allDependencies = new HashMap<>();
         populateAllDependenciesMap(dependenciesGraph, allDependencies);
-        populateDependenciesTree(rootNode, rootPackageName, allDependencies);
+        populateDependencyTree(rootNode, rootPackageName, allDependencies);
 
         return rootNode;
     }
@@ -70,9 +70,9 @@ public class GoTreeBuilder {
     /**
      * Since Go doesn't have scopes, populate the direct dependencies with 'None' scope
      *
-     * @param rootNode - The dependencies tree root
+     * @param rootNode - The dependency tree root
      */
-    private static void setNoneScope(DependenciesTree rootNode) {
+    private static void setNoneScope(DependencyTree rootNode) {
         Set<Scope> scopes = Sets.newHashSet(new Scope());
         rootNode.getChildren().forEach(child -> child.setScopes(scopes));
     }
@@ -88,16 +88,16 @@ public class GoTreeBuilder {
         }
     }
 
-    static void populateDependenciesTree(DependenciesTree currNode, String currNameVersionString, Map<String, List<String>> allDependencies) {
+    static void populateDependencyTree(DependencyTree currNode, String currNameVersionString, Map<String, List<String>> allDependencies) {
         List<String> currDependencies = allDependencies.get(currNameVersionString);
         if (currDependencies == null) {
             return;
         }
         for (String dependency : currDependencies) {
             String[] dependencyNameVersion = dependency.split("@v");
-            DependenciesTree dependenciesTree = new DependenciesTree(dependencyNameVersion[0] + ":" + dependencyNameVersion[1]);
-            populateDependenciesTree(dependenciesTree, dependency, allDependencies);
-            currNode.add(dependenciesTree);
+            DependencyTree DependencyTree = new DependencyTree(dependencyNameVersion[0] + ":" + dependencyNameVersion[1]);
+            populateDependencyTree(DependencyTree, dependency, allDependencies);
+            currNode.add(DependencyTree);
         }
     }
 }

@@ -1,7 +1,7 @@
 package com.jfrog.ide.common.utils;
 
 import org.apache.commons.lang3.StringUtils;
-import org.jfrog.build.extractor.scan.DependenciesTree;
+import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -22,7 +22,7 @@ public class ProjectsMapTest {
     public void testPut() {
         ProjectsMap projectsMap = new ProjectsMap();
 
-        DependenciesTree first = createDependenciesNode("a", "e");
+        DependencyTree first = createDependenciesNode("a", "e");
 
         projectsMap.put("a", first);
 
@@ -35,7 +35,7 @@ public class ProjectsMapTest {
         projectsMap.put("d", createDependenciesNode("d", "g"));
         projectsMap.put("d", createDependenciesNode("d", "f"));
 
-        DependenciesTree[] values = projectsMap.values().toArray(new DependenciesTree[]{});
+        DependencyTree[] values = projectsMap.values().toArray(new DependencyTree[]{});
         assertEquals(values.length, 5);
 
         assertEquals(values[0], first);
@@ -77,9 +77,9 @@ public class ProjectsMapTest {
         };
     }
 
-    private DependenciesTree createDependenciesNode(String name, String path) {
-        DependenciesTree dependenciesTree = new DependenciesTree(name);
-        dependenciesTree.setGeneralInfo(new GeneralInfo().path(path));
-        return dependenciesTree;
+    private DependencyTree createDependenciesNode(String name, String path) {
+        DependencyTree DependencyTree = new DependencyTree(name);
+        DependencyTree.setGeneralInfo(new GeneralInfo().path(path));
+        return DependencyTree;
     }
 }

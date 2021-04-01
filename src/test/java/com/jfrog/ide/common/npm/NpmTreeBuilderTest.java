@@ -5,7 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.npm.NpmDriver;
-import org.jfrog.build.extractor.scan.DependenciesTree;
+import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.AfterMethod;
@@ -24,7 +24,7 @@ import java.util.Set;
 import static org.testng.Assert.*;
 
 /**
- * Test correctness of DependenciesTree for different npm projects.
+ * Test correctness of DependencyTree for different npm projects.
  * The tests verifies correctness before and after 'npm install' command.
  *
  * @author yahavi
@@ -32,8 +32,8 @@ import static org.testng.Assert.*;
 public class NpmTreeBuilderTest {
 
     private static final Path NPM_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "npm"));
-    private static final DependenciesTree progress = new DependenciesTree("progress:2.0.3");
-    private static final DependenciesTree debug = new DependenciesTree("debug:4.1.1");
+    private static final DependencyTree progress = new DependencyTree("progress:2.0.3");
+    private static final DependencyTree debug = new DependencyTree("debug:4.1.1");
 
     static {
         progress.setScopes(Sets.newHashSet(new Scope("production")));
@@ -46,11 +46,11 @@ public class NpmTreeBuilderTest {
         DEPENDENCY_PACKAGE_LOCK("package-name3", "dependencyPackageLock", progress, debug),
         DEV_AND_PROD("package-name4", "devAndProd", progress);
 
-        private final DependenciesTree[] children;
+        private final DependencyTree[] children;
         private final String name;
         private final Path path;
 
-        Project(String name, String path, DependenciesTree... children) {
+        Project(String name, String path, DependencyTree... children) {
             this.name = name;
             this.path = NPM_ROOT.resolve(path);
             this.children = children;
@@ -98,7 +98,7 @@ public class NpmTreeBuilderTest {
                 npmDriver.install(tempProject, Lists.newArrayList(), null);
             }
             NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath(), null);
-            DependenciesTree dependencyTree = npmTreeBuilder.buildTree(new NullLog());
+            DependencyTree dependencyTree = npmTreeBuilder.buildTree(new NullLog());
             assertNotNull(dependencyTree);
             String projectName = project.name;
             if (!install && ArrayUtils.isNotEmpty(project.children)) {
@@ -130,20 +130,20 @@ public class NpmTreeBuilderTest {
         assertEquals(actual.getVersion(), "0.0.1");
     }
 
-    private void noChildrenScenario(DependenciesTree dependencyTree) {
+    private void noChildrenScenario(DependencyTree dependencyTree) {
         assertTrue(dependencyTree.isLeaf());
     }
 
-    private void oneChildScenario(DependenciesTree dependencyTree, String expectedProjectName) {
-        DependenciesTree child = dependencyTree.getChildren().get(0);
+    private void oneChildScenario(DependencyTree dependencyTree, String expectedProjectName) {
+        DependencyTree child = dependencyTree.getChildren().get(0);
         assertEquals("progress:2.0.3", child.toString());
         Set<Scope> expectedScopes = Sets.newHashSet(new Scope("production"), new Scope("development"));
         assertEquals(child.getScopes(), expectedScopes);
         assertEquals(child.getParent().toString(), expectedProjectName);
     }
 
-    private void twoChildrenScenario(DependenciesTree dependencyTree, String expectedProjectName) {
-        for (DependenciesTree child : dependencyTree.getChildren()) {
+    private void twoChildrenScenario(DependencyTree dependencyTree, String expectedProjectName) {
+        for (DependencyTree child : dependencyTree.getChildren()) {
             switch (child.toString()) {
                 case "progress:2.0.3":
                     assertEquals(child.getScopes(), Sets.newHashSet(new Scope("production")));

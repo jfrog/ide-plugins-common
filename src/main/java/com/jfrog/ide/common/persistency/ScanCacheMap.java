@@ -2,10 +2,8 @@ package com.jfrog.ide.common.persistency;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
@@ -13,8 +11,9 @@ import org.jfrog.build.extractor.scan.Artifact;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
+
+import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
  * The implementation of the scan cache. Contains a version and a map.
@@ -24,25 +23,17 @@ import java.util.Map;
  */
 @Getter
 @Setter
-class ScanCacheMap {
+abstract class ScanCacheMap {
 
     private static int CACHE_VERSION = 0;
-    private static ObjectMapper objectMapper;
-
-    static {
-        objectMapper = new ObjectMapper();
-        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        objectMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-    }
+    static ObjectMapper objectMapper = createMapper();
 
     @JsonProperty("version")
-    private int version = CACHE_VERSION;
+    int version = CACHE_VERSION;
     @JsonProperty("artifactsMap")
-    private Map<String, ScanCacheObject> artifactsMap;
+    Map<String, ScanCacheObject> artifactsMap;
 
-    ScanCacheMap() {
-        artifactsMap = new HashMap<>();
-    }
+    abstract void read(File file, Log logger) throws IOException;
 
     /**
      * Put an artifact in the map.
@@ -78,13 +69,6 @@ class ScanCacheMap {
     }
 
     /**
-     * Remove artifacts older than 1 week.
-     */
-    void removeInvalidated() {
-        artifactsMap.entrySet().removeIf(entry -> entry.getValue().isInvalidated());
-    }
-
-    /**
      * Write the version and the map to disk.
      *
      * @param file - The cache file.
@@ -94,16 +78,9 @@ class ScanCacheMap {
         objectMapper.writeValue(file, this);
     }
 
-    /**
-     * Load the cache map from disk. If version incorrect, it does nothing.
-     *
-     * @param file   - The cache file.
-     * @param logger - The logger.
-     * @throws IOException in case of I/O error during read.
-     */
-    void read(File file, Log logger) throws IOException {
+    void readCommonCache(File file, Log logger) throws IOException {
         try {
-            ScanCacheMap scanCacheMap = objectMapper.readValue(file, ScanCacheMap.class);
+            ScanCacheMap scanCacheMap = objectMapper.readValue(file, getClass());
             if (scanCacheMap.getVersion() != version) {
                 logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
                 return;

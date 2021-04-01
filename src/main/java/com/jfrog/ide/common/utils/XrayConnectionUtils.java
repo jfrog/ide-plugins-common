@@ -1,12 +1,15 @@
 package com.jfrog.ide.common.utils;
 
+import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.xray.client.Xray;
+import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.impl.services.summary.ComponentsImpl;
 import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.system.Version;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpResponseException;
+import org.jfrog.build.api.util.Log;
 
 import java.io.IOException;
 
@@ -59,5 +62,18 @@ public class XrayConnectionUtils {
             }
         }
         return Pair.of(true, "");
+    }
+
+    public static XrayClientBuilder createXrayClientBuilder(ServerConfig serverConfig, Log logger) {
+        return (XrayClientBuilder) new XrayClientBuilder()
+                .setUrl(serverConfig.getXrayUrl())
+                .setUserName(serverConfig.getUsername())
+                .setPassword(serverConfig.getPassword())
+                .setInsecureTls(serverConfig.isInsecureTls())
+                .setSslContext(serverConfig.getSslContext())
+                .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getXrayUrl()))
+                .setConnectionRetries(serverConfig.getConnectionRetries())
+                .setTimeout(serverConfig.getConnectionTimeout())
+                .setLog(logger);
     }
 }

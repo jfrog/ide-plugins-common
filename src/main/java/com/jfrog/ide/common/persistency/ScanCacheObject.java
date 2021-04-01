@@ -42,7 +42,7 @@ class ScanCacheObject implements Serializable {
      * @return true iff this artifact is older than 1 week.
      */
     @JsonIgnore
-    boolean isInvalidated() {
+    boolean isExpired() {
         return System.currentTimeMillis() - lastUpdated > EXPIRATION;
     }
 }

@@ -3,28 +3,33 @@ package com.jfrog.ide.common.scan;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
-import com.jfrog.ide.common.filter.FilterManager;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
+import com.jfrog.ide.common.persistency.XrayScanCache;
 import com.jfrog.ide.common.utils.Constants;
 import com.jfrog.ide.common.utils.XrayConnectionUtils;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.ComponentsFactory;
-import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.summary.ComponentDetail;
 import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.summary.SummaryResponse;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.*;
+import org.jfrog.build.extractor.scan.Artifact;
+import org.jfrog.build.extractor.scan.DependencyTree;
+import org.jfrog.build.extractor.scan.License;
+import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+
+import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 
 /**
  * Base class for the scan managers.
@@ -38,7 +43,7 @@ public abstract class ScanManagerBase {
     private final static int NUMBER_OF_ARTIFACTS_BULK_SCAN = 100;
 
     private ServerConfig serverConfig;
-    private DependenciesTree scanResults;
+    private DependencyTree scanResults;
     private ComponentPrefix prefix;
     private ScanCache scanCache;
     private String projectName;
@@ -55,7 +60,7 @@ public abstract class ScanManagerBase {
      * @throws IOException in case of an error in the scan cache initialization.
      */
     public ScanManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig, ComponentPrefix prefix) throws IOException {
-        this.scanCache = new ScanCache(projectName, cachePath, log);
+        this.scanCache = new XrayScanCache(projectName, cachePath, log);
         this.serverConfig = serverConfig;
         this.projectName = projectName;
         this.prefix = prefix;
@@ -63,11 +68,11 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Populate a DependenciesTree node with issues, licenses and general info from the scan cache.
+     * Populate a DependencyTree node with issues, licenses and general info from the scan cache.
      *
      * @param node - The root node.
      */
-    protected void populateDependenciesTreeNode(DependenciesTree node) {
+    protected void populateDependencyTreeNode(DependencyTree node) {
         Artifact scanArtifact = getArtifactSummary(node.toString());
         if (scanArtifact != null) {
             node.setIssues(Sets.newHashSet(scanArtifact.getIssues()));
@@ -79,52 +84,33 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Add licenses and scopes to filter manager in order to show them in the filter menu later.
-     */
-    protected void addLicensesAndScopes(FilterManager filterManager) {
-        Set<License> allLicenses = Sets.newHashSet();
-        Set<Scope> allScopes = Sets.newHashSet();
-        if (scanResults != null) {
-            DependenciesTree node = (DependenciesTree) scanResults.getRoot();
-            collectAllLicenses(node, allLicenses);
-            collectAllScopes(node, allScopes);
-        }
-        filterManager.addLicenses(allLicenses);
-        filterManager.addScopes(allScopes);
-    }
-
-    /**
      * Recursively, add all dependencies list licenses to the licenses set.
      *
-     * @param node        - In - The root DependenciesTree node.
-     * @param allLicenses - Out - All licenses in the tree.
+     * @param node - The root DependencyTree node.
      */
-    protected void collectAllLicenses(DependenciesTree node, Set<License> allLicenses) {
-        allLicenses.addAll(node.getLicenses());
-        node.getChildren().forEach(child -> collectAllLicenses(child, allLicenses));
+    protected Set<License> collectAllLicenses(DependencyTree node) {
+        Set<License> allLicenses = Sets.newHashSet();
+        Enumeration<?> enumeration = node.breadthFirstEnumeration();
+        while (enumeration.hasMoreElements()) {
+            DependencyTree child = (DependencyTree) enumeration.nextElement();
+            allLicenses.addAll(child.getLicenses());
+        }
+        return allLicenses;
     }
 
     /**
      * Recursively, add all dependencies list scopes to the scopes set.
      *
-     * @param node      - In - The root DependenciesTree node.
-     * @param allScopes - Out - All licenses in the tree.
+     * @param node - The root DependencyTree node.
      */
-    protected void collectAllScopes(DependenciesTree node, Set<Scope> allScopes) {
-        allScopes.addAll(node.getScopes());
-        node.getChildren().forEach(child -> collectAllScopes(child, allScopes));
-    }
-
-    /**
-     * Return filtered issues according to the selected component and user filters.
-     *
-     * @param selectedNodes - Selected tree nodes that the user chose from the ui.
-     * @return filtered issues according to the selected component and user filters.
-     */
-    public Set<Issue> getFilteredScanIssues(FilterManager filterManager, List<DependenciesTree> selectedNodes) {
-        Set<Issue> filteredIssues = Sets.newHashSet();
-        selectedNodes.forEach(node -> filteredIssues.addAll(filterManager.filterIssues(node.getIssues())));
-        return filteredIssues;
+    protected Set<Scope> collectAllScopes(DependencyTree node) {
+        Set<Scope> allScopes = Sets.newHashSet();
+        Enumeration<?> enumeration = node.breadthFirstEnumeration();
+        while (enumeration.hasMoreElements()) {
+            DependencyTree child = (DependencyTree) enumeration.nextElement();
+            allScopes.addAll(child.getScopes());
+        }
+        return allScopes;
     }
 
     /**
@@ -138,12 +124,12 @@ public abstract class ScanManagerBase {
     /**
      * Recursively, extract all candidates for Xray scan.
      *
-     * @param node       - In - The DependenciesTree root node.
+     * @param node       - In - The DependencyTree root node.
      * @param components - Out - Components for Xray scan.
      * @param quickScan  - True if this is a quick scan. In slow scans we'll scan all components.
      */
-    private void extractComponents(DependenciesTree node, Components components, boolean quickScan) {
-        for (DependenciesTree child : node.getChildren()) {
+    private void extractComponents(DependencyTree node, Components components, boolean quickScan) {
+        for (DependencyTree child : node.getChildren()) {
             String componentId = child.toString();
             if (!quickScan || !scanCache.contains(componentId)) {
                 components.addComponent(prefix.getPrefix() + componentId, "");
@@ -170,17 +156,7 @@ public abstract class ScanManagerBase {
 
         try {
             // Create Xray client and check version
-            Xray xrayClient = (Xray) new XrayClientBuilder()
-                    .setUrl(serverConfig.getXrayUrl())
-                    .setUserName(serverConfig.getUsername())
-                    .setPassword(serverConfig.getPassword())
-                    .setInsecureTls(serverConfig.isInsecureTls())
-                    .setSslContext(serverConfig.getSslContext())
-                    .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getXrayUrl()))
-                    .setConnectionRetries(serverConfig.getConnectionRetries())
-                    .setTimeout(serverConfig.getConnectionTimeout())
-                    .setLog(getLog())
-                    .build();
+            Xray xrayClient = createXrayClientBuilder(serverConfig, getLog()).build();
             if (!isXrayVersionSupported(xrayClient)) {
                 return;
             }
@@ -213,16 +189,16 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Add Xray scan results from cache to the dependencies tree.
+     * Add Xray scan results from cache to the dependency tree.
      *
-     * @param node - The dependencies tree.
+     * @param node - The dependency tree.
      */
-    protected void addXrayInfoToTree(DependenciesTree node) {
+    protected void addXrayInfoToTree(DependencyTree node) {
         if (node == null || node.isLeaf()) {
             return;
         }
-        for (DependenciesTree child : node.getChildren()) {
-            populateDependenciesTreeNode(child);
+        for (DependencyTree child : node.getChildren()) {
+            populateDependencyTreeNode(child);
             addXrayInfoToTree(child);
         }
     }
