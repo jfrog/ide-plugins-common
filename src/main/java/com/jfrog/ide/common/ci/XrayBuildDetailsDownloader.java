@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
+import static com.jfrog.ide.common.utils.Constants.MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 
@@ -53,6 +54,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
     public void consumerRun() {
         ObjectMapper mapper = createMapper();
         try (XrayClient xrayClient = xrayClientBuilder.build()) {
+            boolean xraySupported = isXraySupported(xrayClient);
             while (!Thread.interrupted()) {
                 ProducerConsumerItem item = executor.take();
                 if (item == executor.TERMINATE) {
@@ -64,6 +66,9 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 String buildName = generalInfo.getArtifactId();
                 String buildNumber = generalInfo.getVersion();
                 try {
+                    if (!xraySupported) {
+                        continue;
+                    }
                     if (buildsCache.loadScanResults(mapper, buildName, buildNumber) == null) {
                         downloadBuildDetails(mapper, xrayClient, buildName, buildNumber);
                     }
@@ -75,6 +80,14 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 }
             }
         } catch (InterruptedException ignored) {
+        }
+    }
+
+    private boolean isXraySupported(XrayClient xrayClient) {
+        try {
+            return xrayClient.system().version().isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED_FOR_CI);
+        } catch (IOException ignored) {
+            return false;
         }
     }
 
