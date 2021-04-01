@@ -4,13 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
-import com.jfrog.ide.common.utils.ArtifactoryConnectionUtils;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.client.ArtifactoryVersion;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
 import org.jfrog.build.extractor.clientConfiguration.client.ArtifactoryDependenciesClient;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
@@ -32,8 +30,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static com.jfrog.ide.common.ci.Utils.createAqlForBuildArtifacts;
 import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createDependenciesClientBuilder;
-import static com.jfrog.ide.common.utils.Constants.RECOMMENDED_ARTIFACTORY_VERSION_SUPPORTED;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
@@ -78,12 +76,7 @@ public class CiManagerBase {
         ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
         try (ArtifactoryDependenciesClient dependenciesClient = dependenciesClientBuilder.build()) {
             buildsCache.createDirectories();
-            ArtifactoryVersion artifactoryVersion = dependenciesClient.getArtifactoryVersion();
-            if (!artifactoryVersion.isAtLeast(RECOMMENDED_ARTIFACTORY_VERSION_SUPPORTED)) {
-                log.info(ArtifactoryConnectionUtils.Results.unsupported(artifactoryVersion));
-                return;
-            }
-            AqlSearchResult searchResult = dependenciesClient.searchArtifactsByAql(createAql(buildsPattern));
+            AqlSearchResult searchResult = dependenciesClient.searchArtifactsByAql(createAqlForBuildArtifacts(buildsPattern));
             if (searchResult.getResults().isEmpty()) {
                 return;
             }
@@ -140,18 +133,5 @@ public class CiManagerBase {
         Set<Scope> allScopes = newHashSet();
         root.collectAllScopesAndLicenses(allScopes, newHashSet());
         return allScopes;
-    }
-
-    /**
-     * Create AQL query to download the last 100 build artifacts from Artifactory matched to the input buildsPattern.
-     *
-     * @param buildsPattern - The build wildcard pattern to filter in Artifactory
-     * @return the AQL query.
-     */
-    private String createAql(String buildsPattern) {
-        return String.format("items.find({" +
-                "\"repo\":\"artifactory-build-info\"," +
-                "\"path\":{\"$match\":\"%s\"}}" +
-                ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(100)", buildsPattern);
     }
 }

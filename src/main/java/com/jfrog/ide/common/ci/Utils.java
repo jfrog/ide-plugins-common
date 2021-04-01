@@ -55,4 +55,17 @@ public class Utils {
                 .componentId(build.getName() + ":" + build.getNumber())
                 .path(build.getUrl());
     }
+
+    /**
+     * Create AQL query to download the last 100 build artifacts from Artifactory matched to the input buildsPattern.
+     *
+     * @param buildsPattern - The build wildcard pattern to filter in Artifactory
+     * @return the AQL query.
+     */
+    public static String createAqlForBuildArtifacts(String buildsPattern) {
+        return String.format("items.find({" +
+                "\"repo\":\"artifactory-build-info\"," +
+                "\"path\":{\"$match\":\"%s\"}}" +
+                ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(100)", buildsPattern);
+    }
 }
