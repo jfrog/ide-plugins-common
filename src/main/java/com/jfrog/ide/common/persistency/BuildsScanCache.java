@@ -56,8 +56,9 @@ public class BuildsScanCache {
                 .sorted()
                 .toArray(String[]::new);
         for (int i = MAX_FILES; i < currentBuildScanCaches.length; i++) {
-            log.debug("Deleting " + currentBuildScanCaches[i]);
-            Files.delete(Paths.get(currentBuildScanCaches[i]));
+            Path pathToDelete = buildsDir.resolve(currentBuildScanCaches[i]);
+            log.debug("Deleting " + pathToDelete);
+            Files.delete(buildsDir.resolve(pathToDelete));
         }
     }
 
