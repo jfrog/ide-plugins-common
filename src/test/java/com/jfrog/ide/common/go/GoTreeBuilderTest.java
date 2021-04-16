@@ -131,7 +131,8 @@ public class GoTreeBuilderTest {
         };
         Map<String, List<String>> allDependencies = getAllDependenciesForTest();
         DependencyTree rootNode = new DependencyTree();
-        GoTreeBuilder.populateDependencyTree(rootNode, "my/pkg/name1", allDependencies);
+        GoTreeBuilder treeBuilder = new GoTreeBuilder(Paths.get(""), null, log);
+        treeBuilder.populateDependencyTree(rootNode, "my/pkg/name1", allDependencies);
         validateDependencyTreeResults(expected, rootNode, false);
     }
 
