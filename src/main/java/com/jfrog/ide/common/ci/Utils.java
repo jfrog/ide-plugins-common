@@ -18,8 +18,8 @@ import java.util.Properties;
  **/
 public class Utils {
 
-    // The CI may populate 'JFROG_BUILD_RESULTS' in the build info. 'buildInfo.env.JFROG_BUILD_RESULTS' is the key in the build info properties.
-    public static final String BUILD_STATUS_PROP = BuildInfoProperties.BUILD_INFO_ENVIRONMENT_PREFIX + "JFROG_BUILD_RESULTS";
+    // The CI may populate 'JFROG_BUILD_STATUS' in the build info. 'buildInfo.env.JFROG_BUILD_STATUS' is the key in the build info properties.
+    public static final String BUILD_STATUS_PROP = BuildInfoProperties.BUILD_INFO_ENVIRONMENT_PREFIX + "JFROG_BUILD_STATUS";
 
     public static final String BUILD_RET_ERR_FMT = "Couldn't retrieve build information for build '%s/%s'.";
     private static final String NO_VCS_FMT = "Build '%s/%s' does not contain the branch VCS information.";
