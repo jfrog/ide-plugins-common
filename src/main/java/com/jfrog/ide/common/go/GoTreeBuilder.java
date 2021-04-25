@@ -88,7 +88,10 @@ public class GoTreeBuilder {
         }
     }
 
-    static void populateDependencyTree(DependencyTree currNode, String currNameVersionString, Map<String, List<String>> allDependencies) {
+    void populateDependencyTree(DependencyTree currNode, String currNameVersionString, Map<String, List<String>> allDependencies) {
+        if (hasLoop(currNode)) {
+            return;
+        }
         List<String> currDependencies = allDependencies.get(currNameVersionString);
         if (currDependencies == null) {
             return;
@@ -96,8 +99,24 @@ public class GoTreeBuilder {
         for (String dependency : currDependencies) {
             String[] dependencyNameVersion = dependency.split("@v");
             DependencyTree DependencyTree = new DependencyTree(dependencyNameVersion[0] + ":" + dependencyNameVersion[1]);
-            populateDependencyTree(DependencyTree, dependency, allDependencies);
             currNode.add(DependencyTree);
+            populateDependencyTree(DependencyTree, dependency, allDependencies);
         }
+    }
+
+    /**
+     * Return true if the node contains a loop.
+     *
+     * @param node - The dependency tree node
+     * @return true if the node contains a loop
+     */
+    private boolean hasLoop(DependencyTree node) {
+        for (DependencyTree parent = (DependencyTree) node.getParent(); parent != null; parent = (DependencyTree) parent.getParent()) {
+            if (Objects.equals(node.getUserObject(), parent.getUserObject())) {
+                logger.debug("Loop detected in " + node.getUserObject());
+                return true;
+            }
+        }
+        return false;
     }
 }
