@@ -1,6 +1,6 @@
 {
   "properties": {
-    "buildInfo.env.JFROG_BUILD_RESULTS": "PASS"
+    "buildInfo.env.JFROG_BUILD_STATUS": "PASS"
   },
   "version": "1.0.1",
   "name": "maven-build",
