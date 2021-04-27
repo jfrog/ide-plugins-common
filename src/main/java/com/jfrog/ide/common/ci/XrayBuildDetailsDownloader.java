@@ -16,6 +16,7 @@ import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 
 import java.io.IOException;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
@@ -34,15 +35,17 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
     private ProducerConsumerExecutor executor;
     private final ProgressIndicator indicator;
     private final BuildsScanCache buildsCache;
+    private final Runnable checkCancel;
     private final DependencyTree root;
     private final AtomicInteger count;
     private final double total;
     private Log log;
 
     public XrayBuildDetailsDownloader(DependencyTree root, BuildsScanCache buildsCache, XrayClientBuilder xrayClientBuilder,
-                                      ProgressIndicator indicator, AtomicInteger count, double total, Log log) {
+                                      ProgressIndicator indicator, AtomicInteger count, double total, Log log, Runnable checkCancel) {
         this.xrayClientBuilder = xrayClientBuilder;
         this.buildsCache = buildsCache;
+        this.checkCancel = checkCancel;
         this.indicator = indicator;
         this.count = count;
         this.total = total;
@@ -66,12 +69,14 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                 String buildName = generalInfo.getArtifactId();
                 String buildNumber = generalInfo.getVersion();
                 try {
+                    checkCancel.run();
                     if (!xraySupported) {
                         continue;
                     }
                     if (buildsCache.loadScanResults(mapper, buildName, buildNumber) == null) {
                         downloadBuildDetails(mapper, xrayClient, buildName, buildNumber);
                     }
+                } catch (CancellationException ignored) {
                 } catch (IOException e) {
                     log.debug(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + ". " + ExceptionUtils.getRootCauseMessage(e));
                 } finally {
