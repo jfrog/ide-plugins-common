@@ -1,0 +1,20 @@
+resources:
+  - name: idePluginsSnapshotGit
+    type: GitRepo
+    configuration:
+      path: jfrog/ide-plugins-common
+      gitProvider: github
+      buildOn:
+        pullRequestCreate: true
+      branches:
+        include: master
+      cancelPendingRunsOn:
+        pullRequestUpdate: true
+
+  - name: idePluginsJavaReleaseGit
+    type: GitRepo
+    configuration:
+      path: jfrog/ide-plugins-common
+      gitProvider: github
+      buildOn:
+        commit: false
