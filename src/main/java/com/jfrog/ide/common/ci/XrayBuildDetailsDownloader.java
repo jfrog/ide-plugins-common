@@ -105,7 +105,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
     }
 
     private void addResults(GeneralInfo generalInfo) {
-        BuildDependencyTree dependencyTree = new BuildDependencyTree(generalInfo.getComponentId().replace(":", "/"));
+        BuildDependencyTree dependencyTree = new BuildDependencyTree(generalInfo.getArtifactId() + "/" + generalInfo.getVersion());
         dependencyTree.setGeneralInfo(generalInfo);
         synchronized (root) {
             root.add(dependencyTree);

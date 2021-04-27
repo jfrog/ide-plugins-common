@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.ci;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.Vcs;
 import org.jfrog.build.api.producerConsumer.ProducerConsumerItem;
@@ -58,5 +59,10 @@ public class BuildGeneralInfo extends GeneralInfo implements ProducerConsumerIte
     public BuildGeneralInfo vcs(Vcs vcs) {
         this.vcs = vcs;
         return this;
+    }
+
+    @Override
+    public String getArtifactId() {
+        return StringUtils.substringBeforeLast(getComponentId(), ":");
     }
 }

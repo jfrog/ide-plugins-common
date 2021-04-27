@@ -3,6 +3,8 @@ package com.jfrog.ide.common.ci;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.net.URLCodec;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
@@ -68,9 +70,10 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                 String buildName = searchEntry.getPath();
                 String buildNumber = StringUtils.substringBefore(searchEntry.getName(), "-");
                 try {
-                    Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber);
+                    String encodedBuildName = new URLCodec().decode(buildName);
+                    Build build = buildsCache.loadBuildInfo(mapper, encodedBuildName, buildNumber);
                     if (build == null) {
-                        build = downloadBuildInfo(mapper, buildName, buildNumber, searchEntry, client, baseRepoUrl);
+                        build = downloadBuildInfo(mapper, searchEntry, client, baseRepoUrl);
                     }
                     if (build == null) {
                         // Build not found in Artifactory
@@ -79,7 +82,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
 
                     // Create and produce the build general info to the consumer
                     executor.put(createBuildGeneralInfo(build, log));
-                } catch (ParseException | IllegalArgumentException e) {
+                } catch (ParseException | IllegalArgumentException | DecoderException e) {
                     log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
                 } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
@@ -92,22 +95,19 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
      * Download build info from Artifactory and save it in the builds cache.
      *
      * @param mapper      - The object mapper
-     * @param buildName   - Build name
-     * @param buildNumber - Build number
      * @param searchEntry - The AQL search results entry
      * @param client      - Artifactory dependencies client
      * @param baseRepoUrl - Artifactory build info repository
      * @return the requested build or null if not found.
      */
-    private Build downloadBuildInfo(ObjectMapper mapper, String buildName, String buildNumber,
-                                    AqlSearchResult.SearchEntry searchEntry, ArtifactoryDependenciesClient client, String baseRepoUrl) {
+    private Build downloadBuildInfo(ObjectMapper mapper, AqlSearchResult.SearchEntry searchEntry, ArtifactoryDependenciesClient client, String baseRepoUrl) {
         String downloadUrl = baseRepoUrl + searchEntry.getPath() + "/" + searchEntry.getName();
         HttpEntity entity = null;
         try (CloseableHttpResponse response = client.downloadArtifact(downloadUrl)) {
             entity = response.getEntity();
             byte[] content = IOUtils.toByteArray(entity.getContent());
             Build build = mapper.readValue(content, Build.class);
-            buildsCache.save(content, buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
+            buildsCache.save(content, build.getName(), build.getNumber(), BuildsScanCache.Type.BUILD_INFO);
             return build;
         } catch (IOException e) {
             log.error("Couldn't retrieve build information", e);
