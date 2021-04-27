@@ -1,5 +1,10 @@
 # Release Notes
 
+## 1.5.1 (April 27, 2021)
+
+- Bugfix: Colon in build name causes errors
+- Bugfix: Build scan does not properly canceled
+
 ## 1.5.0 (April 27, 2021)
 
 - New CI integration
