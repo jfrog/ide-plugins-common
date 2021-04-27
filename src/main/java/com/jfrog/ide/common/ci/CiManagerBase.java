@@ -27,6 +27,7 @@ import java.text.ParseException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -70,7 +71,7 @@ public class CiManagerBase {
      * @throws KeyStoreException        in case of error during creating the Artifactory dependencies client.
      * @throws KeyManagementException   in case of error during creating the Artifactory dependencies client.
      */
-    public void buildCiTree(String buildsPattern, ProgressIndicator indicator) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void buildCiTree(String buildsPattern, ProgressIndicator indicator, Runnable checkCanceled) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
         ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
@@ -88,13 +89,16 @@ public class CiManagerBase {
             double total = buildArtifacts.size() * 2;
             // Create producer Runnables.
             ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, buildsCache, indicator, count, total, log)};
+                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, buildsCache, indicator, count, total, log, checkCanceled)};
             // Create consumer Runnables.
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                    new XrayBuildDetailsDownloader(root, buildsCache, xrayClientBuilder, indicator, count, total, log)
+                    new XrayBuildDetailsDownloader(root, buildsCache, xrayClientBuilder, indicator, count, total, log, checkCanceled)
             };
 
             new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE).start();
+            checkCanceled.run();
+        } catch (CancellationException cancellationException) {
+            log.info("Builds scan was canceled.");
         } catch (Exception exception) {
             log.error("Failed to build CI tree", exception);
         }

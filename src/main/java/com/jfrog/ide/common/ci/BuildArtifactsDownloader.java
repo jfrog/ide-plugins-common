@@ -20,6 +20,7 @@ import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Queue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
@@ -39,16 +40,18 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     private final Queue<AqlSearchResult.SearchEntry> buildArtifacts;
     private final ProgressIndicator indicator;
     private final BuildsScanCache buildsCache;
+    private final Runnable checkCancel;
     private final AtomicInteger count;
     private final double total;
     private final Log log;
 
     public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts,
                                     ArtifactoryDependenciesClientBuilder clientBuilder, BuildsScanCache buildsCache,
-                                    ProgressIndicator indicator, AtomicInteger count, double total, Log log) {
+                                    ProgressIndicator indicator, AtomicInteger count, double total, Log log, Runnable checkCancel) {
         this.buildArtifacts = buildArtifacts;
         this.clientBuilder = clientBuilder;
         this.buildsCache = buildsCache;
+        this.checkCancel = checkCancel;
         this.indicator = indicator;
         this.count = count;
         this.total = total;
@@ -70,6 +73,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                 String buildName = searchEntry.getPath();
                 String buildNumber = StringUtils.substringBefore(searchEntry.getName(), "-");
                 try {
+                    checkCancel.run();
                     String encodedBuildName = new URLCodec().decode(buildName);
                     Build build = buildsCache.loadBuildInfo(mapper, encodedBuildName, buildNumber);
                     if (build == null) {
@@ -82,6 +86,8 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
 
                     // Create and produce the build general info to the consumer
                     executor.put(createBuildGeneralInfo(build, log));
+                } catch (CancellationException e) {
+                    break;
                 } catch (ParseException | IllegalArgumentException | DecoderException e) {
                     log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
                 } finally {
