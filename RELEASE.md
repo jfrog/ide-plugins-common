@@ -1,5 +1,9 @@
 # Release Notes
 
+## 1.5.2 (April 29, 2021)
+
+- Better handling checksum errors in go.sum
+
 ## 1.5.1 (April 27, 2021)
 
 - Bugfix: Colon in build name causes errors
