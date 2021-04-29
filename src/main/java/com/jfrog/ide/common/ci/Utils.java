@@ -1,6 +1,8 @@
 package com.jfrog.ide.common.ci;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.codec.EncoderException;
+import org.apache.commons.codec.net.URLCodec;
 import org.apache.commons.collections4.CollectionUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.BuildInfoProperties;
@@ -62,10 +64,13 @@ public class Utils {
      * @param buildsPattern - The build wildcard pattern to filter in Artifactory
      * @return the AQL query.
      */
-    public static String createAqlForBuildArtifacts(String buildsPattern) {
+    public static String createAqlForBuildArtifacts(String buildsPattern) throws EncoderException {
+        String encodedBuildPattern = new URLCodec().encode(buildsPattern);
+        // The following is a workaround, since Artifactory does not yet support '%' in AQL
+        encodedBuildPattern = encodedBuildPattern.replaceAll("%", "?");
         return String.format("items.find({" +
                 "\"repo\":\"artifactory-build-info\"," +
                 "\"path\":{\"$match\":\"%s\"}}" +
-                ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(100)", buildsPattern);
+                ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(100)", encodedBuildPattern);
     }
 }
