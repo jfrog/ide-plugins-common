@@ -2,6 +2,7 @@ package com.jfrog.ide.common.go;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -10,7 +11,9 @@ import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.Scope;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -22,35 +25,49 @@ import java.util.*;
 public class GoTreeBuilder {
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
-    private final GoDriver goDriver;
+    private final Map<String, String> env;
     private final Path projectDir;
     private final Log logger;
 
     public GoTreeBuilder(Path projectDir, Map<String, String> env, Log logger) {
         this.projectDir = projectDir;
-        this.goDriver = new GoDriver(null, env, projectDir.toFile(), logger);
         this.logger = logger;
+        this.env = env;
     }
 
     public DependencyTree buildTree() throws IOException {
-        if (!goDriver.isInstalled()) {
-            logger.error("Could not scan go project dependencies, because go CLI is not in the PATH.");
-            return null;
+        File tmpDir = copyModFileToTmpDir(projectDir).toFile();
+        try {
+            GoDriver goDriver = new GoDriver(null, env, tmpDir, logger);
+            if (!goDriver.isInstalled()) {
+                logger.error("Could not scan go project dependencies, because go CLI is not in the PATH.");
+                return null;
+            }
+
+            DependencyTree rootNode = createDependencyTree(goDriver);
+            setGeneralInfo(rootNode);
+            setNoneScope(rootNode);
+            return rootNode;
+        } finally {
+            FileUtils.deleteDirectory(tmpDir);
         }
-
-        DependencyTree rootNode = createDependencyTree();
-        rootNode.setGeneralInfo(new GeneralInfo()
-                .componentId(rootNode.getUserObject().toString())
-                .pkgType("go")
-                .path(projectDir.toString())
-                .artifactId(rootNode.getUserObject().toString())
-                .version(""));
-
-        setNoneScope(rootNode);
-        return rootNode;
     }
 
-    private DependencyTree createDependencyTree() throws IOException {
+    /**
+     * Copy go.mod file to a temporary directory.
+     * This is necessary to bypass checksum mismatches issues in the original go.sum.
+     *
+     * @param projectDir - Go project directory
+     * @return the temporary directory.
+     * @throws IOException in case of any I/O error.
+     */
+    private Path copyModFileToTmpDir(Path projectDir) throws IOException {
+        Path tmpDir = Files.createTempDirectory(null);
+        Files.copy(projectDir.resolve("go.mod"), tmpDir.resolve("go.mod"));
+        return tmpDir;
+    }
+
+    private DependencyTree createDependencyTree(GoDriver goDriver) throws IOException {
         // Run go mod graph.
         CommandResults goGraphResult = goDriver.modGraph(false);
         String[] dependenciesGraph = goGraphResult.getRes().split("\\r?\\n");
@@ -65,6 +82,15 @@ public class GoTreeBuilder {
         populateDependencyTree(rootNode, rootPackageName, allDependencies);
 
         return rootNode;
+    }
+
+    private void setGeneralInfo(DependencyTree rootNode) {
+        rootNode.setGeneralInfo(new GeneralInfo()
+                .componentId(rootNode.getUserObject().toString())
+                .pkgType("go")
+                .path(projectDir.toString())
+                .artifactId(rootNode.getUserObject().toString())
+                .version(""));
     }
 
     /**
