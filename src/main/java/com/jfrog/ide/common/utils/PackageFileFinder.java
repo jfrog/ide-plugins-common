@@ -2,6 +2,7 @@ package com.jfrog.ide.common.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.util.Set;
 @SuppressWarnings("unused")
 public class PackageFileFinder implements FileVisitor<Path> {
     private final List<String> packageJsonDirectories = Lists.newArrayList();
+    private final List<String> buildGradleDirectories = Lists.newArrayList();
     private final List<String> goModDirectories = Lists.newArrayList();
     private final PathMatcher exclusions;
     private final Log logger;
@@ -42,6 +44,15 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     public Set<String> getNpmPackagesFilePairs() {
         return Sets.newHashSet(packageJsonDirectories);
+    }
+
+    /**
+     * Get build.gradle and build.gradle.kts directories and their directories.
+     *
+     * @return List of build.gradle and build.gradle.kts's parent directories.
+     */
+    public Set<String> getBuildGradlePackagesFilePairs() {
+        return Sets.newHashSet(buildGradleDirectories);
     }
 
     /**
@@ -80,6 +91,8 @@ public class PackageFileFinder implements FileVisitor<Path> {
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
         if (isNpmPackageFile(file)) {
             packageJsonDirectories.add(file.getParent().toString());
+        } else if (isGradlePackageFile(file)) {
+            buildGradleDirectories.add(file.getParent().toString());
         } else if (isGoPackageFile(file)) {
             goModDirectories.add(file.getParent().toString());
         }
@@ -110,6 +123,15 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     private static boolean isNpmPackageFile(Path file) {
         return "package.json".equals(file.getFileName().toString());
+    }
+
+    /**
+     * return true iff this file is build.gradle or build.gradle.kts.
+     *
+     * @return true iff this file is build.gradle or build.gradle.kts.
+     */
+    private static boolean isGradlePackageFile(Path file) {
+        return StringUtils.equalsAny(file.getFileName().toString(), "build.gradle", "build.gradle.kts");
     }
 
     /**

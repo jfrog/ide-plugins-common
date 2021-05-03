@@ -1,0 +1,68 @@
+import java.nio.file.Paths
+
+allprojects {
+    task generateDependenciesGraphAsJson() {
+        doLast {
+            StringBuilder jsonOutput = new StringBuilder(getDependencyString(project.group, project.name, project.version))
+            Set<ResolvedDependency> resolvedDependencies = new HashSet<>()
+            Set<UnresolvedDependency> unresolvedDependencies = new HashSet<>()
+            for (Configuration configuration : project.configurations) {
+                try {
+                    LenientConfiguration lenientConfiguration = configuration.resolvedConfiguration.lenientConfiguration
+                    resolvedDependencies.addAll(lenientConfiguration.firstLevelModuleDependencies)
+                    unresolvedDependencies.addAll(lenientConfiguration.unresolvedModuleDependencies)
+                } catch (RuntimeException ignore) {
+                    // Some Configurations cannot be directly accessed due to Gradle limitations. Ignore
+                }
+            }
+            jsonOutput.append(getResolvedDependencies(resolvedDependencies))
+
+            for (UnresolvedDependency unresolvedDependency : unresolvedDependencies) {
+                ModuleVersionSelector selector = unresolvedDependency.selector
+                jsonOutput.append(getDependencyString(selector.group, selector.name, selector.version)).append("]},")
+            }
+
+            if (jsonOutput.endsWithAny(",")) {
+                jsonOutput.deleteCharAt(jsonOutput.length() - 1)
+            }
+            jsonOutput.append("]}")
+            String encodedDir = rootDir.name.getBytes().encodeBase64()
+            File dependencyTreesDir = Paths.get(System.getProperty("user.home"), ".jfrog-ide-plugins", "gradle-dependencies", encodedDir).toFile()
+            dependencyTreesDir.mkdirs()
+            new FileWriter(dependencyTreesDir.toPath().resolve(project.name + ".json").toFile()).withCloseable { fileWriter ->
+                fileWriter.write(jsonOutput.toString())
+            }
+        }
+    }
+}
+
+private static boolean resolvedDependenciesEqual(ResolvedDependency lhs, ResolvedDependency rhs) {
+    return lhs.moduleGroup == rhs.moduleGroup && lhs.moduleName == rhs.moduleName && lhs.moduleVersion == rhs.moduleVersion
+}
+
+private String getResolvedDependencies(Set<ResolvedDependency> resolvedDependencies) {
+    if (resolvedDependencies.empty) {
+        return ""
+    }
+    resolvedDependencies = resolvedDependencies.sort{it.name}
+    StringBuilder jsonOutput = new StringBuilder()
+    for (int i = 0; i < resolvedDependencies.size(); i++) {
+        ResolvedDependency resolvedDependency = resolvedDependencies[i]
+        Set<String> scopes = new HashSet<>()
+        scopes.add(resolvedDependency.configuration)
+        for (; i < resolvedDependencies.size() - 1 && resolvedDependenciesEqual(resolvedDependency, resolvedDependencies[i + 1]); i++) {
+            scopes.add(resolvedDependencies[i + 1].configuration)
+        }
+        jsonOutput.append(getDependencyString(resolvedDependency.moduleGroup, resolvedDependency.moduleName, resolvedDependency.moduleVersion, scopes))
+                .append(getResolvedDependencies(resolvedDependency.children))
+                .append("]},")
+    }
+    // Remove last delimiter
+    return jsonOutput.deleteCharAt(jsonOutput.length() - 1)
+}
+
+
+private static String getDependencyString(Object groupId, Object artifactId, Object version, Set<String> scopes = new HashSet<>()) {
+    String scopeStr = scopes.empty ? "[]" : "[\"" + scopes.join("\", \"") + "\"]"
+    return String.format("{\"groupId\":\"%s\",\"artifactId\":\"%s\",\"version\":\"%s\",\"scopes\":%s,\"dependencies\":[", groupId, artifactId, version, scopeStr)
+}
