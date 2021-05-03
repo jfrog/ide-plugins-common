@@ -1,0 +1,50 @@
+import java.nio.file.Paths
+
+allprojects {
+    task generateDependenciesGraphAsJson() {
+        doLast {
+            String jsonOutput = getArtifactString(project.group, project.name, project.version)
+            for (Configuration configuration : project.configurations) {
+                try {
+                    LenientConfiguration lenientConfiguration = configuration.resolvedConfiguration.lenientConfiguration
+                    for (ResolvedDependency resolvedDependency : lenientConfiguration.firstLevelModuleDependencies) {
+                        jsonOutput += getArtifactString(resolvedDependency.moduleGroup, resolvedDependency.moduleName, resolvedDependency.moduleVersion, resolvedDependency.configuration)
+                        jsonOutput += addChildren(resolvedDependency.children) + "]},"
+                    }
+                    for (UnresolvedDependency unresolvedDependency : lenientConfiguration.unresolvedModuleDependencies) {
+                        ModuleVersionSelector selector = unresolvedDependency.selector
+                        jsonOutput += getArtifactString(selector.group, selector.name, selector.version) + "]},"
+                    }
+                } catch (RuntimeException ignore) {
+                    // Some Configurations cannot be directly accessed due to Gradle limitations. Ignore
+                }
+            }
+            if (jsonOutput.endsWith(",")) {
+                jsonOutput = jsonOutput.substring(0, jsonOutput.length() - 1)
+            }
+            jsonOutput += "]}"
+            String encodedDir = rootDir.name.getBytes().encodeBase64()
+            File dependencyTreesDir = Paths.get(System.getProperty("user.home"), ".jfrog-ide-plugins", "gradle-dependencies", encodedDir).toFile()
+            dependencyTreesDir.mkdirs()
+            new FileWriter(dependencyTreesDir.toPath().resolve(project.name).toFile()).withCloseable { fileWriter ->
+                fileWriter.write(jsonOutput)
+            }
+        }
+    }
+}
+
+private String addChildren(Set<ResolvedDependency> children) {
+    if (children.empty) {
+        return ""
+    }
+    String jsonOutput = ""
+    for (ResolvedDependency child : children) {
+        jsonOutput += getArtifactString(child.moduleGroup, child.moduleName, child.moduleVersion, child.configuration) + addChildren(child.children) + "]},"
+    }
+    // Remove last delimiter
+    return jsonOutput.substring(0, jsonOutput.length() - 1)
+}
+
+private static String getArtifactString(Object groupId, Object artifactId, Object version, Object scope = "") {
+    return String.format("{\"groupId\":\"%s\",\"artifactId\":\"%s\",\"version\":\"%s\",\"scope\":\"%s\",\"dependencies\":[", groupId, artifactId, version, scope)
+}
