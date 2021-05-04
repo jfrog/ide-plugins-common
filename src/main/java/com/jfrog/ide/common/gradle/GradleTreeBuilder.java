@@ -3,6 +3,7 @@ package com.jfrog.ide.common.gradle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
@@ -52,9 +53,11 @@ public class GradleTreeBuilder {
             GradleDependencyNode node = objectMapper.readValue(project, GradleDependencyNode.class);
             GeneralInfo generalInfo = createGeneralInfo(node).path(projectDir.toString());
             DependencyTree projectNode = createNode(generalInfo, node);
-            projectNode.setGeneralInfo(generalInfo);
             populateDependencyTree(projectNode, node);
             rootNode.add(projectNode);
+        }
+        if (projects.length == 1) {
+            rootNode = (DependencyTree) rootNode.getFirstChild();
         }
 
         return rootNode;
@@ -78,7 +81,8 @@ public class GradleTreeBuilder {
     }
 
     private DependencyTree createNode(GeneralInfo generalInfo, GradleDependencyNode gradleDependencyNode) {
-        DependencyTree node = new DependencyTree(generalInfo.getGroupId() + ":" + generalInfo.getArtifactId() + ":" + generalInfo.getVersion());
+        DependencyTree node = new DependencyTree(getNodeName(generalInfo));
+        node.setGeneralInfo(generalInfo);
         Set<Scope> scopes = CollectionUtils.emptyIfNull(gradleDependencyNode.getScopes()).stream().map(Scope::new).collect(Collectors.toSet());
         if (scopes.isEmpty()) {
             scopes.add(new Scope());
@@ -86,5 +90,12 @@ public class GradleTreeBuilder {
         node.setScopes(scopes);
         node.setLicenses(Sets.newHashSet(new License()));
         return node;
+    }
+
+    private String getNodeName(GeneralInfo generalInfo) {
+        if (StringUtils.isBlank(generalInfo.getPath())) {
+            return generalInfo.getGroupId() + ":" + generalInfo.getArtifactId() + ":" + generalInfo.getVersion();
+        }
+        return generalInfo.getArtifactId();
     }
 }
