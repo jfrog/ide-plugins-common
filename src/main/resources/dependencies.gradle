@@ -16,12 +16,10 @@ allprojects {
                 }
             }
             jsonOutput.append(getResolvedDependencies(resolvedDependencies))
-
-            for (UnresolvedDependency unresolvedDependency : unresolvedDependencies) {
-                ModuleVersionSelector selector = unresolvedDependency.selector
-                jsonOutput.append(getDependencyString(selector.group, selector.name, selector.version)).append("]},")
+            if (!resolvedDependencies.empty && !unresolvedDependencies.empty) {
+                jsonOutput.append(",")
             }
-
+            jsonOutput.append(getUnresolvedDependencies(unresolvedDependencies))
             if (jsonOutput.endsWithAny(",")) {
                 jsonOutput.deleteCharAt(jsonOutput.length() - 1)
             }
@@ -44,7 +42,7 @@ private String getResolvedDependencies(Set<ResolvedDependency> resolvedDependenc
     if (resolvedDependencies.empty) {
         return ""
     }
-    resolvedDependencies = resolvedDependencies.sort{it.name}
+    resolvedDependencies = resolvedDependencies.sort { it.name }
     StringBuilder jsonOutput = new StringBuilder()
     for (int i = 0; i < resolvedDependencies.size(); i++) {
         ResolvedDependency resolvedDependency = resolvedDependencies[i]
@@ -59,6 +57,17 @@ private String getResolvedDependencies(Set<ResolvedDependency> resolvedDependenc
     }
     // Remove last delimiter
     return jsonOutput.deleteCharAt(jsonOutput.length() - 1)
+}
+
+private static String getUnresolvedDependencies(Set<UnresolvedDependency> unresolvedDependencies) {
+    Set<String> scopes = new HashSet<>()
+    scopes.add("Unresolved")
+    StringBuilder jsonOutput = new StringBuilder()
+    for (UnresolvedDependency unresolvedDependency : unresolvedDependencies.unique { it.toString() }) {
+        ModuleVersionSelector selector = unresolvedDependency.selector
+        jsonOutput.append(getDependencyString(selector.group, selector.name, selector.version, scopes)).append("]},")
+    }
+    return jsonOutput.toString()
 }
 
 

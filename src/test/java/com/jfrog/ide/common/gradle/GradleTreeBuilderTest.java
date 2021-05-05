@@ -30,7 +30,6 @@ import static org.testng.Assert.assertNotNull;
 public class GradleTreeBuilderTest {
 
     private static final Path GRADLE_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "gradle"));
-
     private File tempProject;
 
     @BeforeMethod
@@ -47,26 +46,55 @@ public class GradleTreeBuilderTest {
 
     @DataProvider
     private Object[][] gradleTreeBuilderProvider() {
-        return new Object[][]{/*{"wrapper"}, {"global"},*/ {"broken"}};
+        return new Object[][]{{"wrapper"}, {"global"}, {"kotlin"}};
     }
 
     @SuppressWarnings("unused")
     @Test(dataProvider = "gradleTreeBuilderProvider")
     public void gradleTreeBuilderTest(String projectPath) throws IOException {
+        DependencyTree dependencyTree = buildGradleDependencyTree();
+        DependencyTree shared = getAndAssertSharedModule(dependencyTree);
+
+        DependencyTree junit = TestUtils.getAndAssertChild(shared, "junit:junit:4.7");
+        assertEquals(junit.getLicenses(), Sets.newHashSet(new License()));
+        assertEquals(junit.getScopes(), Sets.newHashSet(new Scope("Compile"), new Scope("Runtime")));
+        assertGeneralInfo(junit.getGeneralInfo(), "junit", "junit", "4.7", "");
+    }
+
+    @DataProvider
+    private Object[][] gradleTreeBuilderUnresolvedProvider() {
+        return new Object[][]{{"unresolved"}, {"unresolvedKotlin"}};
+    }
+
+    @SuppressWarnings("unused")
+    @Test(dataProvider = "gradleTreeBuilderUnresolvedProvider")
+    public void gradleTreeBuilderUnresolvedTest(String projectPath) throws IOException {
+        DependencyTree dependencyTree = buildGradleDependencyTree();
+        DependencyTree shared = getAndAssertSharedModule(dependencyTree);
+
+        DependencyTree missing = TestUtils.getAndAssertChild(shared, "missing:dependency:404");
+        assertEquals(Sets.newHashSet(new License()), missing.getLicenses());
+        assertEquals(Sets.newHashSet(new Scope("Unresolved")), missing.getScopes());
+        assertGeneralInfo(missing.getGeneralInfo(), "missing", "dependency", "404", "");
+    }
+
+    private DependencyTree buildGradleDependencyTree() throws IOException {
         GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(tempProject.toPath(), null);
         DependencyTree dependencyTree = gradleTreeBuilder.buildTree(new NullLog());
         assertNotNull(dependencyTree);
+
         assertEquals(dependencyTree.getUserObject(), tempProject.getName());
         assertEquals(5, dependencyTree.getChildren().size());
-        DependencyTree shared = TestUtils.getAndAssertChild(dependencyTree, "shared");
+        return dependencyTree;
+    }
+
+    private DependencyTree getAndAssertSharedModule(DependencyTree root) {
+        DependencyTree shared = TestUtils.getAndAssertChild(root, "shared");
+        assertEquals(shared.getChildren().size(), 1);
         assertEquals(Sets.newHashSet(new License()), shared.getLicenses());
         assertEquals(Sets.newHashSet(new Scope()), shared.getScopes());
         assertGeneralInfo(shared.getGeneralInfo(), "org.jfrog.test.gradle.publish", "shared", "1.0-SNAPSHOT", tempProject.toString());
-
-        DependencyTree junit = TestUtils.getAndAssertChild(shared, "junit:junit:4.7");
-        assertEquals(Sets.newHashSet(new License()), junit.getLicenses());
-        assertEquals(Sets.newHashSet(new Scope("Compile"), new Scope("Runtime")), junit.getScopes());
-        assertGeneralInfo(junit.getGeneralInfo(), "junit", "junit", "4.7", "");
+        return shared;
     }
 
     private void assertGeneralInfo(GeneralInfo generalInfo, String groupId, String artifactId, String version, String path) {
