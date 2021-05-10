@@ -1,9 +1,12 @@
 import java.nio.file.Paths
 
+/**
+ * This init script add 'generateDependenciesGraphAsJson' task that generates Gradle dependency trees for a given project.
+ */
 allprojects {
     task generateDependenciesGraphAsJson() {
         doLast {
-            StringBuilder jsonOutput = new StringBuilder(getDependencyString(project.group, project.name, project.version))
+            // Collect the resolved and unresolved dependencies. Put all in sets to remove duplications.
             Set<ResolvedDependency> resolvedDependencies = new HashSet<>()
             Set<UnresolvedDependency> unresolvedDependencies = new HashSet<>()
             for (Configuration configuration : project.configurations) {
@@ -15,15 +18,24 @@ allprojects {
                     // Some Configurations cannot be directly accessed due to Gradle limitations. Ignore
                 }
             }
+
+            // Add the project node
+            StringBuilder jsonOutput = new StringBuilder(getDependencyString(project.group, project.name, project.version))
+
+            // Add resolved dependencies
             jsonOutput.append(getResolvedDependencies(resolvedDependencies))
             if (!resolvedDependencies.empty && !unresolvedDependencies.empty) {
                 jsonOutput.append(",")
             }
+
+            // Add unresolved dependencies
             jsonOutput.append(getUnresolvedDependencies(unresolvedDependencies))
             if (jsonOutput.endsWithAny(",")) {
                 jsonOutput.deleteCharAt(jsonOutput.length() - 1)
             }
             jsonOutput.append("]}")
+
+            // Save results under <user-home>/.jfrog-ide-plugins/gradle-dependencies/<encodedDir>
             String encodedDir = rootDir.name.getBytes().encodeBase64()
             File dependencyTreesDir = Paths.get(System.getProperty("user.home"), ".jfrog-ide-plugins", "gradle-dependencies", encodedDir).toFile()
             dependencyTreesDir.mkdirs()
@@ -34,10 +46,12 @@ allprojects {
     }
 }
 
-private static boolean resolvedDependenciesEqual(ResolvedDependency lhs, ResolvedDependency rhs) {
-    return lhs.moduleGroup == rhs.moduleGroup && lhs.moduleName == rhs.moduleName && lhs.moduleVersion == rhs.moduleVersion
-}
-
+/**
+ * Transitively, collect all resolved dependencies.
+ *
+ * @param resolvedDependencies - The resolved dependencies
+ * @return JSON string containing the resolved dependencies part.
+ */
 private String getResolvedDependencies(Set<ResolvedDependency> resolvedDependencies) {
     if (resolvedDependencies.empty) {
         return ""
@@ -48,10 +62,10 @@ private String getResolvedDependencies(Set<ResolvedDependency> resolvedDependenc
         ResolvedDependency resolvedDependency = resolvedDependencies[i]
         Set<String> scopes = new HashSet<>()
         scopes.add(resolvedDependency.configuration)
-        for (; i < resolvedDependencies.size() - 1 && resolvedDependenciesEqual(resolvedDependency, resolvedDependencies[i + 1]); i++) {
+        for (; i < resolvedDependencies.size() - 1 && areResolvedDependenciesEqual(resolvedDependency, resolvedDependencies[i + 1]); i++) {
             scopes.add(resolvedDependencies[i + 1].configuration)
         }
-        jsonOutput.append(getDependencyString(resolvedDependency.moduleGroup, resolvedDependency.moduleName, resolvedDependency.moduleVersion, scopes))
+        jsonOutput.append(getDependencyString(resolvedDependency.moduleGroup, resolvedDependency.moduleName, resolvedDependency.moduleVersion, false, scopes))
                 .append(getResolvedDependencies(resolvedDependency.children))
                 .append("]},")
     }
@@ -59,19 +73,35 @@ private String getResolvedDependencies(Set<ResolvedDependency> resolvedDependenc
     return jsonOutput.deleteCharAt(jsonOutput.length() - 1)
 }
 
+private static boolean areResolvedDependenciesEqual(ResolvedDependency lhs, ResolvedDependency rhs) {
+    return lhs.moduleGroup == rhs.moduleGroup && lhs.moduleName == rhs.moduleName && lhs.moduleVersion == rhs.moduleVersion
+}
+
+/**
+ * Collect all unresolved dependencies.
+ * @param unresolvedDependencies - The unresolved dependencies
+ * @return JSON string containing the unresolved dependencies part.
+ */
 private static String getUnresolvedDependencies(Set<UnresolvedDependency> unresolvedDependencies) {
-    Set<String> scopes = new HashSet<>()
-    scopes.add("Unresolved")
     StringBuilder jsonOutput = new StringBuilder()
     for (UnresolvedDependency unresolvedDependency : unresolvedDependencies.unique { it.toString() }) {
         ModuleVersionSelector selector = unresolvedDependency.selector
-        jsonOutput.append(getDependencyString(selector.group, selector.name, selector.version, scopes)).append("]},")
+        jsonOutput.append(getDependencyString(selector.group, selector.name, selector.version, true)).append("]},")
     }
     return jsonOutput.toString()
 }
 
-
-private static String getDependencyString(Object groupId, Object artifactId, Object version, Set<String> scopes = new HashSet<>()) {
-    String scopeStr = scopes.empty ? "[]" : "[\"" + scopes.join("\", \"") + "\"]"
-    return String.format("{\"groupId\":\"%s\",\"artifactId\":\"%s\",\"version\":\"%s\",\"scopes\":%s,\"dependencies\":[", groupId, artifactId, version, scopeStr)
+/**
+ * Generate a single dependency string, including all information the dependency contains.
+ * @param groupId - The dependency group ID
+ * @param artifactId - The dependency artifact ID
+ * @param version - The dependency version
+ * @param unresolved - True if the dependency is unresolved
+ * @param scopes - The dependency scopes
+ * @return JSON string representing a single dependency, including all information the dependency contains.
+ */
+private static String getDependencyString(Object groupId, Object artifactId, Object version, boolean unresolved = false, Set<String> scopes = new HashSet<>()) {
+    String scopeStr = "\"scopes\":[" + (scopes.empty ? "" : "\"" + scopes.join("\", \"") + "\"") + "]"
+    String unresolvedStr = unresolved ? "\"unresolved\":\"true\"," : ""
+    return String.format("{\"groupId\":\"%s\",\"artifactId\":\"%s\",\"version\":\"%s\",%s,%s\"dependencies\":[", groupId, artifactId, version, scopeStr, unresolvedStr)
 }

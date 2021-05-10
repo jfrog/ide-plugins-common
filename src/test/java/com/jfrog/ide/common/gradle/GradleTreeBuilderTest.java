@@ -72,9 +72,9 @@ public class GradleTreeBuilderTest {
         DependencyTree dependencyTree = buildGradleDependencyTree();
         DependencyTree shared = getAndAssertSharedModule(dependencyTree);
 
-        DependencyTree missing = TestUtils.getAndAssertChild(shared, "missing:dependency:404");
+        DependencyTree missing = TestUtils.getAndAssertChild(shared, "missing:dependency:404 [unresolved]");
         assertEquals(Sets.newHashSet(new License()), missing.getLicenses());
-        assertEquals(Sets.newHashSet(new Scope("Unresolved")), missing.getScopes());
+        assertEquals(Sets.newHashSet(new Scope()), missing.getScopes());
         assertGeneralInfo(missing.getGeneralInfo(), "missing", "dependency", "404", "");
     }
 
