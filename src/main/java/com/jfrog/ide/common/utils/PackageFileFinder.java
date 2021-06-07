@@ -117,7 +117,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * return true iff this file is package.json.
+     * Return true iff this file is package.json.
      *
      * @return true iff this file is package.json.
      */
@@ -126,7 +126,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * return true iff this file is build.gradle or build.gradle.kts.
+     * Return true iff this file is build.gradle or build.gradle.kts.
      *
      * @return true iff this file is build.gradle or build.gradle.kts.
      */
@@ -135,7 +135,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * return true iff this file is go.mod.
+     * Return true iff this file is go.mod.
      *
      * @return true iff this file is go.mod.
      */
