@@ -5,11 +5,12 @@ package com.jfrog.ide.common.scan;
  */
 @SuppressWarnings("unused")
 public enum ComponentPrefix {
+    PYPI("pypi://"),
     GAV("gav://"),
     NPM("npm://"),
     GO("go://");
 
-    private String prefix;
+    private final String prefix;
 
     ComponentPrefix(String prefix) {
         this.prefix = prefix;
