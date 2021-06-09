@@ -1,5 +1,11 @@
 # Release Notes
 
+## 1.6.0
+- Add support for Gradle projects
+- Add PyPI component prefix
+- Better support for npm 7
+- Bugfix: Build patterns with slash doesn't encoded correctly
+
 ## 1.5.2 (April 29, 2021)
 
 - Better handling checksum errors in go.sum
