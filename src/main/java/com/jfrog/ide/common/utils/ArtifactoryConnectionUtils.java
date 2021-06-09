@@ -4,7 +4,7 @@ import com.jfrog.ide.common.configuration.ServerConfig;
 import org.apache.http.conn.ssl.TrustAllStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
+import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 
 import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
@@ -18,11 +18,11 @@ import java.security.NoSuchAlgorithmException;
  */
 public class ArtifactoryConnectionUtils {
 
-    public static ArtifactoryDependenciesClientBuilder createDependenciesClientBuilder(ServerConfig serverConfig, Log logger) throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+    public static ArtifactoryManagerBuilder createArtifactoryManagerBuilder(ServerConfig serverConfig, Log logger) throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
         SSLContext sslContext = serverConfig.isInsecureTls() ?
                 SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
                 serverConfig.getSslContext();
-        return new ArtifactoryDependenciesClientBuilder()
+        return new ArtifactoryManagerBuilder()
                 .setArtifactoryUrl(serverConfig.getArtifactoryUrl())
                 .setUsername(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())

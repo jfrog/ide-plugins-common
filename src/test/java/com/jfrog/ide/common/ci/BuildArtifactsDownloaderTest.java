@@ -1,8 +1,8 @@
 package com.jfrog.ide.common.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.compress.utils.Sets;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.Vcs;
 import org.jfrog.build.api.util.NullLog;

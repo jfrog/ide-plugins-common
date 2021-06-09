@@ -9,8 +9,8 @@ import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
-import org.jfrog.build.extractor.clientConfiguration.client.ArtifactoryDependenciesClient;
+import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
+import org.jfrog.build.extractor.clientConfiguration.client.artifactory.ArtifactoryManager;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
 import org.jfrog.build.extractor.producerConsumer.ProducerConsumerExecutor;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static com.jfrog.ide.common.ci.Utils.createAqlForBuildArtifacts;
-import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createDependenciesClientBuilder;
+import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createArtifactoryManagerBuilder;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
@@ -42,6 +42,7 @@ import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL
  *
  * @author yahavi
  */
+@SuppressWarnings("unused")
 public class CiManagerBase {
     protected DependencyTree root = new DependencyTree();
     private final ObjectMapper mapper = createMapper();
@@ -74,10 +75,10 @@ public class CiManagerBase {
     public void buildCiTree(String buildsPattern, ProgressIndicator indicator, Runnable checkCanceled) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
-        ArtifactoryDependenciesClientBuilder dependenciesClientBuilder = createDependenciesClientBuilder(serverConfig, log);
-        try (ArtifactoryDependenciesClient dependenciesClient = dependenciesClientBuilder.build()) {
+        ArtifactoryManagerBuilder artifactoryManagerBuilder = createArtifactoryManagerBuilder(serverConfig, log);
+        try (ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build()) {
             buildsCache.createDirectories();
-            AqlSearchResult searchResult = dependenciesClient.searchArtifactsByAql(createAqlForBuildArtifacts(buildsPattern));
+            AqlSearchResult searchResult = artifactoryManager.searchArtifactsByAql(createAqlForBuildArtifacts(buildsPattern));
             if (searchResult.getResults().isEmpty()) {
                 return;
             }
@@ -89,7 +90,7 @@ public class CiManagerBase {
             double total = buildArtifacts.size() * 2;
             // Create producer Runnables.
             ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                    new BuildArtifactsDownloader(buildArtifacts, dependenciesClientBuilder, buildsCache, indicator, count, total, log, checkCanceled)};
+                    new BuildArtifactsDownloader(buildArtifacts, artifactoryManagerBuilder, buildsCache, indicator, count, total, log, checkCanceled)};
             // Create consumer Runnables.
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
                     new XrayBuildDetailsDownloader(root, buildsCache, xrayClientBuilder, indicator, count, total, log, checkCanceled)
