@@ -5,19 +5,16 @@ import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.net.URLCodec;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.util.EntityUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.clientConfiguration.ArtifactoryDependenciesClientBuilder;
-import org.jfrog.build.extractor.clientConfiguration.client.ArtifactoryDependenciesClient;
+import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
+import org.jfrog.build.extractor.clientConfiguration.client.artifactory.ArtifactoryManager;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Queue;
 import java.util.concurrent.CancellationException;
@@ -36,7 +33,7 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
 public class BuildArtifactsDownloader extends ProducerRunnableBase {
     public static final String BUILD_INFO_REPO = "/artifactory-build-info/";
 
-    private final ArtifactoryDependenciesClientBuilder clientBuilder;
+    private final ArtifactoryManagerBuilder artifactoryManagerBuilder;
     private final Queue<AqlSearchResult.SearchEntry> buildArtifacts;
     private final ProgressIndicator indicator;
     private final BuildsScanCache buildsCache;
@@ -46,10 +43,10 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     private final Log log;
 
     public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts,
-                                    ArtifactoryDependenciesClientBuilder clientBuilder, BuildsScanCache buildsCache,
+                                    ArtifactoryManagerBuilder artifactoryManagerBuilder, BuildsScanCache buildsCache,
                                     ProgressIndicator indicator, AtomicInteger count, double total, Log log, Runnable checkCancel) {
+        this.artifactoryManagerBuilder = artifactoryManagerBuilder;
         this.buildArtifacts = buildArtifacts;
-        this.clientBuilder = clientBuilder;
         this.buildsCache = buildsCache;
         this.checkCancel = checkCancel;
         this.indicator = indicator;
@@ -62,8 +59,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     public void producerRun() throws InterruptedException {
         ObjectMapper mapper = createMapper();
 
-        try (ArtifactoryDependenciesClient client = clientBuilder.build()) {
-            String baseRepoUrl = client.getArtifactoryUrl() + BUILD_INFO_REPO;
+        try (ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build()) {
             while (!buildArtifacts.isEmpty()) {
                 if (Thread.interrupted()) {
                     // Stop the producer if the thread received an interruption event
@@ -77,7 +73,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                     String encodedBuildName = new URLCodec().decode(buildName);
                     Build build = buildsCache.loadBuildInfo(mapper, encodedBuildName, buildNumber);
                     if (build == null) {
-                        build = downloadBuildInfo(mapper, searchEntry, client, baseRepoUrl);
+                        build = downloadBuildInfo(mapper, searchEntry, artifactoryManager);
                     }
                     if (build == null) {
                         // Build not found in Artifactory
@@ -100,25 +96,20 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     /**
      * Download build info from Artifactory and save it in the builds cache.
      *
-     * @param mapper      - The object mapper
-     * @param searchEntry - The AQL search results entry
-     * @param client      - Artifactory dependencies client
-     * @param baseRepoUrl - Artifactory build info repository
+     * @param mapper             - The object mapper
+     * @param searchEntry        - The AQL search results entry
+     * @param artifactoryManager - Artifactory manager
      * @return the requested build or null if not found.
      */
-    private Build downloadBuildInfo(ObjectMapper mapper, AqlSearchResult.SearchEntry searchEntry, ArtifactoryDependenciesClient client, String baseRepoUrl) {
-        String downloadUrl = baseRepoUrl + searchEntry.getPath() + "/" + searchEntry.getName();
-        HttpEntity entity = null;
-        try (CloseableHttpResponse response = client.downloadArtifact(downloadUrl)) {
-            entity = response.getEntity();
-            byte[] content = IOUtils.toByteArray(entity.getContent());
-            Build build = mapper.readValue(content, Build.class);
-            buildsCache.save(content, build.getName(), build.getNumber(), BuildsScanCache.Type.BUILD_INFO);
+    private Build downloadBuildInfo(ObjectMapper mapper, AqlSearchResult.SearchEntry searchEntry, ArtifactoryManager artifactoryManager) {
+        String downloadUrl = BUILD_INFO_REPO + searchEntry.getPath() + "/" + searchEntry.getName();
+        try {
+            String buildInfoContent = artifactoryManager.download(downloadUrl);
+            Build build = mapper.readValue(buildInfoContent, Build.class);
+            buildsCache.save(buildInfoContent.getBytes(StandardCharsets.UTF_8), build.getName(), build.getNumber(), BuildsScanCache.Type.BUILD_INFO);
             return build;
         } catch (IOException e) {
             log.error("Couldn't retrieve build information", e);
-        } finally {
-            EntityUtils.consumeQuietly(entity);
         }
         return null;
     }

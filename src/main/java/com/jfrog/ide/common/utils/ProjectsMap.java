@@ -1,10 +1,10 @@
 package com.jfrog.ide.common.utils;
 
+import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 
-import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.TreeMap;
 
@@ -50,7 +50,7 @@ public class ProjectsMap extends TreeMap<ProjectsMap.ProjectKey, DependencyTree>
         }
 
         @Override
-        public int compareTo(@Nonnull ProjectKey other) {
+        public int compareTo(@NonNull ProjectKey other) {
             return Comparator.comparing(ProjectKey::getProjectName)
                     .thenComparing(ProjectKey::getProjectPath)
                     .compare(this, other);

@@ -23,16 +23,24 @@ repositories {
     }
 }
 
+def buildInfoVersion = '2.26.4'
 dependencies {
-    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: '2.25.0'
-    compile group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: '2.25.0'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
-    compile group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.7.0'
-    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
-    testCompile group: 'org.testng', name: 'testng', version: '7.3.0'
+    implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: buildInfoVersion
+    implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
+    implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
+    implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
+    implementation group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.7.x-SNAPSHOT'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
+    implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+    implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13'
+    implementation group: 'org.apache.httpcomponents', name: 'httpcore', version: '4.4.14'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
+    implementation group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.9.0'
+
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    testImplementation group: 'org.testng', name: 'testng', version: '7.4.0'
 }
 
 task uberJar(type: Jar) {

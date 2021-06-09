@@ -1,9 +1,9 @@
 package com.jfrog.ide.common.filter;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.commons.compress.utils.Lists;
-import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jfrog.build.extractor.scan.*;
@@ -67,6 +67,7 @@ public class FilterManager {
         scanLicenses.forEach(license -> selectedLicenses.putIfAbsent(license, true));
     }
 
+    @SuppressWarnings("unused")
     public void addBuild(String build) {
         selectableBuilds.add(MutablePair.of(build, false));
     }
@@ -85,6 +86,7 @@ public class FilterManager {
      *
      * @param root - The root dependency tree node.
      */
+    @SuppressWarnings("unused")
     public void collectsFiltersInformation(DependencyTree root) {
         Enumeration<?> enumeration = root.breadthFirstEnumeration();
         while (enumeration.hasMoreElements()) {
@@ -94,6 +96,7 @@ public class FilterManager {
         }
     }
 
+    @SuppressWarnings("unused")
     protected void clearBuilds() {
         this.selectableBuilds = Lists.newArrayList();
     }
@@ -164,6 +167,7 @@ public class FilterManager {
      * @param selectedNodes - Selected tree nodes that the user chose from the ui.
      * @return filtered issues according to the selected component and user filters.
      */
+    @SuppressWarnings("unused")
     public Set<Issue> getFilteredScanIssues(List<DependencyTree> selectedNodes) {
         Set<Issue> filteredIssues = Sets.newHashSet();
         selectedNodes.forEach(node -> filteredIssues.addAll(filterIssues(node.getIssues())));

@@ -137,7 +137,7 @@ public class NpmTreeBuilderTest {
     private void oneChildScenario(DependencyTree dependencyTree, String expectedProjectName) {
         DependencyTree child = dependencyTree.getChildren().get(0);
         assertEquals("progress:2.0.3", child.toString());
-        Set<Scope> expectedScopes = Sets.newHashSet(new Scope("production"), new Scope("development"));
+        Set<Scope> expectedScopes = Sets.newHashSet(new Scope("prod"), new Scope("dev"));
         assertEquals(child.getScopes(), expectedScopes);
         assertEquals(child.getParent().toString(), expectedProjectName);
     }
@@ -146,13 +146,13 @@ public class NpmTreeBuilderTest {
         for (DependencyTree child : dependencyTree.getChildren()) {
             switch (child.toString()) {
                 case "progress:2.0.3":
-                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("production")));
+                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("prod")));
                     break;
                 case "debug:4.1.1":
-                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("development")));
+                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("dev")));
                     break;
                 default:
-                    fail("Unexpected dependency " + child.toString());
+                    fail("Unexpected dependency " + child);
             }
             assertEquals(child.getParent().toString(), expectedProjectName);
         }
