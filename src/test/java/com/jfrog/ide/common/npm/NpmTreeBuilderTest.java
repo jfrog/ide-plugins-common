@@ -35,11 +35,6 @@ public class NpmTreeBuilderTest {
     private static final DependencyTree progress = new DependencyTree("progress:2.0.3");
     private static final DependencyTree debug = new DependencyTree("debug:4.1.1");
 
-    static {
-        progress.setScopes(Sets.newHashSet(new Scope("production")));
-        debug.setScopes(Sets.newHashSet(new Scope("development")));
-    }
-
     enum Project {
         EMPTY("package-name1", "empty"),
         DEPENDENCY("package-name2", "dependency", progress, debug),
