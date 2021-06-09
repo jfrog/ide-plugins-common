@@ -2,7 +2,6 @@ package com.jfrog.ide.common.npm;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.npm.NpmDriver;
 import org.jfrog.build.extractor.scan.DependencyTree;
@@ -30,25 +29,22 @@ import static org.testng.Assert.*;
  * @author yahavi
  */
 public class NpmTreeBuilderTest {
-
     private static final Path NPM_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "npm"));
-    private static final DependencyTree progress = new DependencyTree("progress:2.0.3");
-    private static final DependencyTree debug = new DependencyTree("debug:4.1.1");
 
     enum Project {
-        EMPTY("package-name1", "empty"),
-        DEPENDENCY("package-name2", "dependency", progress, debug),
-        DEPENDENCY_PACKAGE_LOCK("package-name3", "dependencyPackageLock", progress, debug),
-        DEV_AND_PROD("package-name4", "devAndProd", progress);
+        EMPTY("package-name1", "empty", false),
+        DEPENDENCY("package-name2", "dependency", true),
+        DEPENDENCY_PACKAGE_LOCK("package-name3", "dependencyPackageLock", true),
+        DEV_AND_PROD("package-name4", "devAndProd", true);
 
-        private final DependencyTree[] children;
+        private final boolean hasChildren;
         private final String name;
         private final Path path;
 
-        Project(String name, String path, DependencyTree... children) {
+        Project(String name, String path, boolean hasChildren) {
             this.name = name;
             this.path = NPM_ROOT.resolve(path);
-            this.children = children;
+            this.hasChildren = hasChildren;
         }
     }
 
@@ -95,21 +91,21 @@ public class NpmTreeBuilderTest {
             NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath(), null);
             DependencyTree dependencyTree = npmTreeBuilder.buildTree(new NullLog());
             assertNotNull(dependencyTree);
-            String projectName = project.name;
-            if (!install && ArrayUtils.isNotEmpty(project.children)) {
-                projectName += " (Not installed)";
+            String expectedProjectName = project.name;
+            if (!install && project.hasChildren) {
+                expectedProjectName += " (Not installed)";
             }
-            checkGeneralInfo(dependencyTree.getGeneralInfo(), projectName, tempProject);
+            checkGeneralInfo(dependencyTree.getGeneralInfo(), expectedProjectName, tempProject);
             assertEquals(dependencyTree.getChildren().size(), expectedChildren);
             switch (expectedChildren) {
                 case 0:
                     noChildrenScenario(dependencyTree);
                     break;
                 case 1:
-                    oneChildScenario(dependencyTree, projectName);
+                    oneChildScenario(dependencyTree, expectedProjectName);
                     break;
                 case 2:
-                    twoChildrenScenario(dependencyTree, projectName);
+                    twoChildrenScenario(dependencyTree, expectedProjectName);
             }
         } catch (IOException e) {
             fail(e.getMessage(), e);
