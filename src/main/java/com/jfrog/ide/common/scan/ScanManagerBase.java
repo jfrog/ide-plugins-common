@@ -144,7 +144,7 @@ public abstract class ScanManagerBase {
      * @param indicator - Progress bar.
      * @param quickScan - Quick or full scan.
      */
-    protected void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) {
+    protected void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) throws IOException {
         // Collect components to scan
         Components componentsToScan = ComponentsFactory.create();
         extractComponents(scanResults, componentsToScan, quickScan);
@@ -183,8 +183,6 @@ public abstract class ScanManagerBase {
             log.debug("Scan cache saved successfully.");
         } catch (CancellationException e) {
             log.info("Xray scan was canceled.");
-        } catch (IOException e) {
-            log.error("Scan failed.", e);
         }
     }
 

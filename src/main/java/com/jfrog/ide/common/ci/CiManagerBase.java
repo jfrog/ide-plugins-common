@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static com.jfrog.ide.common.ci.Utils.createAqlForBuildArtifacts;
+import static com.jfrog.ide.common.log.Utils.logError;
 import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createArtifactoryManagerBuilder;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
@@ -68,11 +69,13 @@ public class CiManagerBase {
      *
      * @param buildsPattern - The build pattern configured in the IDE configuration
      * @param indicator     - The progress indicator to show
+     * @param checkCanceled - Callback that throws an exception if scan was cancelled by user
+     * @param shouldToast   - True if scan was triggered by the "refresh" button.
      * @throws NoSuchAlgorithmException in case of error during creating the Artifactory dependencies client.
      * @throws KeyStoreException        in case of error during creating the Artifactory dependencies client.
      * @throws KeyManagementException   in case of error during creating the Artifactory dependencies client.
      */
-    public void buildCiTree(String buildsPattern, ProgressIndicator indicator, Runnable checkCanceled) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void buildCiTree(String buildsPattern, ProgressIndicator indicator, Runnable checkCanceled, boolean shouldToast) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
         ArtifactoryManagerBuilder artifactoryManagerBuilder = createArtifactoryManagerBuilder(serverConfig, log);
@@ -90,7 +93,7 @@ public class CiManagerBase {
             double total = buildArtifacts.size() * 2;
             // Create producer Runnables.
             ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                    new BuildArtifactsDownloader(buildArtifacts, artifactoryManagerBuilder, buildsCache, indicator, count, total, log, checkCanceled)};
+                    new BuildArtifactsDownloader(buildArtifacts, shouldToast, artifactoryManagerBuilder, buildsCache, indicator, count, total, log, checkCanceled)};
             // Create consumer Runnables.
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
                     new XrayBuildDetailsDownloader(root, buildsCache, xrayClientBuilder, indicator, count, total, log, checkCanceled)
@@ -100,8 +103,8 @@ public class CiManagerBase {
             checkCanceled.run();
         } catch (CancellationException cancellationException) {
             log.info("Builds scan was canceled.");
-        } catch (Exception exception) {
-            log.error("Failed to build CI tree", exception);
+        } catch (Exception e) {
+            logError(log, "Failed to build CI tree", e, shouldToast);
         }
     }
 

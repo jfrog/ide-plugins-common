@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.jfrog.ide.common.ci.Utils.BUILD_RET_ERR_FMT;
 import static com.jfrog.ide.common.ci.Utils.createBuildGeneralInfo;
+import static com.jfrog.ide.common.log.Utils.logError;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
@@ -39,14 +40,16 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     private final BuildsScanCache buildsCache;
     private final Runnable checkCancel;
     private final AtomicInteger count;
+    private final boolean shouldToast;
     private final double total;
     private final Log log;
 
-    public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts,
+    public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts, boolean shouldToast,
                                     ArtifactoryManagerBuilder artifactoryManagerBuilder, BuildsScanCache buildsCache,
                                     ProgressIndicator indicator, AtomicInteger count, double total, Log log, Runnable checkCancel) {
         this.artifactoryManagerBuilder = artifactoryManagerBuilder;
         this.buildArtifacts = buildArtifacts;
+        this.shouldToast = shouldToast;
         this.buildsCache = buildsCache;
         this.checkCancel = checkCancel;
         this.indicator = indicator;
@@ -75,17 +78,15 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                     if (build == null) {
                         build = downloadBuildInfo(mapper, searchEntry, artifactoryManager);
                     }
-                    if (build == null) {
-                        // Build not found in Artifactory
-                        continue;
-                    }
 
                     // Create and produce the build general info to the consumer
                     executor.put(createBuildGeneralInfo(build, log));
                 } catch (CancellationException e) {
                     break;
                 } catch (ParseException | IllegalArgumentException | DecoderException e) {
-                    log.error(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e);
+                    logError(log, String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e, shouldToast);
+                } catch (IOException e) {
+                    logError(log, "", e, shouldToast);
                 } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
                 }
@@ -101,7 +102,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
      * @param artifactoryManager - Artifactory manager
      * @return the requested build or null if not found.
      */
-    private Build downloadBuildInfo(ObjectMapper mapper, AqlSearchResult.SearchEntry searchEntry, ArtifactoryManager artifactoryManager) {
+    private Build downloadBuildInfo(ObjectMapper mapper, AqlSearchResult.SearchEntry searchEntry, ArtifactoryManager artifactoryManager) throws IOException {
         String downloadUrl = BUILD_INFO_REPO + searchEntry.getPath() + "/" + searchEntry.getName();
         try {
             String buildInfoContent = artifactoryManager.download(downloadUrl);
@@ -109,8 +110,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
             buildsCache.save(buildInfoContent.getBytes(StandardCharsets.UTF_8), build.getName(), build.getNumber(), BuildsScanCache.Type.BUILD_INFO);
             return build;
         } catch (IOException e) {
-            log.error("Couldn't retrieve build information", e);
+            throw new IOException("Couldn't retrieve build information from Artifactory", e);
         }
-        return null;
     }
 }
