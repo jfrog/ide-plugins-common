@@ -1,4 +1,4 @@
-# Ide Plugins Common [![Build status](https://ci.appveyor.com/api/projects/status/alp9kna5f07yf5t2?svg=true)](https://ci.appveyor.com/project/jfrog-ecosystem/ide-plugins-common)
+# Ide Plugins Common [![Build status](https://github.com/jfrog/ide-plugins-common/actions/workflows/test.yml/badge.svg)](https://github.com/jfrog/ide-plugins-common/actions/workflows/test.yml)
 
 This project includes the common code used by the [JFrog Idea Plugin](https://github.com/jfrog/jfrog-idea-plugin) and the [JFrog Eclipse plugin](https://github.com/jfrog/jfrog-eclipse-plugin).
 
