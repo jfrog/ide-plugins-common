@@ -17,6 +17,8 @@ import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.Map;
 
+import static com.jfrog.ide.common.log.Utils.logError;
+
 /**
  * Build npm dependency tree before the Xray scan.
  *
@@ -37,20 +39,20 @@ public class NpmTreeBuilder {
     /**
      * Build the npm dependency tree.
      *
-     * @param logger - The logger.
+     * @param logger      - The logger.
+     * @param shouldToast - True if should popup a balloon in case of errors.
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
-    public DependencyTree buildTree(Log logger) throws IOException {
+    public DependencyTree buildTree(Log logger, boolean shouldToast) throws IOException {
         if (!npmDriver.isNpmInstalled()) {
-            logger.error("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
-            return null;
+            throw new IOException("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
         }
         JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--prod"));
         DependencyTree rootNode = buildUnifiedDependencyTree(npmLsResults);
         JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
         JsonNode nameNode = packageJson.get("name");
-        String packageName = getPackageName(logger, packageJson, npmLsResults);
+        String packageName = getPackageName(logger, packageJson, npmLsResults, shouldToast);
         JsonNode versionNode = packageJson.get("version");
         String packageVersion = versionNode != null ? versionNode.asText() : "N/A";
         rootNode.setUserObject(packageName);
@@ -109,15 +111,16 @@ public class NpmTreeBuilder {
      * @param logger       - The logger.
      * @param packageJson  - The package.json.
      * @param npmLsResults - Npm ls results.
+     * @param shouldToast  - True if should popup a balloon in case of errors.
      * @return root package name.
      */
-    private String getPackageName(Log logger, JsonNode packageJson, JsonNode npmLsResults) {
+    private String getPackageName(Log logger, JsonNode packageJson, JsonNode npmLsResults, boolean shouldToast) {
         JsonNode nameNode = packageJson.get("name");
         if (nameNode != null) {
-            return nameNode.asText() + getPostfix(logger, nameNode, npmLsResults);
+            return nameNode.asText() + getPostfix(logger, nameNode, npmLsResults, shouldToast);
         }
         if (projectDir.getFileName() != null) {
-            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, null, npmLsResults);
+            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, null, npmLsResults, shouldToast);
         }
         return "N/A";
     }
@@ -128,16 +131,17 @@ public class NpmTreeBuilder {
      * @param logger       - The logger.
      * @param nameNode     - The "name" in the package.json file.
      * @param npmLsResults - Npm ls results.
+     * @param shouldToast  - True if should popup a balloon in case of errors.
      * @return (Not installed) or empty.
      */
-    private String getPostfix(Log logger, JsonNode nameNode, JsonNode npmLsResults) {
+    private String getPostfix(Log logger, JsonNode nameNode, JsonNode npmLsResults, boolean shouldToast) {
         String postfix = "";
         if (nameNode == null) {
             postfix += " (Not installed)";
-            logger.error("JFrog Xray - Failed while running npm ls command at " + projectDir.toString());
+            logError(logger, "JFrog Xray - Failed while running npm ls command at " + projectDir.toString(), shouldToast);
         } else if (npmLsResults.get("problems") != null) {
             postfix += " (Not installed)";
-            logger.error("JFrog Xray - npm ls command at " + projectDir.toString() + " result had errors:" + "\n" + npmLsResults.get("problems").toString());
+            logError(logger, "JFrog Xray - npm ls command at " + projectDir.toString() + " result had errors:" + "\n" + npmLsResults.get("problems").toString(), shouldToast);
         }
         return postfix;
     }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.util.Log;
 
@@ -11,9 +12,9 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -51,7 +52,7 @@ public class BuildsScanCache {
      * @throws IOException in case of any IO error.
      */
     private void cleanUpOldBuilds() throws IOException {
-        String[] currentBuildScanCaches = Arrays.stream(buildsDir.toFile().listFiles())
+        String[] currentBuildScanCaches = Arrays.stream(Objects.requireNonNull(buildsDir.toFile().listFiles()))
                 .map(File::getName)
                 .sorted()
                 .toArray(String[]::new);
@@ -121,7 +122,7 @@ public class BuildsScanCache {
                 return mapper.readValue(buffer, Build.class);
             }
         } catch (IOException e) {
-            log.error(String.format(INVALID_CACHE_FMT, buildName, buildNumber), e);
+            log.warn(String.format(INVALID_CACHE_FMT, buildName, buildNumber) + ": " + ExceptionUtils.getRootCauseMessage(e));
         }
         return null;
     }
@@ -141,7 +142,7 @@ public class BuildsScanCache {
                 return mapper.readValue(buffer, DetailsResponseImpl.class);
             }
         } catch (IOException e) {
-            log.error(String.format(INVALID_CACHE_FMT, buildName, buildNumber), e);
+            log.warn(String.format(INVALID_CACHE_FMT, buildName, buildNumber) + ": " + ExceptionUtils.getRootCauseMessage(e));
         }
         return null;
     }

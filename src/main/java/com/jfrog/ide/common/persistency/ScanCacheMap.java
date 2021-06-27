@@ -87,7 +87,7 @@ abstract class ScanCacheMap {
             }
             this.artifactsMap = scanCacheMap.artifactsMap;
         } catch (JsonParseException | JsonMappingException e) {
-            logger.error("Failed reading cache file, zapping the old cache and starting a new one.");
+            logger.warn("Failed reading cache file, zapping the old cache and starting a new one.");
         }
     }
 }

@@ -45,8 +45,7 @@ public class GradleTreeBuilder {
      */
     public DependencyTree buildTree(Log logger) throws IOException {
         if (!gradleDriver.isGradleInstalled()) {
-            logger.error("Could not scan Gradle project dependencies, because Gradle CLI is not in the PATH.");
-            return null;
+            throw new IOException("Could not scan Gradle project dependencies, because Gradle CLI is not in the PATH.");
         }
         File[] gradleDependenciesFiles = gradleDriver.generateDependenciesGraphAsJson(projectDir.toFile(), logger);
         gradleDependenciesFiles = ArrayUtils.nullToEmpty(gradleDependenciesFiles, File[].class);
