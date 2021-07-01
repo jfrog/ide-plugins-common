@@ -12,14 +12,15 @@ compileJava {
 
 repositories {
     mavenLocal()
+    mavenCentral()
     maven {
-        url "https://oss.jfrog.org/artifactory/libs-snapshot"
+        url "https://releases.jfrog.io/artifactory/oss-snapshots"
         mavenContent {
             snapshotsOnly()
         }
     }
     maven {
-        url "https://oss.jfrog.org/artifactory/libs-release"
+        url "https://releases.jfrog.io/artifactory/oss-releases"
     }
 }
 
