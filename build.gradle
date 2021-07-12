@@ -14,12 +14,6 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
-        url "https://releases.jfrog.io/artifactory/oss-snapshots"
-        mavenContent {
-            snapshotsOnly()
-        }
-    }
-    maven {
         url "https://releases.jfrog.io/artifactory/oss-releases"
     }
 }
