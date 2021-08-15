@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.client.DownloadResponse;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 import org.jfrog.build.extractor.clientConfiguration.client.artifactory.ArtifactoryManager;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
@@ -105,12 +106,16 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     private Build downloadBuildInfo(ObjectMapper mapper, AqlSearchResult.SearchEntry searchEntry, ArtifactoryManager artifactoryManager) throws IOException {
         String downloadUrl = BUILD_INFO_REPO + searchEntry.getPath() + "/" + searchEntry.getName();
         try {
-            String buildInfoContent = artifactoryManager.download(downloadUrl);
+            DownloadResponse downloadResponse = artifactoryManager.download(downloadUrl);
+            if (downloadResponse == null) {
+                throw new IOException("An empty response received from Artifactory.");
+            }
+            String buildInfoContent = downloadResponse.getContent();
             Build build = mapper.readValue(buildInfoContent, Build.class);
             buildsCache.save(buildInfoContent.getBytes(StandardCharsets.UTF_8), build.getName(), build.getNumber(), BuildsScanCache.Type.BUILD_INFO);
             return build;
         } catch (IOException e) {
-            throw new IOException("Couldn't retrieve build information from Artifactory", e);
+            throw new IOException("Couldn't retrieve build information from Artifactory, using this path: " + downloadUrl, e);
         }
     }
 }

@@ -23,7 +23,7 @@ public class ArtifactoryConnectionUtils {
                 SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
                 serverConfig.getSslContext();
         return new ArtifactoryManagerBuilder()
-                .setArtifactoryUrl(serverConfig.getArtifactoryUrl())
+                .setServerUrl(serverConfig.getArtifactoryUrl())
                 .setUsername(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())
                 .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()))
