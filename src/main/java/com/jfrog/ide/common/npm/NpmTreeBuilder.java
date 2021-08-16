@@ -70,11 +70,11 @@ public class NpmTreeBuilder {
      */
     private DependencyTree buildUnifiedDependencyTree(JsonNode npmLsResults) throws IOException {
         // Parse "npm ls" results on the production scope
-        DependencyTree rootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.PRODUCTION);
+        DependencyTree rootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.PRODUCTION, projectDir);
 
         // Run "npm ls" on the development scope
         npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev"));
-        DependencyTree devRootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.DEVELOPMENT);
+        DependencyTree devRootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.DEVELOPMENT, projectDir);
 
         // Merge trees. We'll convert to ArrayList to avoid ConcurrentModificationException on the vector.
         Lists.newArrayList(devRootNode.getChildren()).forEach(devChild -> mergeDevNode(devChild, rootNode));
@@ -117,10 +117,10 @@ public class NpmTreeBuilder {
     private String getPackageName(Log logger, JsonNode packageJson, JsonNode npmLsResults, boolean shouldToast) {
         JsonNode nameNode = packageJson.get("name");
         if (nameNode != null) {
-            return nameNode.asText() + getPostfix(logger, nameNode, npmLsResults, shouldToast);
+            return nameNode.asText() + getPostfix(logger, npmLsResults, shouldToast);
         }
         if (projectDir.getFileName() != null) {
-            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, null, npmLsResults, shouldToast);
+            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, npmLsResults, shouldToast);
         }
         return "N/A";
     }
@@ -129,17 +129,13 @@ public class NpmTreeBuilder {
      * Append "(Not installed)" postfix if needed.
      *
      * @param logger       - The logger.
-     * @param nameNode     - The "name" in the package.json file.
      * @param npmLsResults - Npm ls results.
      * @param shouldToast  - True if should popup a balloon in case of errors.
      * @return (Not installed) or empty.
      */
-    private String getPostfix(Log logger, JsonNode nameNode, JsonNode npmLsResults, boolean shouldToast) {
+    private String getPostfix(Log logger, JsonNode npmLsResults, boolean shouldToast) {
         String postfix = "";
-        if (nameNode == null) {
-            postfix += " (Not installed)";
-            logError(logger, "JFrog Xray - Failed while running npm ls command at " + projectDir.toString(), shouldToast);
-        } else if (npmLsResults.get("problems") != null) {
+        if (npmLsResults.get("problems") != null) {
             postfix += " (Not installed)";
             logError(logger, "JFrog Xray - npm ls command at " + projectDir.toString() + " result had errors:" + "\n" + npmLsResults.get("problems").toString(), shouldToast);
         }
