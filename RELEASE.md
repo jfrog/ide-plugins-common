@@ -1,6 +1,12 @@
 # Release Notes
 
+## 1.6.1
+
+- Bugfix: npm without name or version throws NPE
+- Error balloons should not appear on non-interactive scans
+
 ## 1.6.0
+
 - Add support for Gradle projects
 - Add PyPI component prefix
 - Better support for npm 7
