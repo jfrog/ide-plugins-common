@@ -16,7 +16,7 @@ public class GradleDriverTest {
 
     @Test
     public void testIsGradleInstalled() {
-        GradleDriver gradleDriver = new GradleDriver(GRADLE_WRAPPER_ROOT, null);
+        GradleDriver gradleDriver = new GradleDriver("", null);
         assertTrue(gradleDriver.isGradleInstalled());
     }
 }

@@ -46,7 +46,7 @@ public class GradleTreeBuilderTest {
 
     @DataProvider
     private Object[][] gradleTreeBuilderProvider() {
-        return new Object[][]{{"wrapper"}, {"global"}, {"kotlin"}};
+        return new Object[][]{{"groovy"}, {"kotlin"}};
     }
 
     @SuppressWarnings("unused")
@@ -63,7 +63,7 @@ public class GradleTreeBuilderTest {
 
     @DataProvider
     private Object[][] gradleTreeBuilderUnresolvedProvider() {
-        return new Object[][]{{"unresolved"}, {"unresolvedKotlin"}};
+        return new Object[][]{{"unresolvedGroovy"}, {"unresolvedKotlin"}};
     }
 
     @SuppressWarnings("unused")
@@ -79,7 +79,7 @@ public class GradleTreeBuilderTest {
     }
 
     private DependencyTree buildGradleDependencyTree() throws IOException {
-        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(tempProject.toPath(), null);
+        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(tempProject.toPath(), null, "");
         DependencyTree dependencyTree = gradleTreeBuilder.buildTree(new NullLog());
         assertNotNull(dependencyTree);
 
