@@ -1,26 +1,18 @@
 package com.jfrog.ide.common.scan;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.xray.client.Xray;
-import com.jfrog.xray.client.impl.ComponentsFactory;
 import com.jfrog.xray.client.services.graph.GraphResponse;
-import com.jfrog.xray.client.services.summary.ComponentDetail;
-import com.jfrog.xray.client.services.summary.Components;
-import com.jfrog.xray.client.services.summary.SummaryResponse;
+import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
-import com.jfrog.xray.client.services.system.Version;
-
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
@@ -35,11 +27,16 @@ public class GraphScanLogic implements ScanLogic {
     private Log log;
     private DependencyTree scanResults;
 
+    public GraphScanLogic(ScanCache scanCache, Log log) {
+        this.scanCache = scanCache;
+        this.log = log;
+    }
+
     @Override
     public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException {
         // Xray's graph scan API does not support progress indication at this moment.
         indicator.setIndeterminate(true);
-
+        scanResults.setPrefix(prefix.toString());
         if (scanResults.getChildren().isEmpty()) {
             log.debug("No components found to scan. '");
             // No components found to scan
@@ -100,14 +97,50 @@ public class GraphScanLogic implements ScanLogic {
     private void scanComponents(Xray xrayClient, DependencyTree artifactsToScan, String project) throws IOException {
         GraphResponse scanResults = null;
         try {
-            scanResults = xrayClient.graph().graph(artifactsToScan, project);
+            if (project != null && !project.isEmpty()) {
+                scanResults = xrayClient.graph().graph(artifactsToScan, project);
+                String packageType = scanResults.getPackageType();
+                // Add scan results to cache
+                // with context, expect violations.
+                if (scanResults.getViolations() != null) {
+                    scanResults.getViolations().stream()
+                            .filter(Objects::nonNull)
+                            .filter(violation -> violation.getComponents() != null)
+                            .forEach(violation -> scanCache.add(violation, packageType));
+                }
+                // Add violated licenses
+                if (scanResults.getLicenses() != null) {
+                    scanResults.getLicenses().stream()
+                            .filter(Objects::nonNull)
+                            .filter(license -> license.getComponents() != null)
+                            .forEach(license -> scanCache.add(license, packageType, true));
+                }
+
+
+            } else {
+                scanResults = xrayClient.graph().graph(artifactsToScan);
+                String packageType = scanResults.getPackageType();
+                // Without context, expect vulnerabilities.
+                // Add scan results to cache
+                if (scanResults.getVulnerabilities() != null) {
+                    scanResults.getVulnerabilities().stream()
+                            .filter(Objects::nonNull)
+                            .filter(vulnerability -> vulnerability.getComponents() != null)
+                            .forEach(vulnerability -> scanCache.add(vulnerability, packageType));
+                }
+
+                if (scanResults.getLicenses() != null) {
+                    scanResults.getLicenses().stream()
+                            .filter(Objects::nonNull)
+                            .filter(license -> license.getComponents() != null)
+                            .forEach(license -> scanCache.add(license, packageType, true));
+                }
+
+            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        // Add scan results to cache
-//        scanResults.getViolations().stream()
-//                .filter(Objects::nonNull)
-//                .filter(summaryArtifact -> summaryArtifact.getSummary() != null)
-//                .forEach(scanCache::add);
+
     }
 }
