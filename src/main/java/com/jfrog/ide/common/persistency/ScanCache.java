@@ -38,21 +38,21 @@ public abstract class ScanCache {
     }
 
     public void add(Violation violation, String packageType) {
-        addComponents(violation.getComponents(),violation.getViolationType(),Severity.valueOf(violation.getSeverity())
-                ,violation.getSummary(),packageType);
+        addComponents(violation.getComponents(), violation.getViolationType(), Severity.valueOf(violation.getSeverity())
+                , violation.getSummary(), packageType);
     }
 
     public void add(Vulnerability vulnerability, String packageType) {
-        addComponents(vulnerability.getComponents(),"vulnerability",
+        addComponents(vulnerability.getComponents(), "vulnerability",
                 Severity.valueOf(vulnerability.getSeverity()), vulnerability.getSummary(), packageType);
 
     }
 
     public void add(License license, String packageType, boolean violation) {
         {
-            for (Map.Entry<String, ? extends Component> entry :license.getComponents().entrySet()) {
+            for (Map.Entry<String, ? extends Component> entry : license.getComponents().entrySet()) {
                 String id = entry.getKey();
-                id = id.substring(id.indexOf("://")+3);
+                id = id.substring(id.indexOf("://") + 3);
                 Component component = entry.getValue();
                 org.jfrog.build.extractor.scan.License issue = new org.jfrog.build.extractor.scan.License(new ArrayList<>(),
                         license.getName(), license.getKey(), component.getFixedVersions(), violation);
@@ -66,8 +66,10 @@ public abstract class ScanCache {
                     continue;
                 }
                 // If not exist, creates a new data object.
-                GeneralInfo info = new GeneralInfo(id,"", component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-                Artifact artifact = new Artifact(info, new HashSet<>(), new HashSet<org.jfrog.build.extractor.scan.License>(){{ add(issue);}});
+                GeneralInfo info = new GeneralInfo(id, "", component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
+                Artifact artifact = new Artifact(info, new HashSet<>(), new HashSet<org.jfrog.build.extractor.scan.License>() {{
+                    add(issue);
+                }});
                 this.add(artifact);
             }
         }
@@ -90,10 +92,10 @@ public abstract class ScanCache {
         this.scanCacheMap = scanCacheMap;
     }
 
-    private void addComponents(Map<String, ? extends Component> components,String issueType,Severity severity, String summary, String packageType){
-        for (Map.Entry<String, ? extends Component> entry :components.entrySet()) {
+    private void addComponents(Map<String, ? extends Component> components, String issueType, Severity severity, String summary, String packageType) {
+        for (Map.Entry<String, ? extends Component> entry : components.entrySet()) {
             String id = entry.getKey();
-            id = id.substring(id.indexOf("://")+3);
+            id = id.substring(id.indexOf("://") + 3);
             Component component = entry.getValue();
             Issue issue = new Issue("", "", issueType, "", severity, summary, component.getFixedVersions());
 
@@ -105,8 +107,10 @@ public abstract class ScanCache {
                 continue;
             }
             // If not exist, creates a new data object.
-            GeneralInfo info = new GeneralInfo(id,"", component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-            Artifact artifact = new Artifact(info, new HashSet<Issue>() {{ add(issue);}}, new HashSet<>());
+            GeneralInfo info = new GeneralInfo(id, "", component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
+            Artifact artifact = new Artifact(info, new HashSet<Issue>() {{
+                add(issue);
+            }}, new HashSet<>());
             this.add(artifact);
         }
     }

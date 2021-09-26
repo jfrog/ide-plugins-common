@@ -5,6 +5,7 @@ import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.services.graph.GraphResponse;
+import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,6 +14,7 @@ import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
@@ -37,7 +39,8 @@ public class GraphScanLogic implements ScanLogic {
         // Xray's graph scan API does not support progress indication at this moment.
         indicator.setIndeterminate(true);
         scanResults.setPrefix(prefix.toString());
-        if (scanResults.getChildren().isEmpty()) {
+        DependencyTree nodesToScan = reduceComponents(scanResults, quickScan);
+        if (nodesToScan.getChildren().isEmpty()) {
             log.debug("No components found to scan. '");
             // No components found to scan
             return false;
@@ -53,7 +56,7 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            scanComponents(xrayClient, scanResults, server.getProject());
+            scanComponents(xrayClient, nodesToScan, server.getProject());
 
             indicator.setFraction(1);
             log.debug("Saving scan cache...");
@@ -64,6 +67,28 @@ public class GraphScanLogic implements ScanLogic {
             return false;
         }
         return true;
+    }
+
+    /**
+     * reduce candidates for Xray scan if found in cache.
+     *
+     * @param root      - In - The DependencyTree root node.
+     * @param quickScan - True if this is a quick scan. In slow scans we'll scan all components.
+     * @return a graph of non cached component for Xray scan.
+     */
+    public DependencyTree reduceComponents(DependencyTree root, boolean quickScan) {
+        if (!quickScan) {
+            return root;
+        }
+        DependencyTree reducedTree = (DependencyTree) root.clone();
+        for (DependencyTree child : root.getChildren()) {
+            String componentId = child.toString();
+            if (!scanCache.contains(componentId)) {
+                DependencyTree childCopy = (DependencyTree) child.clone();
+                reducedTree.add(childCopy);
+            }
+        }
+        return reducedTree;
     }
 
     @Override
@@ -136,6 +161,13 @@ public class GraphScanLogic implements ScanLogic {
                             .forEach(license -> scanCache.add(license, packageType, true));
                 }
 
+            }
+
+            // Add to cache non-vulnerable direct dependencies to avoid unnecessary future scans.
+            for(DependencyTree child:artifactsToScan.getChildren()){
+                if(!scanCache.contains(child.getComponentId())) {
+                    scanCache.add(new Artifact(child.getGeneralInfo(), new HashSet<>(), new HashSet<>()));
+                }
             }
 
         } catch (InterruptedException e) {
