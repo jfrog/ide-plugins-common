@@ -52,6 +52,7 @@ public abstract class ScanCache {
         {
             for (Map.Entry<String, ? extends Component> entry :license.getComponents().entrySet()) {
                 String id = entry.getKey();
+                id = id.substring(id.indexOf("://")+3);
                 Component component = entry.getValue();
                 org.jfrog.build.extractor.scan.License issue = new org.jfrog.build.extractor.scan.License(new ArrayList<>(),
                         license.getName(), license.getKey(), component.getFixedVersions(), violation);
@@ -92,6 +93,7 @@ public abstract class ScanCache {
     private void addComponents(Map<String, ? extends Component> components,String issueType,Severity severity, String summary, String packageType){
         for (Map.Entry<String, ? extends Component> entry :components.entrySet()) {
             String id = entry.getKey();
+            id = id.substring(id.indexOf("://")+3);
             Component component = entry.getValue();
             Issue issue = new Issue("", "", issueType, "", severity, summary, component.getFixedVersions());
 
