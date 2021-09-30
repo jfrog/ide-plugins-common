@@ -1,0 +1,18 @@
+JFrog
+
+    THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+    Do Not Translate or Localize
+
+    This project incorporates various components from those projects listed below. JFrog is using such components under the following original copyright notices and the licenses 
+
+    1.  FasterXML/jackson-core (https://github.com/FasterXML/jackson-core) - Licensed under Apache License 2.0 (https://github.com/FasterXML/jackson-core/blob/master/LICENSE)
+    2.  apache/commons-lang (https://github.com/apache/commons-lang) - Licensed under Apache License 2.0 (https://github.com/apache/commons-lang/blob/master/LICENSE.txt)
+    3.  apache/commons-collections4 (https://github.com/apache/commons-collections) - Licensed under Apache License 2.0 (https://github.com/apache/commons-collections/blob/master/LICENSE.txt)
+    4.  apache/commons-io (https://github.com/apache/commons-io) - Licensed under Apache License 2.0 (https://github.com/apache/commons-io/blob/master/LICENSE.txt)
+    5.  apache/httpcomponents-client (https://github.com/apache/httpcomponents-client) - Licensed under Apache License 2.0 (https://github.com/apache/httpcomponents-client/blob/master/LICENSE.txt)
+    6.  apache/httpcomponents-core (https://github.com/apache/httpcomponents-core) - Licensed under Apache License 2.0 (https://github.com/apache/httpcomponents-core/blob/master/LICENSE.txt)
+    7.  google/guava (https://github.com/google/guava) - Licensed under Apache License 2.0 (https://github.com/google/guava/blob/master/COPYING)
+    8.  projectlombok/lombok (https://github.com/projectlombok/lombok) - Copyright (C) 2009-2021 The Project Lombok Authors; Licensed under MIT License (https://github.com/projectlombok/lombok/blob/master/LICENSE)
+    9.  cbeust/testng (https://github.com/cbeust/testng) - Licensed under Apache License 2.0 (https://github.com/cbeust/testng/blob/master/LICENSE.txt)
+    10. stretchr/testify (https://github.com/stretchr/testify) - Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors; Licensed under MIT License (https://github.com/stretchr/testify/blob/master/LICENSE)
+    11. golang.org/x/mod (https://cs.opensource.google/go/x/mod) - Copyright (c) 2009 The Go Authors. All rights reserved; Licensed under The 3-Clause BSD License (https://cs.opensource.google/go/x/mod/+/master:LICENSE)

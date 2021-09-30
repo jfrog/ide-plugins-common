@@ -33,3 +33,6 @@ jobs:
       - name: Tests on Windows
         run: ./gradlew.bat clean test
         if: runner.os == 'Windows'
+      - name: Test gomod-abs
+        working-directory: ./src/main/resources/gomod-abs
+        run: go test ./... -v

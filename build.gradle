@@ -5,10 +5,8 @@ plugins {
 
 group 'com.jfrog.ide'
 
-compileJava {
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-}
+sourceCompatibility = '1.11'
+targetCompatibility = '1.11'
 
 repositories {
     mavenLocal()
@@ -18,7 +16,7 @@ repositories {
     }
 }
 
-def buildInfoVersion = '2.29.0'
+def buildInfoVersion = '2.30.x-SNAPSHOT'
 dependencies {
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
