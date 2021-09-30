@@ -58,6 +58,10 @@ public abstract class ScanCache {
             if (this.contains(id)) {
                 Artifact artifact = get(id);
                 Set<org.jfrog.build.extractor.scan.License> licenses = artifact.getLicenses();
+                // We should override existing info, in case of forced scan.
+                if (licenses.contains(issue)){
+                    licenses.remove(issue);
+                }
                 licenses.add(issue);
                 artifact.setLicenses(licenses);
 
@@ -99,6 +103,10 @@ public abstract class ScanCache {
             if (this.contains(id)) {
                 Artifact artifact = get(id);
                 Set<Issue> issues = artifact.getIssues();
+                // We should override existing info, in case of forced scan.
+                if (issues.contains(issue)){
+                    issues.remove(issue);
+                }
                 issues.add(issue);
                 artifact.setIssues(issues);
                 continue;
