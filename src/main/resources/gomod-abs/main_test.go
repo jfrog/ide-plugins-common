@@ -21,10 +21,10 @@ func TestAbsolutizeUnix(t *testing.T) {
 	// Check results
 	goMod, err := parseGoMod(args.goModPath)
 	assert.NoError(t, err)
-	assert.Equal(t, goMod.Replace[0].New, module.Version{Path: "/test/dummy/a", Version: ""})
-	assert.Equal(t, goMod.Replace[0].New, module.Version{Path: "/test/dummy/a", Version: ""})
-	assert.Equal(t, goMod.Replace[2].New, module.Version{Path: "c", Version: "v1.0.1"})
-	assert.Equal(t, goMod.Replace[3].New, module.Version{Path: "/some/absolute/path/unix", Version: ""})
+	assert.Equal(t, module.Version{Path: "/test/dummy/a", Version: ""}, goMod.Replace[0].New)
+	assert.Equal(t, module.Version{Path: "/test/dummy/a", Version: ""}, goMod.Replace[0].New)
+	assert.Equal(t, module.Version{Path: "c", Version: "v1.0.1"}, goMod.Replace[2].New)
+	assert.Equal(t, module.Version{Path: "/some/absolute/path/unix", Version: ""}, goMod.Replace[3].New)
 }
 
 func TestAbsolutizeWin(t *testing.T) {
@@ -38,10 +38,10 @@ func TestAbsolutizeWin(t *testing.T) {
 	// Check results
 	goMod, err := parseGoMod(args.goModPath)
 	assert.NoError(t, err)
-	assert.Equal(t, goMod.Replace[0].New, module.Version{Path: "C:\\test\\dummy\\a", Version: ""})
-	assert.Equal(t, goMod.Replace[0].New, module.Version{Path: "C:\\test\\dummy\\a", Version: ""})
-	assert.Equal(t, goMod.Replace[2].New, module.Version{Path: "C", Version: "v1.0.1"})
-	assert.Equal(t, goMod.Replace[3].New, module.Version{Path: "C:\\some\\absolute\\path\\", Version: ""})
+	assert.Equal(t, module.Version{Path: "C:\\test\\dummy\\a", Version: ""}, goMod.Replace[0].New)
+	assert.Equal(t, module.Version{Path: "C:\\test\\dummy\\a", Version: ""}, goMod.Replace[0].New)
+	assert.Equal(t, module.Version{Path: "c", Version: "v1.0.1"}, goMod.Replace[2].New)
+	assert.Equal(t, module.Version{Path: "C:\\some\\absolute\\path\\", Version: ""}, goMod.Replace[3].New)
 }
 
 func prepareGoMod(t *testing.T, goModDir, workingDir string) *args {
@@ -51,5 +51,5 @@ func prepareGoMod(t *testing.T, goModDir, workingDir string) *args {
 	assert.NoError(t, err)
 	err = ioutil.WriteFile(goModPath.Name(), bytesRead, 0644)
 	assert.NoError(t, err)
-	return &args{goModPath: goModPath.Name(), workingDir: "/test/dummy/abs"}
+	return &args{goModPath: goModPath.Name(), workingDir: workingDir}
 }

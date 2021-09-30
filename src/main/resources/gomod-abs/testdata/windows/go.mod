@@ -15,4 +15,4 @@ replace b/v2 => ..\\b1
 
 replace c => c v1.0.1
 
-replace d => C:\\some\\absolute\\path\\
+replace d => C:\some\absolute\path\
