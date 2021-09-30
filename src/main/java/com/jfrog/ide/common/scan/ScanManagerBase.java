@@ -139,6 +139,7 @@ public abstract class ScanManagerBase {
     public DependencyTree getScanResults() {
         return scanLogic.getScanResults();
     }
+
     public void setScanResults(DependencyTree results) {
          scanLogic.setScanResults(results);
     }

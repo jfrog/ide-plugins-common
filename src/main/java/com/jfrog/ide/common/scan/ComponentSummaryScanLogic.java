@@ -26,23 +26,22 @@ import java.util.concurrent.CancellationException;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 
 /**
- * Bulk ScanLogic implementation.
- * represents the behavior of the scan prior the new Xray's
- * scan graph API.
- *
+ * This class includes the implementation of the Component Summary Scan Logic, which is used with oder Xray versions.
+ * The logic uses the component/summary REST API of Xray,
+ * which doesn't take into consideration the policy configured in Xray.
  * @author tala
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 @Getter
 @Setter
-public class BulkScanLogic implements ScanLogic {
+public class ComponentSummaryScanLogic implements ScanLogic {
     public static final String MINIMAL_XRAY_VERSION_SUPPORTED = "2.5.0";
     private static final int NUMBER_OF_ARTIFACTS_BULK_SCAN = 100;
     private ScanCache scanCache;
     private Log log;
     private DependencyTree scanResults;
 
-    public BulkScanLogic(ScanCache scanCache, Log log) {
+    public ComponentSummaryScanLogic(ScanCache scanCache, Log log) {
         this.scanCache = scanCache;
         this.log = log;
     }
@@ -67,6 +66,7 @@ public class BulkScanLogic implements ScanLogic {
     /**
      * Scan and cache components.
      *
+     * @param server    - JFrog platform server configuration.
      * @param indicator - Progress bar.
      * @param quickScan - Quick or full scan.
      * @return true if the scan completed successfully, false otherwise.
@@ -84,7 +84,7 @@ public class BulkScanLogic implements ScanLogic {
         try {
             // Create Xray client and check version
             Xray xrayClient = createXrayClientBuilder(server, log).build();
-            if (!isXrayVersionSupported(xrayClient)) {
+            if (!isSupportedInXrayVersion(xrayClient)) {
                 return false;
             }
 
@@ -142,9 +142,9 @@ public class BulkScanLogic implements ScanLogic {
      * @param xrayClient - The xray client.
      * @return true iff xray version is sufficient.
      */
-    private boolean isXrayVersionSupported(Xray xrayClient) {
+    private boolean isSupportedInXrayVersion(Xray xrayClient) {
         try {
-            if (isXrayVersionSupported(xrayClient.system().version())) {
+            if (isSupportedInXrayVersion(xrayClient.system().version())) {
                 return true;
             }
             log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + MINIMAL_XRAY_VERSION_SUPPORTED + " and above.");
@@ -154,8 +154,7 @@ public class BulkScanLogic implements ScanLogic {
         return false;
     }
 
-    public static boolean isXrayVersionSupported(Version version) {
+    public static boolean isSupportedInXrayVersion(Version version) {
         return version.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED);
     }
-
 }

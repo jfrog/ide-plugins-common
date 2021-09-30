@@ -11,11 +11,12 @@ public interface ScanLogic {
     /**
      * Scan and cache components.
      *
+     * @param server    - JFrog platform server configuration.
      * @param indicator - Progress bar.
      * @param quickScan - Quick or full scan.
      * @return true if the scan completed successfully, false otherwise.
      */
-    boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException ;
+    boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException;
 
     /**
      * @param componentId artifact component ID.
