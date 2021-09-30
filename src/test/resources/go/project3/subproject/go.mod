@@ -1,4 +1,4 @@
-module project2
+module github.com/test/subproject
 
 require github.com/jfrog/gocmd v0.1.12
 
