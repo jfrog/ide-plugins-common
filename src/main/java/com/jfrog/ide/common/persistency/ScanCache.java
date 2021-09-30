@@ -13,7 +13,6 @@ import org.jfrog.build.extractor.scan.Severity;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Cache for Xray scan.
@@ -59,9 +58,7 @@ public abstract class ScanCache {
                 Artifact artifact = get(id);
                 Set<org.jfrog.build.extractor.scan.License> licenses = artifact.getLicenses();
                 // We should override existing info, in case of forced scan.
-                if (licenses.contains(issue)){
-                    licenses.remove(issue);
-                }
+                licenses.remove(issue);
                 licenses.add(issue);
                 artifact.setLicenses(licenses);
 
@@ -104,9 +101,7 @@ public abstract class ScanCache {
                 Artifact artifact = get(id);
                 Set<Issue> issues = artifact.getIssues();
                 // We should override existing info, in case of forced scan.
-                if (issues.contains(issue)){
-                    issues.remove(issue);
-                }
+                issues.remove(issue);
                 issues.add(issue);
                 artifact.setIssues(issues);
                 continue;

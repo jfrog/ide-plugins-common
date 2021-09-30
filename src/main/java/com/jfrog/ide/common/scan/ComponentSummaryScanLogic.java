@@ -8,7 +8,6 @@ import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.ComponentsFactory;
 import com.jfrog.xray.client.services.summary.ComponentDetail;
-import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.summary.SummaryResponse;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
@@ -23,10 +22,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
-import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 
 /**
- * This class includes the implementation of the Component Summary Scan Logic, which is used with oder Xray versions.
+ * This class includes the implementation of the Component Summary Scan Logic, which is used with older Xray versions.
  * The logic uses the component/summary REST API of Xray,
  * which doesn't take into consideration the policy configured in Xray.
  * @author tala
