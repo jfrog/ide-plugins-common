@@ -15,6 +15,8 @@ import java.util.Map;
 /**
  * This FileVisitor copies all go.mod and *.go files from the input source directory to the input target directory.
  * For all go.mod files, replaces relative paths to absolute.
+ * That functionality is needed, so that we can calculate the go dependencies tree on a copy of the original code project,
+ * rather than on the original one, in order to avoid changing it.
  *
  * @author yahavi
  **/
