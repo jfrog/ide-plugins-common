@@ -5,7 +5,6 @@ import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.services.graph.GraphResponse;
-import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
@@ -50,7 +49,7 @@ public class GraphScanLogic implements ScanLogic {
      * @return true if the scan completed successfully, false otherwise.
      */
     @Override
-    public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException {
+    public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
         scanResults.setPrefix(prefix.toString());
@@ -75,7 +74,7 @@ public class GraphScanLogic implements ScanLogic {
             log.debug("Saving scan cache...");
             scanCache.write();
             log.debug("Scan cache saved successfully.");
-        } catch (CancellationException e) {
+        } catch (CancellationException  e) {
             log.info("Xray scan was canceled.");
             return false;
         }
@@ -132,8 +131,7 @@ public class GraphScanLogic implements ScanLogic {
      * @param project         - The JFrog platform project-key parameter to be sent to Xray as context.
      * @throws IOException in case of connection issues.
      */
-    private void scanComponents(Xray xrayClient, DependencyTree artifactsToScan, String project) throws IOException {
-        try {
+    private void scanComponents(Xray xrayClient, DependencyTree artifactsToScan, String project) throws IOException, InterruptedException {
             if (project != null && !project.isEmpty()) {
                 scanComponentsWithContext(xrayClient, artifactsToScan, project);
             } else {
@@ -146,9 +144,6 @@ public class GraphScanLogic implements ScanLogic {
                     scanCache.add(new Artifact(new GeneralInfo(child.toString(),"","",""), new HashSet<>(), new HashSet<>()));
                 }
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
