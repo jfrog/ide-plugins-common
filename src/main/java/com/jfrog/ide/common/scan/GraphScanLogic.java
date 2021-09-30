@@ -24,6 +24,7 @@ import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBui
  * This class includes the implementation of the Graph Scan Logic, which is used with Xray 3.29.0 and above.
  * The logic uses the graph scan REST API of Xray,
  * which take into consideration the policy configured in Xray according to given context.
+ *
  * @author tala
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
@@ -68,13 +69,13 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            scanComponents(xrayClient, nodesToScan, server.getProject());
+            scanComponents(xrayClient, nodesToScan, server.getProject(), checkCanceled);
 
             indicator.setFraction(1);
             log.debug("Saving scan cache...");
             scanCache.write();
             log.debug("Scan cache saved successfully.");
-        } catch (CancellationException  e) {
+        } catch (CancellationException e) {
             log.info("Xray scan was canceled.");
             return false;
         }
@@ -131,19 +132,19 @@ public class GraphScanLogic implements ScanLogic {
      * @param project         - The JFrog platform project-key parameter to be sent to Xray as context.
      * @throws IOException in case of connection issues.
      */
-    private void scanComponents(Xray xrayClient, DependencyTree artifactsToScan, String project) throws IOException, InterruptedException {
-            if (project != null && !project.isEmpty()) {
-                scanComponentsWithContext(xrayClient, artifactsToScan, project);
-            } else {
-                scanComponentsWithoutContext(xrayClient, artifactsToScan);
+    private void scanComponents(Xray xrayClient, DependencyTree artifactsToScan, String project, Runnable checkCanceled) throws IOException, InterruptedException {
+        if (project != null && !project.isEmpty()) {
+            scanComponentsWithContext(xrayClient, artifactsToScan, project, checkCanceled);
+        } else {
+            scanComponentsWithoutContext(xrayClient, artifactsToScan, checkCanceled);
+        }
+        // Add to cache non-vulnerable direct dependencies in order to mark them as scanned successfully.
+        // This will allow us to avoid unnecessary future scans.
+        for (DependencyTree child : artifactsToScan.getChildren()) {
+            if (!scanCache.contains(child.getComponentId())) {
+                scanCache.add(new Artifact(new GeneralInfo(child.toString(), "", "", ""), new HashSet<>(), new HashSet<>()));
             }
-            // Add to cache non-vulnerable direct dependencies in order to mark them as scanned successfully.
-            // This will allow us to avoid unnecessary future scans.
-            for (DependencyTree child : artifactsToScan.getChildren()) {
-                if (!scanCache.contains(child.getComponentId())) {
-                    scanCache.add(new Artifact(new GeneralInfo(child.toString(),"","",""), new HashSet<>(), new HashSet<>()));
-                }
-            }
+        }
     }
 
     /**
@@ -156,8 +157,8 @@ public class GraphScanLogic implements ScanLogic {
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private void scanComponentsWithoutContext(Xray xrayClient, DependencyTree artifactsToScan) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.graph().graph(artifactsToScan);
+    private void scanComponentsWithoutContext(Xray xrayClient, DependencyTree artifactsToScan, Runnable checkCanceled) throws IOException, InterruptedException {
+        GraphResponse scanResults = xrayClient.graph().graph(artifactsToScan, checkCanceled);
         String packageType = scanResults.getPackageType();
         // Without context, expect vulnerabilities.
         // Add scan results to cache
@@ -188,8 +189,8 @@ public class GraphScanLogic implements ScanLogic {
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private void scanComponentsWithContext(Xray xrayClient, DependencyTree artifactsToScan, String project) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.graph().graph(artifactsToScan, project);
+    private void scanComponentsWithContext(Xray xrayClient, DependencyTree artifactsToScan, String project, Runnable checkCanceled) throws IOException, InterruptedException {
+        GraphResponse scanResults = xrayClient.graph().graph(artifactsToScan, checkCanceled, project);
         String packageType = scanResults.getPackageType();
         // Add scan results to cache
         // with context, expect violations.

@@ -8,6 +8,7 @@ import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.impl.ComponentsFactory;
 import com.jfrog.xray.client.services.summary.ComponentDetail;
+import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.summary.SummaryResponse;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
@@ -21,6 +22,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
+
+import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 
 
 /**
