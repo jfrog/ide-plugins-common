@@ -12,6 +12,7 @@ import lombok.Setter;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
+import org.jfrog.build.extractor.scan.GeneralInfo;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -53,7 +54,7 @@ public class GraphScanLogic implements ScanLogic {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
         scanResults.setPrefix(prefix.toString());
-        DependencyTree nodesToScan = !quickScan ? reduceComponents(scanResults) : scanResults;
+        DependencyTree nodesToScan = quickScan ? reduceComponents(scanResults) : scanResults;
         if (nodesToScan.getChildren().isEmpty()) {
             log.debug("No components found to scan. '");
             // No components found to scan
@@ -142,7 +143,7 @@ public class GraphScanLogic implements ScanLogic {
             // This will allow us to avoid unnecessary future scans.
             for (DependencyTree child : artifactsToScan.getChildren()) {
                 if (!scanCache.contains(child.getComponentId())) {
-                    scanCache.add(new Artifact(child.getGeneralInfo(), new HashSet<>(), new HashSet<>()));
+                    scanCache.add(new Artifact(new GeneralInfo(child.toString(),"","",""), new HashSet<>(), new HashSet<>()));
                 }
             }
         } catch (InterruptedException e) {
