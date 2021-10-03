@@ -95,7 +95,14 @@ public class GraphScanLogic implements ScanLogic {
         DependencyTree reducedTree = (DependencyTree) root.clone();
         for (DependencyTree child : root.getChildren()) {
             String componentId = child.toString();
-            if (!scanCache.contains(componentId)) {
+            // In case the node is not direct dependency (metadata node) we should
+            // check if one of his children has a new (non cached) direct dependency.
+            if (child.isMetadata()) {
+                DependencyTree subTree = reduceComponents(child);
+                if (!subTree.isLeaf()) {
+                    reducedTree.add(subTree);
+                }
+            } else if (!scanCache.contains(componentId)) {
                 DependencyTree childCopy = (DependencyTree) child.clone();
                 reducedTree.add(childCopy);
             }
@@ -140,8 +147,14 @@ public class GraphScanLogic implements ScanLogic {
         }
         // Add to cache non-vulnerable direct dependencies in order to mark them as scanned successfully.
         // This will allow us to avoid unnecessary future scans.
+        cacheMissingDirectDependencies(artifactsToScan);
+    }
+
+    private void cacheMissingDirectDependencies(DependencyTree artifactsToScan) {
         for (DependencyTree child : artifactsToScan.getChildren()) {
-            if (!scanCache.contains(child.getComponentId())) {
+            if (child.isMetadata()) {
+                cacheMissingDirectDependencies(child);
+            } else if (!scanCache.contains(child.getComponentId())) {
                 scanCache.add(new Artifact(new GeneralInfo(child.toString(), "", "", ""), new HashSet<>(), new HashSet<>()));
             }
         }

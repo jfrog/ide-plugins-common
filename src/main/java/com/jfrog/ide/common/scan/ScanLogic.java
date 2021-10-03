@@ -2,6 +2,7 @@ package com.jfrog.ide.common.scan;
 
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
+import com.jfrog.ide.common.persistency.ScanCache;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
 
@@ -30,5 +31,7 @@ public interface ScanLogic {
     DependencyTree getScanResults();
 
     void setScanResults(DependencyTree results);
+
+    void setScanCache(ScanCache cache);
 }
 
