@@ -37,10 +37,6 @@ public class XrayConnectionUtils {
         }
     }
 
-    public static boolean isXrayVersionSupported(Version version) {
-        return version.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED);
-    }
-
     /**
      * Send REST to Xray: summary/component with "testComponent". If exception thrown, return the reason.
      *
@@ -75,5 +71,9 @@ public class XrayConnectionUtils {
                 .setConnectionRetries(serverConfig.getConnectionRetries())
                 .setTimeout(serverConfig.getConnectionTimeout())
                 .setLog(logger);
+    }
+
+    public static boolean isSupportedInXrayVersion(Version version) {
+        return version.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED);
     }
 }

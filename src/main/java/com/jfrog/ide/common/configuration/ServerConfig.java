@@ -22,6 +22,8 @@ public interface ServerConfig {
 
     String getPassword();
 
+    String getProject();
+
     /**
      * Return true to disable SSL certificates verification.
      *

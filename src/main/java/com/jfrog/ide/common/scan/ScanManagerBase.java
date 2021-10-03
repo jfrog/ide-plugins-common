@@ -1,18 +1,8 @@
 package com.jfrog.ide.common.scan;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
-import com.jfrog.ide.common.persistency.ScanCache;
-import com.jfrog.ide.common.persistency.XrayScanCache;
-import com.jfrog.ide.common.utils.Constants;
-import com.jfrog.ide.common.utils.XrayConnectionUtils;
-import com.jfrog.xray.client.Xray;
-import com.jfrog.xray.client.impl.ComponentsFactory;
-import com.jfrog.xray.client.services.summary.ComponentDetail;
-import com.jfrog.xray.client.services.summary.Components;
-import com.jfrog.xray.client.services.summary.SummaryResponse;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
@@ -22,10 +12,7 @@ import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Enumeration;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 
@@ -40,27 +27,24 @@ import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBui
 @Getter
 @Setter
 public abstract class ScanManagerBase {
-    private final static int NUMBER_OF_ARTIFACTS_BULK_SCAN = 100;
 
     private ServerConfig serverConfig;
-    private DependencyTree scanResults;
     private ComponentPrefix prefix;
-    private ScanCache scanCache;
     private String projectName;
     private Log log;
+    private ScanLogic scanLogic;
 
     /**
      * Construct a scan manager for IDE project.
      *
-     * @param cachePath    - Scan cache path.
+     * @param scanLogic    - Scan logic implementation.
      * @param projectName  - The project name.
      * @param log          - The logger.
      * @param serverConfig - Xray server config.
      * @param prefix       - Components prefix for xray scan, e.g. gav:// or npm://.
-     * @throws IOException in case of an error in the scan cache initialization.
      */
-    public ScanManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig, ComponentPrefix prefix) throws IOException {
-        this.scanCache = new XrayScanCache(projectName, cachePath, log);
+    public ScanManagerBase(ScanLogic scanLogic, String projectName, Log log, ServerConfig serverConfig, ComponentPrefix prefix) {
+        this.scanLogic = scanLogic;
         this.serverConfig = serverConfig;
         this.projectName = projectName;
         this.prefix = prefix;
@@ -118,24 +102,7 @@ public abstract class ScanManagerBase {
      * @return {@link Artifact} according to the component ID.
      */
     protected Artifact getArtifactSummary(String componentId) {
-        return scanCache.get(componentId);
-    }
-
-    /**
-     * Recursively, extract all candidates for Xray scan.
-     *
-     * @param node       - In - The DependencyTree root node.
-     * @param components - Out - Components for Xray scan.
-     * @param quickScan  - True if this is a quick scan. In slow scans we'll scan all components.
-     */
-    private void extractComponents(DependencyTree node, Components components, boolean quickScan) {
-        for (DependencyTree child : node.getChildren()) {
-            String componentId = child.toString();
-            if (!quickScan || !scanCache.contains(componentId)) {
-                components.addComponent(prefix.getPrefix() + componentId, "");
-            }
-            extractComponents(child, components, quickScan);
-        }
+        return scanLogic.getArtifactSummary(componentId);
     }
 
     /**
@@ -144,47 +111,15 @@ public abstract class ScanManagerBase {
      * @param indicator - Progress bar.
      * @param quickScan - Quick or full scan.
      */
-    protected void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) throws IOException {
-        // Collect components to scan
-        Components componentsToScan = ComponentsFactory.create();
-        extractComponents(scanResults, componentsToScan, quickScan);
-        if (componentsToScan.getComponentDetails().isEmpty()) {
-            log.debug("No components found to scan for '" + projectName + "'.");
-            // No components found to scan
-            return;
-        }
-
-        try {
-            // Create Xray client and check version
-            Xray xrayClient = createXrayClientBuilder(serverConfig, getLog()).build();
-            if (!isXrayVersionSupported(xrayClient)) {
-                return;
-            }
-
-            // Start scan
-            int currentIndex = 0;
-            List<ComponentDetail> componentsList = Lists.newArrayList(componentsToScan.getComponentDetails());
-            log.debug("Starting to scan " + componentsList.size() + " components.");
-            while (currentIndex + NUMBER_OF_ARTIFACTS_BULK_SCAN < componentsList.size()) {
-                checkCanceled();
-                List<ComponentDetail> partialComponentsDetails = componentsList.subList(currentIndex, currentIndex + NUMBER_OF_ARTIFACTS_BULK_SCAN);
-                Components partialComponents = ComponentsFactory.create(Sets.newHashSet(partialComponentsDetails));
-                scanComponents(xrayClient, partialComponents);
-                indicator.setFraction(((double) currentIndex + 1) / (double) componentsList.size());
-                currentIndex += NUMBER_OF_ARTIFACTS_BULK_SCAN;
-            }
-
-            List<ComponentDetail> partialComponentsDetails = componentsList.subList(currentIndex, componentsList.size());
-            Components partialComponents = ComponentsFactory.create(Sets.newHashSet(partialComponentsDetails));
-            scanComponents(xrayClient, partialComponents);
-            indicator.setFraction(1);
-            log.debug("Saving scan cache...");
-            scanCache.write();
-            log.debug("Scan cache saved successfully.");
-        } catch (CancellationException e) {
-            log.info("Xray scan was canceled.");
+    public void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) throws IOException, InterruptedException {
+        log.debug("Start scan for '" + projectName + "'.");
+        if (scanLogic.scanAndCacheArtifacts(serverConfig, indicator, quickScan, prefix, () -> this.checkCanceled())) {
+            log.debug("Scan for '" + projectName + "' finished successfully.");
+        } else {
+            log.debug("Wasn't able to scan '" + projectName + "'.");
         }
     }
+
 
     /**
      * Add Xray scan results from cache to the dependency tree.
@@ -201,38 +136,12 @@ public abstract class ScanManagerBase {
         }
     }
 
-    /**
-     * Xray scan a bulk of components.
-     *
-     * @param xrayClient      - The Xray client.
-     * @param artifactsToScan - The bulk of components to scan.
-     * @throws IOException in case of connection issues.
-     */
-    private void scanComponents(Xray xrayClient, Components artifactsToScan) throws IOException {
-        SummaryResponse scanResults = xrayClient.summary().component(artifactsToScan);
-        // Add scan results to cache
-        scanResults.getArtifacts().stream()
-                .filter(Objects::nonNull)
-                .filter(summaryArtifact -> summaryArtifact.getGeneral() != null)
-                .forEach(scanCache::add);
+    public DependencyTree getScanResults() {
+        return scanLogic.getScanResults();
     }
 
-    /**
-     * Return true iff xray version is sufficient.
-     *
-     * @param xrayClient - The xray client.
-     * @return true iff xray version is sufficient.
-     */
-    private boolean isXrayVersionSupported(Xray xrayClient) {
-        try {
-            if (XrayConnectionUtils.isXrayVersionSupported(xrayClient.system().version())) {
-                return true;
-            }
-            log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + Constants.MINIMAL_XRAY_VERSION_SUPPORTED + " and above.");
-        } catch (IOException e) {
-            log.error("JFrog Xray Scan failed. Please check your credentials.", e);
-        }
-        return false;
+    public void setScanResults(DependencyTree results) {
+         scanLogic.setScanResults(results);
     }
 
     /**
