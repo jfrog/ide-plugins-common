@@ -115,6 +115,7 @@ public class GoTreeBuilder {
         // Create root node.
         String rootPackageName = goDriver.getModuleName();
         DependencyTree rootNode = new DependencyTree(rootPackageName);
+        rootNode.setMetadata(true);
 
         // Build dependency tree.
         Map<String, List<String>> allDependencies = new HashMap<>();

@@ -65,11 +65,13 @@ public class GradleTreeBuilder {
      */
     private DependencyTree createDependencyTrees(File[] gradleDependenciesFiles) throws IOException {
         DependencyTree rootNode = new DependencyTree(projectDir.getFileName().toString());
+        rootNode.setMetadata(true);
         rootNode.setGeneralInfo(new GeneralInfo().componentId(projectDir.getFileName().toString()).path(projectDir.toString()));
         for (File projectFile : gradleDependenciesFiles) {
             GradleDependencyNode node = objectMapper.readValue(projectFile, GradleDependencyNode.class);
             GeneralInfo generalInfo = createGeneralInfo(node).path(projectDir.toString());
             DependencyTree projectNode = createNode(generalInfo, node);
+            projectNode.setMetadata(true);
             populateDependencyTree(projectNode, node);
             rootNode.add(projectNode);
         }

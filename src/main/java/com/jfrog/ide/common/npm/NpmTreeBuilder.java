@@ -71,6 +71,7 @@ public class NpmTreeBuilder {
     private DependencyTree buildUnifiedDependencyTree(JsonNode npmLsResults) throws IOException {
         // Parse "npm ls" results on the production scope
         DependencyTree rootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.PRODUCTION, projectDir);
+        rootNode.setMetadata(true);
 
         // Run "npm ls" on the development scope
         npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev"));
