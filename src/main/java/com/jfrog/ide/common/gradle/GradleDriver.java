@@ -37,13 +37,17 @@ public class GradleDriver {
         this.commandExecutor = new CommandExecutor(StringUtils.defaultIfBlank(gradleExe, "gradle"), env);
     }
 
-    @SuppressWarnings("unused")
-    public boolean isGradleInstalled() {
+    /**
+     * Run `gradle --version` command. If an error occurred - print it.
+     *
+     * @throws IOException if any error occurred.
+     */
+    public void verifyGradleInstalled() throws IOException {
         try {
             version(null);
-            return true;
         } catch (IOException | InterruptedException e) {
-            return false;
+            throw new IOException("Could not scan Gradle project dependencies, " +
+                    "because Gradle project was not configured properly or Gradle is not in the system path.", e);
         }
     }
 

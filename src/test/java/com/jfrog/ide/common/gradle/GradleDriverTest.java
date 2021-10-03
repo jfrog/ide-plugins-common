@@ -2,21 +2,16 @@ package com.jfrog.ide.common.gradle;
 
 import org.testng.annotations.Test;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import static org.testng.Assert.assertTrue;
+import java.io.IOException;
 
 /**
  * @author yahavi
  **/
 public class GradleDriverTest {
-    private static final Path GRADLE_WRAPPER_ROOT = Paths.get(".").toAbsolutePath().normalize()
-            .resolve(Paths.get("src", "test", "resources", "gradle", "wrapper"));
 
     @Test
-    public void testIsGradleInstalled() {
+    public void testIsGradleInstalled() throws IOException {
         GradleDriver gradleDriver = new GradleDriver("", null);
-        assertTrue(gradleDriver.isGradleInstalled());
+        gradleDriver.verifyGradleInstalled();
     }
 }
