@@ -2,7 +2,7 @@ package com.jfrog.ide.common.gradle;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandExecutor;
@@ -28,28 +28,26 @@ public class GradleDriver {
     private final CommandExecutor commandExecutor;
 
     /**
-     * Create a Gradle driver. If Gradle wrapper exist, use it. Otherwise use Gradle from Path.
+     * Create a Gradle driver. If the path to Gradle executable exists, use it. Otherwise, use Gradle from system path.
      *
-     * @param workingDirectory - The project working directory
-     * @param env              - Environment variables
+     * @param gradleExe - The Gradle executable
+     * @param env       - Environment variables
      */
-    public GradleDriver(Path workingDirectory, Map<String, String> env) {
-        String wrapperExe = SystemUtils.IS_OS_WINDOWS ? "gradlew.bat" : "gradlew";
-        Path gradleWrapper = workingDirectory.resolve(wrapperExe).toAbsolutePath();
-        if (Files.exists(gradleWrapper)) {
-            this.commandExecutor = new CommandExecutor(gradleWrapper.toString(), env);
-            return;
-        }
-        this.commandExecutor = new CommandExecutor("gradle", env);
+    public GradleDriver(String gradleExe, Map<String, String> env) {
+        this.commandExecutor = new CommandExecutor(StringUtils.defaultIfBlank(gradleExe, "gradle"), env);
     }
 
-    @SuppressWarnings("unused")
-    public boolean isGradleInstalled() {
+    /**
+     * Run `gradle --version` command. If an error occurred - print it.
+     *
+     * @throws IOException if any error occurred.
+     */
+    public void verifyGradleInstalled() throws IOException {
         try {
             version(null);
-            return true;
         } catch (IOException | InterruptedException e) {
-            return false;
+            throw new IOException("Could not scan Gradle project dependencies, " +
+                    "because Gradle project was not configured properly or Gradle is not in the system path.", e);
         }
     }
 
