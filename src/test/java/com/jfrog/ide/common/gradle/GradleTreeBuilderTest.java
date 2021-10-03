@@ -61,6 +61,11 @@ public class GradleTreeBuilderTest {
         assertGeneralInfo(junit.getGeneralInfo(), "junit", "junit", "4.7", "");
     }
 
+    /**
+     * Data provider for projects with a missing dependency. The missing dependency ID is: 'missing:dependency:404'.
+     *
+     * @return 'unresolvedGroovy' and 'unresolvedKotlin'.
+     */
     @DataProvider
     private Object[][] gradleTreeBuilderUnresolvedProvider() {
         return new Object[][]{{"unresolvedGroovy"}, {"unresolvedKotlin"}};
