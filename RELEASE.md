@@ -1,5 +1,12 @@
 # Release Notes
 
+## 1.7.0
+
+- Improve Go scan algorithm
+- Add support for the new Xray graph scan API
+- Provide Gradle executable to Gradle Driver
+- Update to Java 11
+
 ## 1.6.1
 
 - Bugfix: npm without name or version throws NPE
