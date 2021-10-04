@@ -1,7 +1,6 @@
 package com.jfrog.ide.common.go;
 
 import com.google.common.collect.Sets;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
@@ -9,9 +8,7 @@ import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -37,8 +34,7 @@ public class GoTreeBuilderTest {
         }};
 
         try {
-            Path projectDir = createProjectDir("project1", GO_ROOT.resolve("project1").toFile());
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(projectDir, null, log);
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project1"), null, log);
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
@@ -55,8 +51,7 @@ public class GoTreeBuilderTest {
             put("github.com/jfrog/gocmd:0.1.12", 2);
         }};
         try {
-            Path projectDir = createProjectDir("project2", GO_ROOT.resolve("project2").toFile());
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(projectDir, null, log);
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project2"), null, log);
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
@@ -66,6 +61,7 @@ public class GoTreeBuilderTest {
 
     /**
      * The project is with dependencies and go.sum, but contains a relative path in go.mod
+     * The submodule is a subdirectory of the project directory.
      */
     @Test
     public void testCreateDependencyTree3() {
@@ -73,8 +69,25 @@ public class GoTreeBuilderTest {
             put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
         }};
         try {
-            Path projectDir = createProjectDir("project3", GO_ROOT.resolve("project3").toFile());
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(projectDir, null, log);
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project3"), null, log);
+            DependencyTree dt = treeBuilder.buildTree();
+            validateDependencyTreeResults(expected, dt, true);
+        } catch (IOException ex) {
+            fail(ExceptionUtils.getStackTrace(ex));
+        }
+    }
+
+    /**
+     * The project is with dependencies and go.sum, but contains a relative path in go.mod.
+     * The submodule is a sibling of the project directory.
+     */
+    @Test
+    public void testCreateDependencyTree4() {
+        Map<String, Integer> expected = new HashMap<>() {{
+            put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
+        }};
+        try {
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project4"), null, log);
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
@@ -151,11 +164,5 @@ public class GoTreeBuilderTest {
                 assertTrue(current.getScopes().contains(NONE_SCOPE));
             }
         }
-    }
-
-    public static Path createProjectDir(String targetDir, File projectOrigin) throws IOException {
-        File projectDir = Files.createTempDirectory(targetDir).toFile();
-        FileUtils.copyDirectory(projectOrigin, projectDir);
-        return projectDir.toPath();
     }
 }
