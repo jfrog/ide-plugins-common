@@ -28,12 +28,10 @@ public class GoTreeBuilder {
     private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, String> env;
-    private final String excludedPaths;
     private final Path projectDir;
     private final Log logger;
 
-    public GoTreeBuilder(Path projectDir, Map<String, String> env, Log logger, String excludedPaths) {
-        this.excludedPaths = excludedPaths;
+    public GoTreeBuilder(Path projectDir, Map<String, String> env, Log logger) {
         this.projectDir = projectDir;
         this.logger = logger;
         this.env = env;
@@ -69,7 +67,7 @@ public class GoTreeBuilder {
         Path goModAbsDir = null;
         try {
             goModAbsDir = prepareGoModAbs();
-            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(projectDir, targetDir, goModAbsDir, env, logger, excludedPaths);
+            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(projectDir, targetDir, goModAbsDir, env, logger);
             Files.walkFileTree(projectDir, goScanWorkspaceCreator);
         } finally {
             if (goModAbsDir != null) {

@@ -5,7 +5,10 @@ import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.go.GoDriver;
 
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 
@@ -18,14 +21,12 @@ import java.util.Map;
  * @author yahavi
  **/
 public class GoScanWorkspaceCreator implements FileVisitor<Path> {
-    private final PathMatcher exclusions;
     private final GoDriver goDriver;
     private final Path sourceDir;
     private final Path targetDir;
     private final Log logger;
 
-    public GoScanWorkspaceCreator(Path sourceDir, Path targetDir, Path goModAbsDir, Map<String, String> env, Log logger, String excludedPaths) {
-        this.exclusions = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
+    public GoScanWorkspaceCreator(Path sourceDir, Path targetDir, Path goModAbsDir, Map<String, String> env, Log logger) {
         this.goDriver = new GoDriver(null, env, goModAbsDir.toFile(), logger);
         this.sourceDir = sourceDir;
         this.targetDir = targetDir;
@@ -34,9 +35,6 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-        if (exclusions.matches(dir)) {
-            return FileVisitResult.SKIP_SUBTREE;
-        }
         Path resolve = targetDir.resolve(sourceDir.relativize(dir));
         if (Files.notExists(resolve)) {
             Files.createDirectories(resolve);
@@ -54,8 +52,8 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
             Files.copy(file, targetDir.resolve(sourceDir.relativize(file)));
             return FileVisitResult.CONTINUE;
         }
-        // Copy go.mod files and replace relative path in "replace" to absolute paths.
-        if (fileName.equals("go.mod")) {
+        // Copy the root go.mod file and replace relative path in "replace" to absolute paths.
+        if (fileName.equals("go.mod") && sourceDir.equals(file.getParent())) {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
             goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
