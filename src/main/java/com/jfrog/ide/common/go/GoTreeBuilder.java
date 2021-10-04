@@ -28,19 +28,17 @@ public class GoTreeBuilder {
     private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, String> env;
-    private final String excludedPaths;
     private final Path projectDir;
     private final Log logger;
 
-    public GoTreeBuilder(Path projectDir, Map<String, String> env, Log logger, String excludedPaths) {
-        this.excludedPaths = excludedPaths;
+    public GoTreeBuilder(Path projectDir, Map<String, String> env, Log logger) {
         this.projectDir = projectDir;
         this.logger = logger;
         this.env = env;
     }
 
     public DependencyTree buildTree() throws IOException {
-        File tmpDir = createGoWorkspace().toFile();
+        File tmpDir = createGoWorkspace(projectDir, env, logger).toFile();
         try {
             GoDriver goDriver = new GoDriver(null, env, tmpDir, logger);
             if (!goDriver.isInstalled()) {
@@ -61,16 +59,19 @@ public class GoTreeBuilder {
      * Copy go.mod file to a temporary directory.
      * This is necessary to bypass checksum mismatches issues in the original go.sum.
      *
+     * @param sourceDir - Go project directory
+     * @param env       - Environment variables
+     * @param logger    - The logger
      * @return the temporary directory.
      * @throws IOException in case of any I/O error.
      */
-    private Path createGoWorkspace() throws IOException {
+    private Path createGoWorkspace(Path sourceDir, Map<String, String> env, Log logger) throws IOException {
         Path targetDir = Files.createTempDirectory(null);
         Path goModAbsDir = null;
         try {
             goModAbsDir = prepareGoModAbs();
-            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(projectDir, targetDir, goModAbsDir, env, logger, excludedPaths);
-            Files.walkFileTree(projectDir, goScanWorkspaceCreator);
+            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(sourceDir, targetDir, goModAbsDir, env, logger);
+            Files.walkFileTree(sourceDir, goScanWorkspaceCreator);
         } finally {
             if (goModAbsDir != null) {
                 FileUtils.deleteQuietly(goModAbsDir.toFile());
