@@ -1,5 +1,9 @@
 # Release Notes
 
+## 1.7.1
+
+- Bugfix: go.mod and *.go files of sub Go projects should be ignored during a scanning of a project
+
 ## 1.7.0
 
 - Improve Go scan algorithm
