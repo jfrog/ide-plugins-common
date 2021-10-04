@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * This FileVisitor copies all go.mod and *.go files from the input source directory to the input target directory.
@@ -35,6 +36,16 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+        // Skip subdirectories with go.mod files.
+        // These directories are different Go projects and their go files should not be in the root project.
+        if (!sourceDir.equals(dir)) {
+            try (Stream<Path> files = Files.list(dir)) {
+                if (files.anyMatch(file -> file.getFileName().toString().equals("go.mod"))) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+            }
+        }
+
         Path resolve = targetDir.resolve(sourceDir.relativize(dir));
         if (Files.notExists(resolve)) {
             Files.createDirectories(resolve);
@@ -53,7 +64,7 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
             return FileVisitResult.CONTINUE;
         }
         // Copy the root go.mod file and replace relative path in "replace" to absolute paths.
-        if (fileName.equals("go.mod") && sourceDir.equals(file.getParent())) {
+        if (fileName.equals("go.mod")) {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
             goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
