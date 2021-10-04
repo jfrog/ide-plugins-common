@@ -38,7 +38,7 @@ public class GoTreeBuilderTest {
 
         try {
             Path projectDir = createProjectDir("project1", GO_ROOT.resolve("project1").toFile());
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(projectDir, null, log, "");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(projectDir, null, log, "**/*testdata");
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
