@@ -38,7 +38,7 @@ public class GoTreeBuilder {
     }
 
     public DependencyTree buildTree() throws IOException {
-        File tmpDir = createGoWorkspace(projectDir, env, logger).toFile();
+        File tmpDir = createGoWorkspace().toFile();
         try {
             GoDriver goDriver = new GoDriver(null, env, tmpDir, logger);
             if (!goDriver.isInstalled()) {
@@ -59,19 +59,16 @@ public class GoTreeBuilder {
      * Copy go.mod file to a temporary directory.
      * This is necessary to bypass checksum mismatches issues in the original go.sum.
      *
-     * @param sourceDir - Go project directory
-     * @param env       - Environment variables
-     * @param logger    - The logger
      * @return the temporary directory.
      * @throws IOException in case of any I/O error.
      */
-    private Path createGoWorkspace(Path sourceDir, Map<String, String> env, Log logger) throws IOException {
+    private Path createGoWorkspace() throws IOException {
         Path targetDir = Files.createTempDirectory(null);
         Path goModAbsDir = null;
         try {
             goModAbsDir = prepareGoModAbs();
-            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(sourceDir, targetDir, goModAbsDir, env, logger);
-            Files.walkFileTree(sourceDir, goScanWorkspaceCreator);
+            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(projectDir, targetDir, goModAbsDir, env, logger);
+            Files.walkFileTree(projectDir, goScanWorkspaceCreator);
         } finally {
             if (goModAbsDir != null) {
                 FileUtils.deleteQuietly(goModAbsDir.toFile());
