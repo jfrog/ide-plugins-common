@@ -52,8 +52,8 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
             Files.copy(file, targetDir.resolve(sourceDir.relativize(file)));
             return FileVisitResult.CONTINUE;
         }
-        // Copy go.mod files and replace relative path in "replace" to absolute paths.
-        if (fileName.equals("go.mod")) {
+        // Copy the root go.mod file and replace relative path in "replace" to absolute paths.
+        if (fileName.equals("go.mod") && sourceDir.equals(file.getParent())) {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
             goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
