@@ -34,7 +34,7 @@ public class GoTreeBuilderTest {
         }};
 
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project1"), null, log);
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project1"), null, log);
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
@@ -51,7 +51,7 @@ public class GoTreeBuilderTest {
             put("github.com/jfrog/gocmd:0.1.12", 2);
         }};
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project2"), null, log);
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project2"), null, log);
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
@@ -69,7 +69,7 @@ public class GoTreeBuilderTest {
             put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
         }};
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project3"), null, log);
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project3"), null, log);
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
@@ -87,7 +87,7 @@ public class GoTreeBuilderTest {
             put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
         }};
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(GO_ROOT.resolve("project4"), null, log);
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project4"), null, log);
             DependencyTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt, true);
         } catch (IOException ex) {
@@ -149,7 +149,7 @@ public class GoTreeBuilderTest {
         }};
         Map<String, List<String>> allDependencies = getAllDependenciesForTest();
         DependencyTree rootNode = new DependencyTree();
-        GoTreeBuilder treeBuilder = new GoTreeBuilder(Paths.get(""), null, log);
+        GoTreeBuilder treeBuilder = new GoTreeBuilder(null, Paths.get(""), null, log);
         treeBuilder.populateDependencyTree(rootNode, "my/pkg/name1", allDependencies);
         validateDependencyTreeResults(expected, rootNode, false);
     }

@@ -28,10 +28,12 @@ public class GoTreeBuilder {
     private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, String> env;
+    private final String executablePath;
     private final Path projectDir;
     private final Log logger;
 
-    public GoTreeBuilder(Path projectDir, Map<String, String> env, Log logger) {
+    public GoTreeBuilder(String executablePath, Path projectDir, Map<String, String> env, Log logger) {
+        this.executablePath = executablePath;
         this.projectDir = projectDir;
         this.logger = logger;
         this.env = env;
@@ -40,7 +42,7 @@ public class GoTreeBuilder {
     public DependencyTree buildTree() throws IOException {
         File tmpDir = createGoWorkspace().toFile();
         try {
-            GoDriver goDriver = new GoDriver(null, env, tmpDir, logger);
+            GoDriver goDriver = new GoDriver(executablePath, env, tmpDir, logger);
             if (!goDriver.isInstalled()) {
                 throw new IOException("Could not scan go project dependencies, because go CLI is not in the PATH.");
             }
@@ -67,7 +69,7 @@ public class GoTreeBuilder {
         Path goModAbsDir = null;
         try {
             goModAbsDir = prepareGoModAbs();
-            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(projectDir, targetDir, goModAbsDir, env, logger);
+            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(executablePath, projectDir, targetDir, goModAbsDir, env, logger);
             Files.walkFileTree(projectDir, goScanWorkspaceCreator);
         } finally {
             if (goModAbsDir != null) {
