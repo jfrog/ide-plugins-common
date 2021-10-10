@@ -16,8 +16,6 @@ import java.util.Enumeration;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 
-import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
-
 /**
  * Base class for the scan managers.
  *
@@ -30,21 +28,19 @@ public abstract class ScanManagerBase {
 
     private ServerConfig serverConfig;
     private ComponentPrefix prefix;
+    private ScanLogic scanLogic;
     private String projectName;
     private Log log;
-    private ScanLogic scanLogic;
 
     /**
      * Construct a scan manager for IDE project.
      *
-     * @param scanLogic    - Scan logic implementation.
      * @param projectName  - The project name.
      * @param log          - The logger.
      * @param serverConfig - Xray server config.
      * @param prefix       - Components prefix for xray scan, e.g. gav:// or npm://.
      */
-    public ScanManagerBase(ScanLogic scanLogic, String projectName, Log log, ServerConfig serverConfig, ComponentPrefix prefix) {
-        this.scanLogic = scanLogic;
+    public ScanManagerBase(String projectName, Log log, ServerConfig serverConfig, ComponentPrefix prefix) {
         this.serverConfig = serverConfig;
         this.projectName = projectName;
         this.prefix = prefix;
@@ -113,7 +109,7 @@ public abstract class ScanManagerBase {
      */
     public void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) throws IOException, InterruptedException {
         log.debug("Start scan for '" + projectName + "'.");
-        if (scanLogic.scanAndCacheArtifacts(serverConfig, indicator, quickScan, prefix, () -> this.checkCanceled())) {
+        if (scanLogic.scanAndCacheArtifacts(serverConfig, indicator, quickScan, prefix, this::checkCanceled)) {
             log.debug("Scan for '" + projectName + "' finished successfully.");
         } else {
             log.debug("Wasn't able to scan '" + projectName + "'.");
@@ -141,7 +137,7 @@ public abstract class ScanManagerBase {
     }
 
     public void setScanResults(DependencyTree results) {
-         scanLogic.setScanResults(results);
+        scanLogic.setScanResults(results);
     }
 
     /**
