@@ -77,7 +77,7 @@ public class ComponentSummaryScanLogic implements ScanLogic {
         Components componentsToScan = ComponentsFactory.create();
         extractComponents(scanResults, componentsToScan, prefix, quickScan);
         if (componentsToScan.getComponentDetails().isEmpty()) {
-            log.debug("No components found to scan. '");
+            log.debug("No components found to scan.");
             // No components found to scan
             return false;
         }

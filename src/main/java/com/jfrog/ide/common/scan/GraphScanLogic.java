@@ -54,9 +54,9 @@ public class GraphScanLogic implements ScanLogic {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
         scanResults.setPrefix(prefix.toString());
-        DependencyTree nodesToScan = quickScan ? reduceComponents(scanResults) : scanResults;
-        if (nodesToScan.getChildren().isEmpty()) {
-            log.debug("No components found to scan. '");
+        DependencyTree nodesToScan = createScanTree(scanResults, quickScan);
+        if (nodesToScan.isLeaf()) {
+            log.debug("No components found to scan.");
             // No components found to scan
             return false;
         }
@@ -83,31 +83,47 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     /**
-     * Removes components from the dependencies tree, if they already exist in the cache.
-     * This is done to avoid having Xray match the components, for which already have the results.
-     * Please notice that this method checks only the direct dependencies as they are the only ones to
-     * be changed by a developer.
+     * Create a flat tree of all components required to scan.
+     * Add all direct dependencies to cache to make sure that dependencies will not be scanned again in the next quick scan.
      *
-     * @param root - The DependencyTree root node.
+     * @param root      - The root dependency tree node
+     * @param quickScan - Quick or full scan
      * @return a graph of non cached component for Xray scan.
      */
-    public DependencyTree reduceComponents(DependencyTree root) {
-        DependencyTree reducedTree = (DependencyTree) root.clone();
+    DependencyTree createScanTree(DependencyTree root, boolean quickScan) {
+        DependencyTree scanTree = new DependencyTree(root.getUserObject());
+        populateScanTree(root, scanTree, quickScan);
+        return scanTree;
+    }
+
+    /**
+     * Recursively, populate scan tree with the project's dependencies.
+     * The result is a flat tree with only dependencies needed for the Xray scan.
+     *
+     * @param root      - The root dependency tree node
+     * @param scanTree  - The result
+     * @param quickScan - Quick or full scan
+     */
+    private void populateScanTree(DependencyTree root, DependencyTree scanTree, boolean quickScan) {
         for (DependencyTree child : root.getChildren()) {
-            String componentId = child.toString();
-            // In case the node is not direct dependency (metadata node) we should
-            // check if one of his children has a new (non cached) direct dependency.
+            // Don't add metadata nodes to the scan tree
             if (child.isMetadata()) {
-                DependencyTree subTree = reduceComponents(child);
-                if (!subTree.isLeaf()) {
-                    reducedTree.add(subTree);
+                populateScanTree(child, scanTree, quickScan);
+                continue;
+            }
+
+            // If dependency not in cache or this is a full scan - add the dependency subtree to the scan tree.
+            // If dependency is in cache and this is a quick scan - skip subtree.
+            if (!quickScan || !scanCache.contains(child.toString())) {
+                if (((DependencyTree) child.getParent()).isMetadata()) {
+                    // All direct dependencies should be in the cache. This line make sure that dependencies that
+                    // wouldn't return from Xray will not be scanned again during the next quick scan.
+                    scanCache.add(new Artifact(new GeneralInfo().componentId(child.toString()), new HashSet<>(), new HashSet<>()));
                 }
-            } else if (!scanCache.contains(componentId)) {
-                DependencyTree childCopy = (DependencyTree) child.clone();
-                reducedTree.add(childCopy);
+                scanTree.add(new DependencyTree(child.getComponentId()));
+                populateScanTree(child, scanTree, quickScan);
             }
         }
-        return reducedTree;
     }
 
     @Override
@@ -144,19 +160,6 @@ public class GraphScanLogic implements ScanLogic {
             scanComponentsWithContext(xrayClient, artifactsToScan, project, checkCanceled);
         } else {
             scanComponentsWithoutContext(xrayClient, artifactsToScan, checkCanceled);
-        }
-        // Add to cache non-vulnerable direct dependencies in order to mark them as scanned successfully.
-        // This will allow us to avoid unnecessary future scans.
-        cacheMissingDirectDependencies(artifactsToScan);
-    }
-
-    private void cacheMissingDirectDependencies(DependencyTree artifactsToScan) {
-        for (DependencyTree child : artifactsToScan.getChildren()) {
-            if (child.isMetadata()) {
-                cacheMissingDirectDependencies(child);
-            } else if (!scanCache.contains(child.getComponentId())) {
-                scanCache.add(new Artifact(new GeneralInfo(child.toString(), "", "", ""), new HashSet<>(), new HashSet<>()));
-            }
         }
     }
 
