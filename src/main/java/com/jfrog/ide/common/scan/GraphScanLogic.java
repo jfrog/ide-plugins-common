@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.scan;
 
+import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
@@ -8,10 +9,12 @@ import com.jfrog.xray.client.services.graph.GraphResponse;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections4.CollectionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
+import org.jfrog.build.extractor.scan.License;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -112,7 +115,15 @@ public class GraphScanLogic implements ScanLogic {
 
     @Override
     public Artifact getArtifactSummary(String componentId) {
-        return scanCache.get(componentId);
+        Artifact artifact = scanCache.get(componentId);
+        if (artifact == null) {
+            return new Artifact(new GeneralInfo().componentId(componentId), Sets.newHashSet(), Sets.newHashSet(new License()));
+        }
+        if (CollectionUtils.isEmpty(artifact.getLicenses())) {
+            // If no license detected in Xray, set a new unknown license
+            artifact.getLicenses().add(new License());
+        }
+        return artifact;
     }
 
     public static boolean isSupportedInXrayVersion(Version xrayVersion) {
