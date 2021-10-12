@@ -1,5 +1,11 @@
 # Release Notes
 
+## 1.7.2
+- GraphScan - Make sure the licenses set is never empty
+- GraphScan - Send to Xray a flat tree with dependencies only
+- Allow providing the Go executable path
+- Remove ScanLogic from the ScanManagerBase constructor
+
 ## 1.7.1
 
 - Bugfix: go.mod and *.go files of sub Go projects should be ignored during a scanning of a project
