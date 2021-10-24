@@ -12,7 +12,10 @@ import org.jfrog.build.extractor.scan.Severity;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Cache for Xray scan.
@@ -37,13 +40,11 @@ public abstract class ScanCache {
     }
 
     public void add(Violation violation, String packageType) {
-        addComponents(violation.getComponents(), violation.getViolationType(), Severity.valueOf(violation.getSeverity()),
-                violation.getSummary(), packageType);
+        addComponents(violation.getComponents(), Severity.valueOf(violation.getSeverity()), violation.getSummary(), packageType);
     }
 
     public void add(Vulnerability vulnerability, String packageType) {
-        addComponents(vulnerability.getComponents(), "vulnerability",
-                Severity.valueOf(vulnerability.getSeverity()), vulnerability.getSummary(), packageType);
+        addComponents(vulnerability.getComponents(), Severity.valueOf(vulnerability.getSeverity()), vulnerability.getSummary(), packageType);
     }
 
     public void add(License license, String packageType, boolean violation) {
@@ -65,8 +66,8 @@ public abstract class ScanCache {
                 continue;
             }
             // If not exist, creates a new data object.
-            GeneralInfo info = new GeneralInfo(id, "", component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-            Artifact artifact = new Artifact(info, new HashSet<>(), new HashSet<org.jfrog.build.extractor.scan.License>() {{
+            GeneralInfo info = new GeneralInfo(id, component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
+            Artifact artifact = new Artifact(info, new HashSet<>(), new HashSet<>() {{
                 add(issue);
             }});
             this.add(artifact);
@@ -90,12 +91,12 @@ public abstract class ScanCache {
         this.scanCacheMap = scanCacheMap;
     }
 
-    private void addComponents(Map<String, ? extends Component> components, String issueType, Severity severity, String summary, String packageType) {
+    private void addComponents(Map<String, ? extends Component> components, Severity severity, String summary, String packageType) {
         for (Map.Entry<String, ? extends Component> entry : components.entrySet()) {
             String id = entry.getKey();
             id = id.substring(id.indexOf("://") + 3);
             Component component = entry.getValue();
-            Issue issue = new Issue("", "", issueType, "", severity, summary, component.getFixedVersions());
+            Issue issue = new Issue("", severity, summary, component.getFixedVersions());
 
             if (this.contains(id)) {
                 Artifact artifact = get(id);
@@ -107,8 +108,8 @@ public abstract class ScanCache {
                 continue;
             }
             // If not exist, creates a new data object.
-            GeneralInfo info = new GeneralInfo(id, "", component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-            Artifact artifact = new Artifact(info, new HashSet<Issue>() {{
+            GeneralInfo info = new GeneralInfo(id, component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
+            Artifact artifact = new Artifact(info, new HashSet<>() {{
                 add(issue);
             }}, new HashSet<>());
             this.add(artifact);

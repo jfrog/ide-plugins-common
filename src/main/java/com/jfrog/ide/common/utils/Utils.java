@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 /**
@@ -29,8 +29,16 @@ public class Utils {
     public static ObjectMapper createMapper() {
         return new ObjectMapper()
                 .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .setSerializationInclusion(NON_NULL)
+                .setSerializationInclusion(NON_EMPTY)
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+    }
+
+    public static String createComponentId(String artifactId, String version) {
+        return String.join(":", artifactId, version);
+    }
+
+    public static String createComponentId(String groupId, String artifactId, String version) {
+        return String.join(":", groupId, artifactId, version);
     }
 
     public static String createLicenseString(License license) {
@@ -42,7 +50,6 @@ public class Utils {
 
     public static GeneralInfo getGeneralInfo(General other) {
         return new GeneralInfo().componentId(other.getComponentId())
-                .name(other.getName())
                 .path(other.getPath())
                 .pkgType(other.getPkgType());
     }
@@ -60,7 +67,7 @@ public class Utils {
             VulnerableComponents vulnerableComponents = vulnerableComponentsList.get(0);
             fixedVersions = vulnerableComponents.getFixedVersions();
         }
-        return new Issue(other.getCreated(), other.getDescription(), other.getIssueType(), other.getProvider(), severity, other.getSummary(), fixedVersions);
+        return new Issue(other.getDescription(), severity, other.getSummary(), fixedVersions);
     }
 
     public static Artifact getArtifact(com.jfrog.xray.client.services.summary.Artifact other) {
