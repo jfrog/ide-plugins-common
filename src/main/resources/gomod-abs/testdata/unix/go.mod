@@ -1,7 +1,5 @@
 module test-module
 
-go 1.16
-
 require (
 	a v1.0.0
 	b v1.0.0

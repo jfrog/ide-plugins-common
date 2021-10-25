@@ -19,8 +19,8 @@ func TestAbsolutizeUnix(t *testing.T) {
 	assert.NoError(t, absolutize(args))
 
 	// Check results
-	goMod, err := parseGoMod(args.goModPath)
-	assert.NoError(t, err)
+	goMod, errs := parseGoMod(args.goModPath)
+	assert.Nil(t, errs)
 	assert.Equal(t, module.Version{Path: "/test/dummy/a", Version: ""}, goMod.Replace[0].New)
 	assert.Equal(t, module.Version{Path: "/test/dummy/a", Version: ""}, goMod.Replace[0].New)
 	assert.Equal(t, module.Version{Path: "c", Version: "v1.0.1"}, goMod.Replace[2].New)
@@ -36,12 +36,26 @@ func TestAbsolutizeWin(t *testing.T) {
 	assert.NoError(t, absolutize(args))
 
 	// Check results
-	goMod, err := parseGoMod(args.goModPath)
-	assert.NoError(t, err)
+	goMod, errs := parseGoMod(args.goModPath)
+	assert.Nil(t, errs)
 	assert.Equal(t, module.Version{Path: "C:\\test\\dummy\\a", Version: ""}, goMod.Replace[0].New)
 	assert.Equal(t, module.Version{Path: "C:\\test\\dummy\\a", Version: ""}, goMod.Replace[0].New)
 	assert.Equal(t, module.Version{Path: "c", Version: "v1.0.1"}, goMod.Replace[2].New)
 	assert.Equal(t, module.Version{Path: "C:\\some\\absolute\\path\\", Version: ""}, goMod.Replace[3].New)
+}
+
+func TestErroneousGoMod(t *testing.T) {
+	goMod, errs := parseGoMod(filepath.Join("testdata", "erroneous", "go.mod"))
+	assert.Len(t, errs, 1)
+	assert.Error(t, errs[0])
+	assert.Nil(t, goMod)
+}
+
+func TestBadGoModPath(t *testing.T) {
+	goMod, errs := parseGoMod(filepath.Join("testdata", "nonexist", "go.mod"))
+	assert.Len(t, errs, 1)
+	assert.ErrorIs(t, errs[0], os.ErrNotExist)
+	assert.Nil(t, goMod)
 }
 
 func prepareGoMod(t *testing.T, goModDir, workingDir string) *args {
