@@ -3,6 +3,7 @@ package com.jfrog.ide.common.persistency;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.xray.client.impl.services.details.DetailsResponseImpl;
 import com.jfrog.xray.client.services.details.DetailsResponse;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.Build;
@@ -149,7 +150,7 @@ public class BuildsScanCache {
 
     private File getBuildFile(String buildName, String buildNumber, Type type) {
         String buildIdentifier = String.format("%s_%s", buildName, buildNumber);
-        String fileName = type.toString() + Base64.getEncoder().encodeToString(buildIdentifier.getBytes(StandardCharsets.UTF_8)) + ".zip";
+        String fileName = type.toString() + "_" + DigestUtils.sha256Hex(buildIdentifier) + ".zip";
         return buildsDir.resolve(fileName).toFile();
     }
 }
