@@ -23,6 +23,6 @@ public class UtilsTests {
 
     @Test(dataProvider = "buildPatternsProvider")
     public void testCreateAqlForBuildArtifacts(String buildPattern, String expected) throws EncoderException {
-        assertEquals(createAqlForBuildArtifacts(buildPattern), expected);
+        assertEquals(createAqlForBuildArtifacts(buildPattern, "artifactory-build-info"), expected);
     }
 }

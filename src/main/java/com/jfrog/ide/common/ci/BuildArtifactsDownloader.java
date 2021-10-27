@@ -33,13 +33,12 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
  * @author yahavi
  */
 public class BuildArtifactsDownloader extends ProducerRunnableBase {
-    public static final String BUILD_INFO_REPO = "/artifactory-build-info/";
-
     private final ArtifactoryManagerBuilder artifactoryManagerBuilder;
     private final Queue<AqlSearchResult.SearchEntry> buildArtifacts;
     private final ProgressIndicator indicator;
     private final BuildsScanCache buildsCache;
     private final Runnable checkCancel;
+    private final String buildInfoRepo;
     private final AtomicInteger count;
     private final boolean shouldToast;
     private final double total;
@@ -47,9 +46,11 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
 
     public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts, boolean shouldToast,
                                     ArtifactoryManagerBuilder artifactoryManagerBuilder, BuildsScanCache buildsCache,
-                                    ProgressIndicator indicator, AtomicInteger count, double total, Log log, Runnable checkCancel) {
+                                    ProgressIndicator indicator, AtomicInteger count, double total, Log log, Runnable checkCancel,
+                                    String buildInfoRepo) {
         this.artifactoryManagerBuilder = artifactoryManagerBuilder;
         this.buildArtifacts = buildArtifacts;
+        this.buildInfoRepo = buildInfoRepo;
         this.shouldToast = shouldToast;
         this.buildsCache = buildsCache;
         this.checkCancel = checkCancel;
@@ -104,7 +105,7 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
      * @return the requested build or null if not found.
      */
     private Build downloadBuildInfo(ObjectMapper mapper, AqlSearchResult.SearchEntry searchEntry, ArtifactoryManager artifactoryManager) throws IOException {
-        String downloadUrl = BUILD_INFO_REPO + searchEntry.getPath() + "/" + searchEntry.getName();
+        String downloadUrl = String.format("/%s/%s/%s", buildInfoRepo, searchEntry.getPath(), searchEntry.getName());
         try {
             DownloadResponse downloadResponse = artifactoryManager.download(downloadUrl);
             if (downloadResponse == null) {

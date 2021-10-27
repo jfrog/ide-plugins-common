@@ -6,6 +6,7 @@ import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.BuildsScanCache;
 import com.jfrog.xray.client.impl.XrayClientBuilder;
 import com.jfrog.xray.client.services.details.DetailsResponse;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
@@ -45,6 +46,7 @@ import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL
  */
 @SuppressWarnings("unused")
 public class CiManagerBase {
+    private static final String DEFAULT_PROJECT = "artifactory";
     protected DependencyTree root = new DependencyTree();
     private final ObjectMapper mapper = createMapper();
     private final BuildsScanCache buildsCache;
@@ -68,20 +70,22 @@ public class CiManagerBase {
      * The build dependencies, artifacts and Xray scan results is stored in cache to save RAM.
      *
      * @param buildsPattern - The build pattern configured in the IDE configuration
+     * @param project       - The JFrog project to scan
      * @param indicator     - The progress indicator to show
      * @param checkCanceled - Callback that throws an exception if scan was cancelled by user
-     * @param shouldToast   - True if scan was triggered by the "refresh" button.
+     * @param shouldToast   - True if scan was triggered by the "refresh" button
      * @throws NoSuchAlgorithmException in case of error during creating the Artifactory dependencies client.
      * @throws KeyStoreException        in case of error during creating the Artifactory dependencies client.
      * @throws KeyManagementException   in case of error during creating the Artifactory dependencies client.
      */
-    public void buildCiTree(String buildsPattern, ProgressIndicator indicator, Runnable checkCanceled, boolean shouldToast) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void buildCiTree(String buildsPattern, String project, ProgressIndicator indicator, Runnable checkCanceled, boolean shouldToast) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
         ArtifactoryManagerBuilder artifactoryManagerBuilder = createArtifactoryManagerBuilder(serverConfig, log);
         try (ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build()) {
             buildsCache.createDirectories();
-            AqlSearchResult searchResult = artifactoryManager.searchArtifactsByAql(createAqlForBuildArtifacts(buildsPattern));
+            String buildInfoRepo = StringUtils.defaultIfBlank(serverConfig.getProject(), DEFAULT_PROJECT) + "-build-info";
+            AqlSearchResult searchResult = artifactoryManager.searchArtifactsByAql(createAqlForBuildArtifacts(buildsPattern, buildInfoRepo));
             if (searchResult.getResults().isEmpty()) {
                 return;
             }
@@ -92,11 +96,12 @@ public class CiManagerBase {
             AtomicInteger count = new AtomicInteger();
             double total = buildArtifacts.size() * 2;
             // Create producer Runnables.
-            ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{
-                    new BuildArtifactsDownloader(buildArtifacts, shouldToast, artifactoryManagerBuilder, buildsCache, indicator, count, total, log, checkCanceled)};
+            ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{new BuildArtifactsDownloader(
+                    buildArtifacts, shouldToast, artifactoryManagerBuilder,
+                    buildsCache, indicator, count, total, log, checkCanceled, buildInfoRepo)};
             // Create consumer Runnables.
-            ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{
-                    new XrayBuildDetailsDownloader(root, buildsCache, xrayClientBuilder, indicator, count, total, log, checkCanceled)
+            ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{new XrayBuildDetailsDownloader(
+                    root, buildsCache, xrayClientBuilder, indicator, count, total, log, checkCanceled, serverConfig.getProject())
             };
 
             new ProducerConsumerExecutor(log, producerRunnable, consumerRunnables, CONNECTION_POOL_SIZE).start();
