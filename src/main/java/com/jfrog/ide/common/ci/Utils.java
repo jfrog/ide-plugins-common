@@ -64,13 +64,14 @@ public class Utils {
      * @param buildsPattern - The build wildcard pattern to filter in Artifactory
      * @return the AQL query.
      */
-    public static String createAqlForBuildArtifacts(String buildsPattern) throws EncoderException {
+    public static String createAqlForBuildArtifacts(String buildsPattern, String buildInfoRepo) throws EncoderException {
         String encodedBuildPattern = new URLCodec().encode(buildsPattern);
         // The following is a workaround, since Artifactory does not yet support '%' in AQL
         encodedBuildPattern = encodedBuildPattern.replaceAll("%", "?");
         return String.format("items.find({" +
-                "\"repo\":\"artifactory-build-info\"," +
-                "\"path\":{\"$match\":\"%s\"}}" +
-                ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(100)", encodedBuildPattern);
+                        "\"repo\":\"%s\"," +
+                        "\"path\":{\"$match\":\"%s\"}}" +
+                        ").include(\"name\",\"repo\",\"path\",\"created\").sort({\"$desc\":[\"created\"]}).limit(100)",
+                buildInfoRepo, encodedBuildPattern);
     }
 }
