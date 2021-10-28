@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.jfrog.ide.common.utils.Utils.createComponentId;
+
 /**
  * Build Gradle dependency tree before the Xray scan.
  *
@@ -97,11 +99,8 @@ public class GradleTreeBuilder {
     }
 
     private GeneralInfo createGeneralInfo(GradleDependencyNode node) {
-        return new GeneralInfo()
-                .groupId(node.getGroupId())
-                .artifactId(node.getArtifactId())
-                .version(node.getVersion())
-                .pkgType("gradle");
+        return new GeneralInfo().pkgType("gradle")
+                .componentId(createComponentId(node.getGroupId(), node.getArtifactId(), node.getVersion()));
     }
 
     /**

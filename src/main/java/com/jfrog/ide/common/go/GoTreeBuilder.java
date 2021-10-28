@@ -128,9 +128,7 @@ public class GoTreeBuilder {
         rootNode.setGeneralInfo(new GeneralInfo()
                 .componentId(rootNode.getUserObject().toString())
                 .pkgType("go")
-                .path(projectDir.toString())
-                .artifactId(rootNode.getUserObject().toString())
-                .version(""));
+                .path(projectDir.toString()));
     }
 
     /**

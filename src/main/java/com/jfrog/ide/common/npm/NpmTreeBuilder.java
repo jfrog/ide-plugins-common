@@ -18,6 +18,7 @@ import java.util.Enumeration;
 import java.util.Map;
 
 import static com.jfrog.ide.common.log.Utils.logError;
+import static com.jfrog.ide.common.utils.Utils.createComponentId;
 
 /**
  * Build npm dependency tree before the Xray scan.
@@ -144,11 +145,6 @@ public class NpmTreeBuilder {
     }
 
     private GeneralInfo createGeneralInfo(String packageName, String packageVersion) {
-        return new GeneralInfo()
-                .componentId(packageName + ":" + packageVersion)
-                .pkgType("npm")
-                .path(projectDir.toString())
-                .artifactId(packageName)
-                .version(packageVersion);
+        return new GeneralInfo().path(projectDir.toString()).componentId(createComponentId(packageName, packageVersion)).pkgType("npm");
     }
 }
