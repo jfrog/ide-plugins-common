@@ -1,6 +1,6 @@
 name: Test
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 jobs:
   test:
@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macOS-latest ]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
@@ -18,17 +18,13 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v2
         with:
-          distribution: 'adopt'
-          java-version: '11'
+          distribution: "adopt"
+          java-version: "11"
       - name: Setup NodeJS
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: "14"
           check-latest: true
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.16'
 
       # Run tests
       - name: Tests on macOS, Linux
@@ -37,6 +33,33 @@ jobs:
       - name: Tests on Windows
         run: ./gradlew.bat clean test
         if: runner.os == 'Windows'
-      - name: Test gomod-abs
+
+  test-gomod-abs:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        go: ["1.15", "1.16", "1.17"]
+    steps:
+      - uses: actions/checkout@v2
+
+      # Install Go
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      # Run tests
+      - name: Test
         working-directory: ./src/main/resources/gomod-abs
         run: go test ./... -v
+
+      # Run gosec
+      - name: Install gosec
+        run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+        if: runner.os == 'Linux'
+      - name: Run gosec
+        working-directory: ./src/main/resources/gomod-abs
+        run: gosec ./...
+        if: runner.os == 'Linux'
