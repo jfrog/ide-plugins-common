@@ -16,6 +16,7 @@ import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
 import org.jfrog.build.extractor.producerConsumer.ProducerConsumerExecutor;
 import org.jfrog.build.extractor.producerConsumer.ProducerRunnableBase;
 import org.jfrog.build.extractor.scan.DependencyTree;
+import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 
@@ -37,6 +38,8 @@ import static com.jfrog.ide.common.log.Utils.logError;
 import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createArtifactoryManagerBuilder;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
+import static org.apache.commons.lang3.StringUtils.substringAfterLast;
+import static org.apache.commons.lang3.StringUtils.substringBeforeLast;
 import static org.jfrog.build.client.PreemptiveHttpClientBuilder.CONNECTION_POOL_SIZE;
 
 /**
@@ -49,8 +52,8 @@ public class CiManagerBase {
     private static final String DEFAULT_PROJECT = "artifactory";
     protected DependencyTree root = new DependencyTree();
     private final ObjectMapper mapper = createMapper();
-    private final BuildsScanCache buildsCache;
     private final ServerConfig serverConfig;
+    final BuildsScanCache buildsCache;
     private final Log log;
 
     public CiManagerBase(Path cachePath, String projectName, Log log, ServerConfig serverConfig) throws IOException {
@@ -113,8 +116,10 @@ public class CiManagerBase {
         }
     }
 
-    public BuildDependencyTree loadBuildTree(String buildName, String buildNumber) throws IOException, ParseException {
+    public BuildDependencyTree loadBuildTree(GeneralInfo buildGeneralInfo) throws IOException, ParseException {
         BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
+        String buildName = substringBeforeLast(buildGeneralInfo.getComponentId(), ":");
+        String buildNumber = substringAfterLast(buildGeneralInfo.getComponentId(), ":");
 
         // Load build info from cache
         Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber);
