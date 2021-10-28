@@ -17,11 +17,9 @@ type args struct {
 	workingDir string
 }
 
-/*
-  Create args struct from the input args
-  goModPath  - Path to go.mod file
-  workingDir - The working directory which will be concatenated to the relative path in the go.mod file
-*/
+// Create args struct from the input args
+// goModPath  - Path to go.mod file
+// workingDir - The working directory which will be concatenated to the relative path in the go.mod file
 func prepareArgs(goModPath, workingDir string) (*args, error) {
 	absWorkingDir, err := filepath.Abs(workingDir)
 	if err != nil {
@@ -33,10 +31,8 @@ func prepareArgs(goModPath, workingDir string) (*args, error) {
 	}, nil
 }
 
-/*
-  Make relatie path in go.mod absolute
-  args - The input arguments
-*/
+// Make relatie path in go.mod absolute
+// args - The input arguments
 func absolutize(args *args) error {
 	file, errs := parseGoMod(args.goModPath)
 	if errs != nil {
@@ -60,10 +56,8 @@ func absolutize(args *args) error {
 	return nil
 }
 
-/*
-  Parse go.mod file and return structurized object
-  goModPath - Path to go.mod file
-*/
+// Parse go.mod file and return structurized object
+// goModPath - Path to go.mod file
 func parseGoMod(goModPath string) (result *modfile.File, errs []error) {
 	file, err := os.Open(filepath.Clean(goModPath))
 	if err != nil {
@@ -92,11 +86,9 @@ func parseGoMod(goModPath string) (result *modfile.File, errs []error) {
 	return
 }
 
-/*
-  Replace relative paths in go.mod to absolute paths
-  file       - Parsed go.mod file
-  workingDir - The working directory which will be concatenated to the relative path in the go.mod file
-*/
+// Replace relative paths in go.mod to absolute paths
+// file       - Parsed go.mod file
+// workingDir - The working directory which will be concatenated to the relative path in the go.mod file
 func replaceRelativePaths(file *modfile.File, workingDir string) error {
 	for _, replace := range file.Replace {
 		currentPath := replace.New.Path
@@ -111,10 +103,8 @@ func replaceRelativePaths(file *modfile.File, workingDir string) error {
 	return nil
 }
 
-/*
-  Save changes in go.mod file
-  file - Parsed go.mod file
-*/
+// Save changes in go.mod file
+// file - Parsed go.mod file
 func saveGoMod(file *modfile.File) (errs []error) {
 	content, err := file.Format()
 	if err != nil {
@@ -138,10 +128,8 @@ func saveGoMod(file *modfile.File) (errs []error) {
 	return
 }
 
-/*
-  Exit with error code 1 if the input error is not nil
-  err - The error to check
-*/
+// Exit with error code 1 if the input error is not nil
+// err - The error to check
 func exitIfError(err error) {
 	if err == nil {
 		return
