@@ -5,6 +5,7 @@ import com.jfrog.xray.client.services.graph.Component;
 import com.jfrog.xray.client.services.graph.License;
 import com.jfrog.xray.client.services.graph.Violation;
 import com.jfrog.xray.client.services.graph.Vulnerability;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 import org.jfrog.build.extractor.scan.Issue;
@@ -96,7 +97,7 @@ public abstract class ScanCache {
             String id = entry.getKey();
             id = id.substring(id.indexOf("://") + 3);
             Component component = entry.getValue();
-            Issue issue = new Issue("", severity, summary, component.getFixedVersions());
+            Issue issue = new Issue("", severity, StringUtils.defaultIfBlank(summary, "N/A"), component.getFixedVersions());
 
             if (this.contains(id)) {
                 Artifact artifact = get(id);
