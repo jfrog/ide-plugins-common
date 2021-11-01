@@ -1,10 +1,13 @@
 package com.jfrog.ide.common.persistency;
 
+import com.google.common.collect.Sets;
 import com.jfrog.ide.common.utils.Utils;
+import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.graph.Component;
 import com.jfrog.xray.client.services.graph.License;
 import com.jfrog.xray.client.services.graph.Violation;
 import com.jfrog.xray.client.services.graph.Vulnerability;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.GeneralInfo;
@@ -13,10 +16,7 @@ import org.jfrog.build.extractor.scan.Severity;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Cache for Xray scan.
@@ -41,11 +41,11 @@ public abstract class ScanCache {
     }
 
     public void add(Violation violation, String packageType) {
-        addComponents(violation.getComponents(), Severity.valueOf(violation.getSeverity()), violation.getSummary(), packageType);
+        addComponents(violation.getComponents(), Severity.valueOf(violation.getSeverity()), violation.getSummary(), packageType, violation.getCves());
     }
 
     public void add(Vulnerability vulnerability, String packageType) {
-        addComponents(vulnerability.getComponents(), Severity.valueOf(vulnerability.getSeverity()), vulnerability.getSummary(), packageType);
+        addComponents(vulnerability.getComponents(), Severity.valueOf(vulnerability.getSeverity()), vulnerability.getSummary(), packageType, vulnerability.getCves());
     }
 
     public void add(License license, String packageType, boolean violation) {
@@ -92,14 +92,15 @@ public abstract class ScanCache {
         this.scanCacheMap = scanCacheMap;
     }
 
-    private void addComponents(Map<String, ? extends Component> components, Severity severity, String summary, String packageType) {
+    private void addComponents(Map<String, ? extends Component> components, Severity severity, String summary, String packageType, List<? extends Cve> cves) {
+        String cveId = ListUtils.emptyIfNull(cves).stream().map(Cve::getId).filter(StringUtils::isNotBlank).findAny().orElse("");
+        cveId = StringUtils.substringAfter(cveId, "CVE-");
         for (Map.Entry<String, ? extends Component> entry : components.entrySet()) {
-            String id = entry.getKey();
-            id = id.substring(id.indexOf("://") + 3);
+            String id = StringUtils.substringAfter(entry.getKey(), "://");
             Component component = entry.getValue();
-            Issue issue = new Issue("", severity, StringUtils.defaultIfBlank(summary, "N/A"), component.getFixedVersions());
+            Issue issue = new Issue("", severity, StringUtils.defaultIfBlank(summary, "N/A"), component.getFixedVersions(), cveId);
 
-            if (this.contains(id)) {
+            if (contains(id)) {
                 Artifact artifact = get(id);
                 Set<Issue> issues = artifact.getIssues();
                 // We should override existing info, in case of forced scan.
@@ -110,10 +111,8 @@ public abstract class ScanCache {
             }
             // If not exist, creates a new data object.
             GeneralInfo info = new GeneralInfo(id, component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-            Artifact artifact = new Artifact(info, new HashSet<>() {{
-                add(issue);
-            }}, new HashSet<>());
-            this.add(artifact);
+            Artifact artifact = new Artifact(info, Sets.newHashSet(issue), new HashSet<>());
+            add(artifact);
         }
     }
 }

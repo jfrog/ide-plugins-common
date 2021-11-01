@@ -135,13 +135,13 @@ public class ScanCacheTest {
 
             // Read from disk and expect no errors - But empty cache
             scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
-            Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 0);
+            Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 1);
             Assert.assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
 
             // Write and check again
             scanCache.write();
             scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
-            Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 0);
+            Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 1);
             Assert.assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
         } catch (IOException e) {
             Assert.fail(e.getMessage());

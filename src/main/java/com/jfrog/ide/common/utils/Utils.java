@@ -3,6 +3,7 @@ package com.jfrog.ide.common.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Lists;
+import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.summary.General;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
 import org.apache.commons.collections4.CollectionUtils;
@@ -67,7 +68,8 @@ public class Utils {
             VulnerableComponents vulnerableComponents = vulnerableComponentsList.get(0);
             fixedVersions = vulnerableComponents.getFixedVersions();
         }
-        return new Issue(other.getDescription(), severity, other.getSummary(), fixedVersions);
+        String cve = ListUtils.emptyIfNull(other.getCves()).stream().map(Cve::getId).filter(StringUtils::isNotBlank).findAny().orElse("");
+        return new Issue(other.getDescription(), severity, other.getSummary(), fixedVersions, cve);
     }
 
     public static Artifact getArtifact(com.jfrog.xray.client.services.summary.Artifact other) {

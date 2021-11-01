@@ -20,7 +20,7 @@ public class Utils {
      * @return the random issue
      */
     static Issue createIssue(Severity severity) {
-        return new Issue(generateUID(), severity, generateUID(), Lists.newArrayList());
+        return new Issue(generateUID(), severity, generateUID(), Lists.newArrayList(), generateUID());
     }
 
     /**
