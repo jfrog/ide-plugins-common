@@ -68,6 +68,7 @@ public class Utils {
             VulnerableComponents vulnerableComponents = vulnerableComponentsList.get(0);
             fixedVersions = vulnerableComponents.getFixedVersions();
         }
+        // Search for a CVE with ID. Due to UI limitations, we take only the first match.
         String cve = ListUtils.emptyIfNull(other.getCves()).stream().map(Cve::getId).filter(StringUtils::isNotBlank).findAny().orElse("");
         return new Issue(other.getDescription(), severity, other.getSummary(), fixedVersions, cve);
     }

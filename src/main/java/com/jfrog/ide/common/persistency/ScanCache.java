@@ -50,30 +50,25 @@ public abstract class ScanCache {
 
     public void add(License license, String packageType, boolean violation) {
         for (Map.Entry<String, ? extends Component> entry : license.getComponents().entrySet()) {
-            String id = entry.getKey();
-            id = id.substring(id.indexOf("://") + 3);
+            String id = StringUtils.substringAfter(entry.getKey(), "://");
             Component component = entry.getValue();
-            org.jfrog.build.extractor.scan.License issue = new org.jfrog.build.extractor.scan.License(new ArrayList<>(),
+            org.jfrog.build.extractor.scan.License cacheLicense = new org.jfrog.build.extractor.scan.License(new ArrayList<>(),
                     license.getName(), license.getKey(), component.getFixedVersions(), violation);
 
-            if (this.contains(id)) {
+            if (contains(id)) {
                 Artifact artifact = get(id);
                 Set<org.jfrog.build.extractor.scan.License> licenses = artifact.getLicenses();
                 // We should override existing info, in case of forced scan.
-                licenses.remove(issue);
-                licenses.add(issue);
+                licenses.remove(cacheLicense);
+                licenses.add(cacheLicense);
                 artifact.setLicenses(licenses);
-
                 continue;
             }
             // If not exist, creates a new data object.
             GeneralInfo info = new GeneralInfo(id, component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-            Artifact artifact = new Artifact(info, new HashSet<>(), new HashSet<>() {{
-                add(issue);
-            }});
-            this.add(artifact);
+            Artifact artifact = new Artifact(info, new HashSet<>(), Sets.newHashSet(cacheLicense));
+            add(artifact);
         }
-
     }
 
     public Artifact get(String id) {
@@ -93,6 +88,7 @@ public abstract class ScanCache {
     }
 
     private void addComponents(Map<String, ? extends Component> components, Severity severity, String summary, String packageType, List<? extends Cve> cves) {
+        // Search for a CVE with ID. Due to UI limitations, we take only the first match.
         String cveId = ListUtils.emptyIfNull(cves).stream().map(Cve::getId).filter(StringUtils::isNotBlank).findAny().orElse("");
         for (Map.Entry<String, ? extends Component> entry : components.entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
