@@ -68,9 +68,7 @@ public class Utils {
             VulnerableComponents vulnerableComponents = vulnerableComponentsList.get(0);
             fixedVersions = vulnerableComponents.getFixedVersions();
         }
-        // Search for a CVE with ID. Due to UI limitations, we take only the first match.
-        String cve = ListUtils.emptyIfNull(other.getCves()).stream().map(Cve::getId).filter(StringUtils::isNotBlank).findAny().orElse("");
-        return new Issue(other.getDescription(), severity, other.getSummary(), fixedVersions, cve);
+        return new Issue(other.getDescription(), severity, other.getSummary(), fixedVersions, getFirstCve(other.getCves()));
     }
 
     public static Artifact getArtifact(com.jfrog.xray.client.services.summary.Artifact other) {
@@ -81,6 +79,20 @@ public class Utils {
         artifact.setIssues(issues);
         artifact.setLicenses(licenses);
         return artifact;
+    }
+
+    /**
+     * Search for a CVE with ID. Due to UI limitations, we take only the first match.
+     *
+     * @param cves - CVE list
+     * @return first non-empty CVE ID or an empty string.
+     */
+    public static String getFirstCve(List<? extends Cve> cves) {
+        return ListUtils.emptyIfNull(cves).stream()
+                .map(Cve::getId)
+                .filter(StringUtils::isNotBlank)
+                .findAny()
+                .orElse("");
     }
 
     /**

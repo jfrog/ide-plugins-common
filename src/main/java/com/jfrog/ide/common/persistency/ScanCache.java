@@ -7,7 +7,6 @@ import com.jfrog.xray.client.services.graph.Component;
 import com.jfrog.xray.client.services.graph.License;
 import com.jfrog.xray.client.services.graph.Violation;
 import com.jfrog.xray.client.services.graph.Vulnerability;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.GeneralInfo;
@@ -17,6 +16,8 @@ import org.jfrog.build.extractor.scan.Severity;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+
+import static com.jfrog.ide.common.utils.Utils.getFirstCve;
 
 /**
  * Cache for Xray scan.
@@ -89,7 +90,7 @@ public abstract class ScanCache {
 
     private void addComponents(Map<String, ? extends Component> components, Severity severity, String summary, String packageType, List<? extends Cve> cves) {
         // Search for a CVE with ID. Due to UI limitations, we take only the first match.
-        String cveId = ListUtils.emptyIfNull(cves).stream().map(Cve::getId).filter(StringUtils::isNotBlank).findAny().orElse("");
+        String cveId = getFirstCve(cves);
         for (Map.Entry<String, ? extends Component> entry : components.entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
             Component component = entry.getValue();
