@@ -18,8 +18,6 @@ import java.util.Collections;
 @Setter
 class XrayScanCacheMap extends ScanCacheMap {
 
-    private static int CACHE_VERSION = 0;
-
     XrayScanCacheMap() {
         artifactsMap = Collections.synchronizedMap(new TimeBasedMap());
     }
