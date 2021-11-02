@@ -94,7 +94,6 @@ public abstract class ScanCache {
 
     private void addComponents(Map<String, ? extends Component> components, Severity severity, String summary, String packageType, List<? extends Cve> cves) {
         String cveId = ListUtils.emptyIfNull(cves).stream().map(Cve::getId).filter(StringUtils::isNotBlank).findAny().orElse("");
-        cveId = StringUtils.substringAfter(cveId, "CVE-");
         for (Map.Entry<String, ? extends Component> entry : components.entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
             Component component = entry.getValue();
