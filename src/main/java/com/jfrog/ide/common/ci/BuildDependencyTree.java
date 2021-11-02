@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import com.jfrog.xray.client.services.details.DetailsResponse;
 import com.jfrog.xray.client.services.summary.General;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.Artifact;
 import org.jfrog.build.api.Build;
@@ -157,7 +158,7 @@ public class BuildDependencyTree extends DependencyTree {
         Map<String, com.jfrog.xray.client.services.summary.Artifact> sha1ToComponent = Maps.newHashMap();
 
         // Populate the above mappings. We will use the information to populate the dependency tree efficiently.
-        for (com.jfrog.xray.client.services.summary.Artifact component : response.getComponents()) {
+        for (com.jfrog.xray.client.services.summary.Artifact component : ListUtils.emptyIfNull(response.getComponents())) {
             General general = component.getGeneral();
             sha1ToComponent.put(general.getSha1(), component);
             sha1ToSha256.put(general.getSha1(), general.getSha256());
