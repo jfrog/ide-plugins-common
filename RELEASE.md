@@ -1,5 +1,13 @@
 # Release Notes
 
+## 1.8.0
+- Improve performance and memory consumption
+- Support Go 1.15
+- Show vulnerabilities and violations without summary
+- CI - Support long build names and numbers
+- CI - Support JFrog projects
+- CI - bugfix - loadBuild failed on build names with ':'
+
 ## 1.7.2
 - GraphScan - Make sure the licenses set is never empty
 - GraphScan - Send to Xray a flat tree with dependencies only
