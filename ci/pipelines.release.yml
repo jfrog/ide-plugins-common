@@ -21,7 +21,7 @@ pipelines:
             - name: idePluginsJavaReleaseGit
           integrations:
             - name: releases_temp
-            - name: github_generic
+            - name: github
         execution:
           onStart:
             - restore_cache_files gradle_cache $res_idePluginsJavaReleaseGit_resourcePath/.gradle
@@ -35,7 +35,7 @@ pipelines:
 
             # Configure git
             - git checkout master
-            - git remote set-url origin https://$int_github_generic_token@github.com/jfrog/ide-plugins-common.git
+            - git remote set-url origin https://$int_github_token@github.com/jfrog/ide-plugins-common.git
 
             # Make sure versions provided
             - echo "Checking variables"
