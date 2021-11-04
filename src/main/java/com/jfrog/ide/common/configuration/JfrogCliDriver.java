@@ -26,8 +26,13 @@ public class JfrogCliDriver implements Serializable {
     private final CommandExecutor commandExecutor;
 
     public JfrogCliDriver(Map<String, String> env) {
-        this.commandExecutor = new CommandExecutor("jfrog", env);
+        this(env,"");
     }
+
+    public JfrogCliDriver(Map<String, String> env, String path) {
+        this.commandExecutor = new CommandExecutor(path+"jfrog", env);
+    }
+
 
     @SuppressWarnings("unused")
     public boolean isJfrogCliInstalled() {
