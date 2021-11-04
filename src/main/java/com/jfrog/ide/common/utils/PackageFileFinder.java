@@ -19,6 +19,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     private final List<String> packageJsonDirectories = Lists.newArrayList();
     private final List<String> buildGradleDirectories = Lists.newArrayList();
     private final List<String> goModDirectories = Lists.newArrayList();
+    private final Set<Path> excludedDirectories = Sets.newHashSet();
     private final PathMatcher exclusions;
     private final Log logger;
 
@@ -28,13 +29,19 @@ public class PackageFileFinder implements FileVisitor<Path> {
      * @param logger        - The logger to log excluded paths when found
      */
     public PackageFileFinder(Set<Path> projectPaths, String excludedPaths, Log logger) throws IOException {
-        Set<Path> consolidatedPaths = Utils.consolidatePaths(projectPaths);
         this.exclusions = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
         this.logger = logger;
 
-        for (Path projectPath : consolidatedPaths) {
+        for (Path projectPath : Utils.consolidatePaths(projectPaths)) {
             Files.walkFileTree(projectPath, this);
         }
+        if (!excludedDirectories.isEmpty()) {
+            logger.info("The following directories are excluded from Xray scanning due to the defined Excluded Paths pattern:");
+            for (Path excludedDir : Utils.consolidatePaths(excludedDirectories)) {
+                logger.info(excludedDir.toString());
+            }
+        }
+
     }
 
     /**
@@ -74,7 +81,8 @@ public class PackageFileFinder implements FileVisitor<Path> {
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
         if (exclusions.matches(dir)) {
-            logger.info("Excluding directory '" + dir + "' from Xray scanning due to the defined Excluded Paths pattern.");
+            // Adding path for logging.
+            excludedDirectories.add(dir);
             return FileVisitResult.SKIP_SUBTREE;
         }
         return FileVisitResult.CONTINUE;
