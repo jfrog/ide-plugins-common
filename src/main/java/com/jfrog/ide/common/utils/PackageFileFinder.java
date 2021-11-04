@@ -21,7 +21,6 @@ public class PackageFileFinder implements FileVisitor<Path> {
     private final List<String> goModDirectories = Lists.newArrayList();
     private final Set<Path> excludedDirectories = Sets.newHashSet();
     private final PathMatcher exclusions;
-    private final Log logger;
 
     /**
      * @param projectPaths  - List of project base paths
@@ -30,7 +29,6 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     public PackageFileFinder(Set<Path> projectPaths, String excludedPaths, Log logger) throws IOException {
         this.exclusions = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
-        this.logger = logger;
 
         for (Path projectPath : Utils.consolidatePaths(projectPaths)) {
             Files.walkFileTree(projectPath, this);
