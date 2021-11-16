@@ -30,7 +30,6 @@ public class JfrogCliDriverTest {
     private String testServerId;
     private File tempDir;
 
-
     @SuppressWarnings("unused")
     @Test()
     private void cliExportTest() {
@@ -71,14 +70,14 @@ public class JfrogCliDriverTest {
     }
 
     private void getCli(File execDir) throws IOException {
-        List<String> args = new ArrayList();
+        List<String> args;
         if (SystemUtils.IS_OS_WINDOWS) {
-            args.addAll(0, Arrays.asList("cmd", "/c", "curl -XGET \"https://releases.jfrog.io/artifactory/jfrog-cli/v2/[RELEASE]/jfrog-cli-windows-amd64/jfrog.exe\" -L -k -g", "&& chmod u+x jfrog.exe"));
+            args = Lists.newArrayList("cmd", "/c", "curl -XGET \"https://releases.jfrog.io/artifactory/jfrog-cli/v2/[RELEASE]/jfrog-cli-windows-amd64/jfrog.exe\" -L -k -g", "&& chmod u+x jfrog.exe");
         } else {
             args = new ArrayList<>() {{
                 add("/bin/sh");
                 add("-c");
-                add("curl -fL https://getcli.jfrog.io | bash -s v2\n");
+                add("curl -fL https://getcli.jfrog.io | bash -s v2");
             }};
         }
         Process process = Runtime.getRuntime().exec(args.toArray(new String[0]), new String[0], execDir);

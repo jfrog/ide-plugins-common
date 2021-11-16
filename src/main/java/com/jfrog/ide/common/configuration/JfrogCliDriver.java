@@ -19,10 +19,9 @@ import java.util.stream.Stream;
 /**
  * @author Tal Arian
  */
-public class JfrogCliDriver implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class JfrogCliDriver {
 
-    private static final ObjectReader jsonReader = new ObjectMapper().reader();
+    private static final ObjectMapper mapper = createMapper();
     private final CommandExecutor commandExecutor;
 
     public JfrogCliDriver(Map<String, String> env) {
@@ -30,9 +29,8 @@ public class JfrogCliDriver implements Serializable {
     }
 
     public JfrogCliDriver(Map<String, String> env, String path) {
-        this.commandExecutor = new CommandExecutor(path+"jfrog", env);
+        this.commandExecutor = new CommandExecutor(Paths.get(path, "jfrog").toString(), env);
     }
-
 
     @SuppressWarnings("unused")
     public boolean isJfrogCliInstalled() {
