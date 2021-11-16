@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.configuration;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.SystemUtils;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -72,7 +73,8 @@ public class JfrogCliDriverTest {
     private void getCli(File execDir) throws IOException {
         List<String> args;
         if (SystemUtils.IS_OS_WINDOWS) {
-            args = Lists.newArrayList("cmd", "/c", "curl -XGET \"https://releases.jfrog.io/artifactory/jfrog-cli/v2/[RELEASE]/jfrog-cli-windows-amd64/jfrog.exe\" -L -k -g", "&& chmod u+x jfrog.exe");
+            args = Lists.newArrayList("cmd", "/c", "curl -XGET" +
+                    " \"https://releases.jfrog.io/artifactory/jfrog-cli/v2/[RELEASE]/jfrog-cli-windows-amd64/jfrog.exe\" -L -k -g");
         } else {
             args = new ArrayList<>() {{
                 add("/bin/sh");

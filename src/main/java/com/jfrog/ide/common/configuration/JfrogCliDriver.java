@@ -1,8 +1,6 @@
 package com.jfrog.ide.common.configuration;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandExecutor;
@@ -10,22 +8,23 @@ import org.jfrog.build.extractor.executor.CommandResults;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
  * @author Tal Arian
  */
 public class JfrogCliDriver {
 
-    private static final ObjectMapper mapper = createMapper();
+    private static final ObjectMapper jsonReader = createMapper();
     private final CommandExecutor commandExecutor;
 
     public JfrogCliDriver(Map<String, String> env) {
-        this(env,"");
+        this(env, "");
     }
 
     public JfrogCliDriver(Map<String, String> env, String path) {
