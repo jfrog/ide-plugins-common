@@ -6,7 +6,11 @@ import org.jfrog.build.client.ProxyConfiguration;
 import javax.net.ssl.SSLContext;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
-
+/**
+ * This class is used for managing JFrog CLI's configuration, so that is can be used by the IDEs.
+ *
+ * @author tala
+ */
 public class JfrogCliServerConfig implements ServerConfig {
 
     private final JsonNode serverConfig;
@@ -39,25 +43,18 @@ public class JfrogCliServerConfig implements ServerConfig {
 
     @Override
     public String getUsername() {
-        if (isNotBlank(getAccessToken())) {
-            return "";
-        }
         return getValueFromJson(USER_NAME);
     }
 
     @Override
     public String getPassword() {
-        if (isNotBlank(getAccessToken())) {
-            return "";
-        }
         return getValueFromJson(PASSWORD);
     }
 
     @Override
     public String getAccessToken() {
-        // If the configured access is refreshable, we should use
-        // the saved username and password in this context.
-        if (isNotBlank(getValueFromJson(REFRESH_TOKEN))) {
+        // Prefer username/password if possible.
+        if (isNotBlank(getValueFromJson(USER_NAME))) {
             return "";
         }
         return getValueFromJson(ACCESS_TOKEN);
