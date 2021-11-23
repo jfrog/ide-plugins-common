@@ -62,7 +62,7 @@ public class JfrogCliDriverTest {
             tempDir = Files.createTempDirectory("ide-plugins-common-cli-test").toFile();
             tempDir.deleteOnExit();
             getCli(tempDir);
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
@@ -70,7 +70,7 @@ public class JfrogCliDriverTest {
 
     }
 
-    private void getCli(File execDir) throws IOException {
+    private void getCli(File execDir) throws IOException, InterruptedException {
         List<String> args;
         if (SystemUtils.IS_OS_WINDOWS) {
             args = Lists.newArrayList("cmd", "/c", "curl -XGET" +
@@ -83,6 +83,7 @@ public class JfrogCliDriverTest {
             }};
         }
         Process process = Runtime.getRuntime().exec(args.toArray(new String[0]), new String[0], execDir);
+        process.waitFor();
         process.getOutputStream().close();
     }
 
