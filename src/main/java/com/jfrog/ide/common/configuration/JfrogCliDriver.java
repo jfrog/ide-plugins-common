@@ -29,7 +29,7 @@ public class JfrogCliDriver {
     }
 
     public JfrogCliDriver(Map<String, String> env, String path) {
-        String jfrogExec = "jfrog";
+        String jfrogExec = "jf";
         if (SystemUtils.IS_OS_WINDOWS) {
             jfrogExec += ".exe";
         }

@@ -77,15 +77,15 @@ public class JfrogCliDriverTest {
     private void getCli(File execDir) throws IOException, InterruptedException {
         List<String> args;
         if (SystemUtils.IS_OS_WINDOWS) {
-            InputStream in = new URL("https://releases.jfrog.io/artifactory/jfrog-cli/v2/[RELEASE]/jfrog-cli-windows-amd64/jfrog.exe").openStream();
-            Files.copy(in, Paths.get(tempDir.getAbsolutePath() + "\\jfrog.exe"), StandardCopyOption.REPLACE_EXISTING);
+            InputStream in = new URL("https://releases.jfrog.io/artifactory/jfrog-cli/jf-v2/[RELEASE]/jfrog-cli-windows-amd64/jf.exe").openStream();
+            Files.copy(in, Paths.get(tempDir.getAbsolutePath() + "\\jf.exe"), StandardCopyOption.REPLACE_EXISTING);
             return;
         }
 
         args = new ArrayList<>() {{
             add("/bin/sh");
             add("-c");
-            add("curl -fL https://getcli.jfrog.io | bash -s v2");
+            add("curl -fL https://getcli.jfrog.io/jf-v2 | sh");
         }};
 
         Process process = Runtime.getRuntime().exec(args.toArray(new String[0]), new String[0], execDir);
