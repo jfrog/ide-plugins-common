@@ -8,7 +8,11 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -27,7 +31,7 @@ public class JfrogCliDriverTest {
     private JfrogCliDriver jfrogCliDriver;
     private final String PASSWORD = "ide-plugins-common-test-password";
     private final String USER_NAME = "ide-plugins-common-test-user";
-    private final String URL = "https://ide/plugins/common/test/";
+    private final String SERVER_URL = "https://ide/plugins/common/test/";
     private String testServerId;
     private File tempDir;
 
@@ -38,8 +42,8 @@ public class JfrogCliDriverTest {
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
-            assertEquals(serverConfig.getUrl(), URL);
-            assertEquals(serverConfig.getXrayUrl(), URL + "xray/");
+            assertEquals(serverConfig.getUrl(), SERVER_URL);
+            assertEquals(serverConfig.getXrayUrl(), SERVER_URL + "xray/");
         } catch (IOException e) {
             fail(e.getMessage(), e);
         }
@@ -50,7 +54,7 @@ public class JfrogCliDriverTest {
         try {
             configJfrogCli();
             testServerId = createServerId();
-            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + URL, "--interactive=false", "--enc-password=false"};
+            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
             jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), null);
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
@@ -73,15 +77,17 @@ public class JfrogCliDriverTest {
     private void getCli(File execDir) throws IOException, InterruptedException {
         List<String> args;
         if (SystemUtils.IS_OS_WINDOWS) {
-            args = Lists.newArrayList("cmd", "/c", "curl -XGET" +
-                    " \"https://releases.jfrog.io/artifactory/jfrog-cli/v2/[RELEASE]/jfrog-cli-windows-amd64/jfrog.exe\" -L -k -g");
-        } else {
-            args = new ArrayList<>() {{
-                add("/bin/sh");
-                add("-c");
-                add("curl -fL https://getcli.jfrog.io | bash -s v2");
-            }};
+            InputStream in = new URL("https://releases.jfrog.io/artifactory/jfrog-cli/v2/[RELEASE]/jfrog-cli-windows-amd64/jfrog.exe").openStream();
+            Files.copy(in, Paths.get(tempDir.getAbsolutePath() + "\\jfrog.exe"), StandardCopyOption.REPLACE_EXISTING);
+            return;
         }
+
+        args = new ArrayList<>() {{
+            add("/bin/sh");
+            add("-c");
+            add("curl -fL https://getcli.jfrog.io | bash -s v2");
+        }};
+
         Process process = Runtime.getRuntime().exec(args.toArray(new String[0]), new String[0], execDir);
         process.waitFor();
         process.getOutputStream().close();
