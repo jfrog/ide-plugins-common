@@ -22,6 +22,8 @@ public interface ServerConfig {
 
     String getPassword();
 
+    String getAccessToken();
+
     String getProject();
 
     /**

@@ -5,15 +5,22 @@ import org.jfrog.build.client.ProxyConfiguration;
 
 import javax.net.ssl.SSLContext;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+/**
+ * This class is used for managing JFrog CLI's configuration, so that is can be used by the IDEs.
+ *
+ * @author tala
+ */
 public class JfrogCliServerConfig implements ServerConfig {
 
-    private JsonNode serverConfig;
-    private final String USER_NAME = "user";
-    private final String PASSWORD = "password";
-    private final String ACCESS_TOKEN = "accessToken";
-    private final String URL = "url";
-    private final String ARTIFACTORY_URL = "artifactoryUrl";
-    private final String XRAY_URL = "xrayUrl";
+    private final JsonNode serverConfig;
+    private final static String USER_NAME = "user";
+    private final static String PASSWORD = "password";
+    private final static String ACCESS_TOKEN = "accessToken";
+    private final static String REFRESH_TOKEN = "refreshToken";
+    private final static String URL = "url";
+    private final static String ARTIFACTORY_URL = "artifactoryUrl";
+    private final static String XRAY_URL = "xrayUrl";
 
     public JfrogCliServerConfig(JsonNode serverConfigNode) {
         this.serverConfig = serverConfigNode;
@@ -44,7 +51,12 @@ public class JfrogCliServerConfig implements ServerConfig {
         return getValueFromJson(PASSWORD);
     }
 
+    @Override
     public String getAccessToken() {
+        // Prefer username/password if possible.
+        if (isNotBlank(getValueFromJson(USER_NAME))) {
+            return "";
+        }
         return getValueFromJson(ACCESS_TOKEN);
     }
 

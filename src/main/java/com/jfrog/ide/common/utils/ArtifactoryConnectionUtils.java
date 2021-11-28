@@ -26,6 +26,7 @@ public class ArtifactoryConnectionUtils {
                 .setServerUrl(serverConfig.getArtifactoryUrl())
                 .setUsername(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())
+                .setAccessToken(serverConfig.getAccessToken())
                 .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()))
                 .setSslContext(sslContext)
                 .setLog(logger);

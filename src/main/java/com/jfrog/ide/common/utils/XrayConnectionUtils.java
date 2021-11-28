@@ -65,6 +65,7 @@ public class XrayConnectionUtils {
                 .setUrl(serverConfig.getXrayUrl())
                 .setUserName(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())
+                .setAccessToken(serverConfig.getAccessToken())
                 .setInsecureTls(serverConfig.isInsecureTls())
                 .setSslContext(serverConfig.getSslContext())
                 .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getXrayUrl()))

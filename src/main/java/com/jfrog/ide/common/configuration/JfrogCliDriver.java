@@ -2,6 +2,7 @@ package com.jfrog.ide.common.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -28,7 +29,11 @@ public class JfrogCliDriver {
     }
 
     public JfrogCliDriver(Map<String, String> env, String path) {
-        this.commandExecutor = new CommandExecutor(Paths.get(path, "jfrog").toString(), env);
+        String jfrogExec = "jf";
+        if (SystemUtils.IS_OS_WINDOWS) {
+            jfrogExec += ".exe";
+        }
+        this.commandExecutor = new CommandExecutor(Paths.get(path, jfrogExec).toString(), env);
     }
 
     @SuppressWarnings("unused")
