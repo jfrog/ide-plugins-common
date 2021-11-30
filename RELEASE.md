@@ -1,5 +1,10 @@
 # Release Notes
 
+## 1.9.0
+- Add access token support
+- Add new JFrog CLI driver
+- Improve excluded paths log messages
+
 ## 1.8.0
 - Improve performance and memory consumption
 - Support Go 1.15
