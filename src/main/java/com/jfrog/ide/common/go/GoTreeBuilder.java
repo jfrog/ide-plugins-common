@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
@@ -105,7 +106,15 @@ public class GoTreeBuilder {
         String[] dependenciesGraph = goGraphResult.getRes().split("\\r?\\n");
 
         // Run go list -f "{{with .Module}}{{.Path}} {{.Version}}{{end}}" all
-        CommandResults usedModulesResults = goDriver.getUsedModules(false);
+        CommandResults usedModulesResults;
+        try {
+            usedModulesResults = goDriver.getUsedModules(false, false);
+        } catch (IOException e) {
+            // Errors occurred during running "go list". Run again and this time ignore errors.
+            usedModulesResults = goDriver.getUsedModules(false, true);
+            logger.warn("Errors occurred during building the Go dependency tree. The dependency tree may be incomplete:" +
+                    System.lineSeparator() + ExceptionUtils.getRootCauseMessage(e));
+        }
         Set<String> usedModules = Arrays.stream(usedModulesResults.getRes().split("\\r?\\n"))
                 .map(String::trim)
                 .map(usedModule -> usedModule.replace(" ", "@"))
