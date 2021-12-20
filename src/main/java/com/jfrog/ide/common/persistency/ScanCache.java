@@ -2,7 +2,6 @@ package com.jfrog.ide.common.persistency;
 
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.utils.Utils;
-import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.graph.Component;
 import com.jfrog.xray.client.services.graph.License;
 import com.jfrog.xray.client.services.graph.Violation;
@@ -15,7 +14,10 @@ import org.jfrog.build.extractor.scan.Severity;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static com.jfrog.ide.common.utils.Utils.getFirstCve;
 
@@ -41,23 +43,22 @@ public abstract class ScanCache {
         scanCacheMap.put(artifact);
     }
 
-    public void add(Violation violation, String packageType) {
-        addComponents(violation.getComponents(), Severity.valueOf(violation.getSeverity()), violation.getSummary(), packageType, violation.getCves());
+    public void add(Violation violation) {
+        if (StringUtils.isBlank(violation.getLicenseKey())) {
+            add((Vulnerability) violation);
+        } else {
+            add(violation, true);
+        }
     }
 
-    public void add(Vulnerability vulnerability, String packageType) {
-        addComponents(vulnerability.getComponents(), Severity.valueOf(vulnerability.getSeverity()), vulnerability.getSummary(), packageType, vulnerability.getCves());
-    }
-
-    public void add(License license, String packageType, boolean violation) {
+    public void add(License license, boolean violation) {
         for (Map.Entry<String, ? extends Component> entry : license.getComponents().entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
-            Component component = entry.getValue();
             org.jfrog.build.extractor.scan.License cacheLicense = new org.jfrog.build.extractor.scan.License(new ArrayList<>(),
-                    license.getName(), license.getKey(), component.getFixedVersions(), violation);
+                    license.getLicenseName(), license.getLicenseKey(), license.getReferences(), violation);
 
-            if (contains(id)) {
-                Artifact artifact = get(id);
+            Artifact artifact = get(id);
+            if (artifact != null) {
                 Set<org.jfrog.build.extractor.scan.License> licenses = artifact.getLicenses();
                 // We should override existing info, in case of forced scan.
                 licenses.remove(cacheLicense);
@@ -66,8 +67,31 @@ public abstract class ScanCache {
                 continue;
             }
             // If not exist, creates a new data object.
-            GeneralInfo info = new GeneralInfo(id, component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-            Artifact artifact = new Artifact(info, new HashSet<>(), Sets.newHashSet(cacheLicense));
+            artifact = new Artifact(new GeneralInfo().componentId(id), new HashSet<>(), Sets.newHashSet(cacheLicense));
+            add(artifact);
+        }
+    }
+
+    public void add(Vulnerability vulnerability) {
+        // Search for a CVE with ID. Due to UI limitations, we take only the first match.
+        String cveId = getFirstCve(vulnerability.getCves());
+        for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
+            String id = StringUtils.substringAfter(entry.getKey(), "://");
+            Component component = entry.getValue();
+            Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()), StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(), cveId);
+
+            if (contains(id)) {
+                Artifact artifact = get(id);
+                Set<Issue> issues = artifact.getIssues();
+                // We should override existing info, in case of forced scan.
+                issues.remove(issue);
+                issues.add(issue);
+                artifact.setIssues(issues);
+                continue;
+            }
+            // If not exist, creates a new data object.
+            GeneralInfo info = new GeneralInfo(id, component.getImpactPaths().get(0).get(0).getFullPath(), "");
+            Artifact artifact = new Artifact(info, Sets.newHashSet(issue), new HashSet<>());
             add(artifact);
         }
     }
@@ -86,29 +110,5 @@ public abstract class ScanCache {
 
     void setScanCacheMap(ScanCacheMap scanCacheMap) {
         this.scanCacheMap = scanCacheMap;
-    }
-
-    private void addComponents(Map<String, ? extends Component> components, Severity severity, String summary, String packageType, List<? extends Cve> cves) {
-        // Search for a CVE with ID. Due to UI limitations, we take only the first match.
-        String cveId = getFirstCve(cves);
-        for (Map.Entry<String, ? extends Component> entry : components.entrySet()) {
-            String id = StringUtils.substringAfter(entry.getKey(), "://");
-            Component component = entry.getValue();
-            Issue issue = new Issue("", severity, StringUtils.defaultIfBlank(summary, "N/A"), component.getFixedVersions(), cveId);
-
-            if (contains(id)) {
-                Artifact artifact = get(id);
-                Set<Issue> issues = artifact.getIssues();
-                // We should override existing info, in case of forced scan.
-                issues.remove(issue);
-                issues.add(issue);
-                artifact.setIssues(issues);
-                continue;
-            }
-            // If not exist, creates a new data object.
-            GeneralInfo info = new GeneralInfo(id, component.getImpactPaths().get(0).get(0).getFullPath(), packageType);
-            Artifact artifact = new Artifact(info, Sets.newHashSet(issue), new HashSet<>());
-            add(artifact);
-        }
     }
 }

@@ -9,7 +9,6 @@ import com.jfrog.xray.client.services.graph.GraphResponse;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.collections4.CollectionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
@@ -22,6 +21,10 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
+import static org.apache.commons.collections4.CollectionUtils.isEmpty;
+import static org.apache.commons.collections4.ListUtils.emptyIfNull;
+import static org.apache.commons.lang3.StringUtils.contains;
+import static org.apache.commons.lang3.StringUtils.substringAfter;
 
 /**
  * This class includes the implementation of the Graph Scan Logic, which is used with Xray 3.29.0 and above.
@@ -72,7 +75,7 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            scanComponents(xrayClient, nodesToScan, server.getProject(), checkCanceled);
+            scanAndCache(xrayClient, nodesToScan, server.getProject(), checkCanceled);
 
             indicator.setFraction(1);
             log.debug("Saving scan cache...");
@@ -117,11 +120,14 @@ public class GraphScanLogic implements ScanLogic {
 
             // If dependency not in cache or this is a full scan - add the dependency subtree to the scan tree.
             // If dependency is in cache and this is a quick scan - skip subtree.
-            if (!quickScan || !scanCache.contains(child.toString())) {
+            String childFullId = child.toString();
+            if (!quickScan || !scanCache.contains(childFullId)) {
                 if (((DependencyTree) child.getParent()).isMetadata()) {
                     // All direct dependencies should be in the cache. This line make sure that dependencies that
                     // wouldn't return from Xray will not be scanned again during the next quick scan.
-                    scanCache.add(new Artifact(new GeneralInfo().componentId(child.toString()), new HashSet<>(), new HashSet<>()));
+                    String componentId = contains(childFullId, "://") ?
+                            substringAfter(childFullId, "://") : childFullId;
+                    scanCache.add(new Artifact(new GeneralInfo().componentId(componentId), new HashSet<>(), new HashSet<>()));
                 }
                 scanTree.add(new DependencyTree(child.getComponentId()));
                 populateScanTree(child, scanTree, quickScan);
@@ -135,7 +141,7 @@ public class GraphScanLogic implements ScanLogic {
         if (artifact == null) {
             return new Artifact(new GeneralInfo().componentId(componentId), Sets.newHashSet(), Sets.newHashSet(new License()));
         }
-        if (CollectionUtils.isEmpty(artifact.getLicenses())) {
+        if (isEmpty(artifact.getLicenses())) {
             // If no license detected in Xray, set a new unknown license
             artifact.getLicenses().add(new License());
         }
@@ -160,79 +166,36 @@ public class GraphScanLogic implements ScanLogic {
 
     /**
      * Xray scan a graph of components.
+     * A scan with project key may produce a list of licenses and a list of violated licenses and violated vulnerabilities.
+     * A scan without project key may produce a list of licenses and a list of vulnerabilities.
+     * The response form Xray will include violations security and licenses (if found) or vulnerabilities according to those watches.
      *
      * @param xrayClient      - The Xray client.
      * @param artifactsToScan - The bulk of components to scan.
-     * @param project         - The JFrog platform project-key parameter to be sent to Xray as context.
-     * @throws IOException in case of connection issues.
-     */
-    private void scanComponents(Xray xrayClient, DependencyTree artifactsToScan, String project, Runnable checkCanceled) throws IOException, InterruptedException {
-        if (project != null && !project.isEmpty()) {
-            scanComponentsWithContext(xrayClient, artifactsToScan, project, checkCanceled);
-        } else {
-            scanComponentsWithoutContext(xrayClient, artifactsToScan, checkCanceled);
-        }
-    }
-
-    /**
-     * Xray scan a graph of components.
-     * a scan without supplying a context, meaning no specific Xray's watches will be triggered.
-     * only general vulnerabilities and licenses info will be returned (if found).
-     *
-     * @param xrayClient      - The Xray client.
-     * @param artifactsToScan - The bulk of components to scan.
+     * @param projectKey      - The JFrog platform project-key parameter to be sent to Xray as context.
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private void scanComponentsWithoutContext(Xray xrayClient, DependencyTree artifactsToScan, Runnable checkCanceled) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.graph().graph(artifactsToScan, checkCanceled);
-        String packageType = scanResults.getPackageType();
-        // Without context, expect vulnerabilities.
-        // Add scan results to cache
-        if (scanResults.getVulnerabilities() != null) {
-            scanResults.getVulnerabilities().stream()
-                    .filter(Objects::nonNull)
-                    .filter(vulnerability -> vulnerability.getComponents() != null)
-                    .forEach(vulnerability -> scanCache.add(vulnerability, packageType));
-        }
+    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, String projectKey, Runnable checkCanceled) throws IOException, InterruptedException {
+        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, checkCanceled, projectKey);
 
-        if (scanResults.getLicenses() != null) {
-            scanResults.getLicenses().stream()
-                    .filter(Objects::nonNull)
-                    .filter(license -> license.getComponents() != null)
-                    .forEach(license -> scanCache.add(license, packageType, false));
-        }
-    }
+        // Add licenses to all components
+        emptyIfNull(scanResults.getLicenses()).stream()
+                .filter(Objects::nonNull)
+                .filter(license -> license.getComponents() != null)
+                .forEach(license -> scanCache.add(license, false));
 
-    /**
-     * Xray scan a graph of components.
-     * a scan with a context, meaning only specific Xray's watches that configured in the given JFrog platform project
-     * will be triggered.
-     * The response form Xray will include violations security and licenses (if found) according to those watches.
-     *
-     * @param xrayClient      - The Xray client.
-     * @param artifactsToScan - The bulk of components to scan.
-     * @param project         - The JFrog platform project-key parameter to be sent to Xray as context.
-     * @throws IOException          in case of connection issues.
-     * @throws InterruptedException in case of scan canceled.
-     */
-    private void scanComponentsWithContext(Xray xrayClient, DependencyTree artifactsToScan, String project, Runnable checkCanceled) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.graph().graph(artifactsToScan, checkCanceled, project);
-        String packageType = scanResults.getPackageType();
-        // Add scan results to cache
-        // with context, expect violations.
-        if (scanResults.getViolations() != null) {
-            scanResults.getViolations().stream()
-                    .filter(Objects::nonNull)
-                    .filter(violation -> violation.getComponents() != null)
-                    .forEach(violation -> scanCache.add(violation, packageType));
-        }
-        // Add violated licenses
-        if (scanResults.getLicenses() != null) {
-            scanResults.getLicenses().stream()
-                    .filter(Objects::nonNull)
-                    .filter(license -> license.getComponents() != null)
-                    .forEach(license -> scanCache.add(license, packageType, true));
-        }
+        // If a project key provided, add all returned violated licenses and vulnerabilities.
+        // In case of a violated license, the license added in above section will be overridden with violated=true.
+        emptyIfNull(scanResults.getViolations()).stream()
+                .filter(Objects::nonNull)
+                .filter(violation -> violation.getComponents() != null)
+                .forEach(violation -> scanCache.add(violation));
+
+        // If no project key provided, Add all returned vulnerabilities.
+        emptyIfNull(scanResults.getVulnerabilities()).stream()
+                .filter(Objects::nonNull)
+                .filter(vulnerability -> vulnerability.getComponents() != null)
+                .forEach(vulnerability -> scanCache.add(vulnerability));
     }
 }

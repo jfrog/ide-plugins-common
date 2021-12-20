@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
+import static com.jfrog.ide.common.persistency.ScanCacheMap.CACHE_VERSION;
 import static org.testng.Assert.*;
 
 /**
@@ -130,21 +131,21 @@ public class ScanCacheTest {
             ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
             scanCache.setScanCacheMap(scanCacheMap);
             scanCache.write();
-            Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), -1);
-            Assert.assertEquals(scanCache.getScanCacheMap().getArtifactsMap().get(artifactId), scanCacheObject);
+            assertEquals(scanCache.getScanCacheMap().getVersion(), -1);
+            assertEquals(scanCache.getScanCacheMap().getArtifactsMap().get(artifactId), scanCacheObject);
 
             // Read from disk and expect no errors - But empty cache
             scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
-            Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 1);
-            Assert.assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
+            assertEquals(scanCache.getScanCacheMap().getVersion(), CACHE_VERSION);
+            assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
 
             // Write and check again
             scanCache.write();
             scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
-            Assert.assertEquals(scanCache.getScanCacheMap().getVersion(), 1);
-            Assert.assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
+            assertEquals(scanCache.getScanCacheMap().getVersion(), CACHE_VERSION);
+            assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
         } catch (IOException e) {
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
         }
     }
 
