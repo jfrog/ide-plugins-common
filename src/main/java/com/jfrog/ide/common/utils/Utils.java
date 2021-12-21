@@ -68,7 +68,7 @@ public class Utils {
             VulnerableComponents vulnerableComponents = vulnerableComponentsList.get(0);
             fixedVersions = vulnerableComponents.getFixedVersions();
         }
-        return new Issue(other.getDescription(), severity, other.getSummary(), fixedVersions, getFirstCve(other.getCves()));
+        return new Issue(other.getIssueId(), severity, other.getSummary(), fixedVersions, getFirstCve(other.getCves()));
     }
 
     public static Artifact getArtifact(com.jfrog.xray.client.services.summary.Artifact other) {
