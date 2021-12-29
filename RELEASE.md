@@ -1,5 +1,9 @@
 # Release Notes
 
+## 1.10.0
+- Allow building Go dependency tree with errors
+- Populate missing fields of violations and vulnerabilities
+
 ## 1.9.0
 - Add access token support
 - Add new JFrog CLI driver
