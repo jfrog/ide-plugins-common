@@ -1,8 +1,0 @@
-resources:
-  - name: idePluginsJavaReleaseGit
-    type: GitRepo
-    configuration:
-      path: jfrog/ide-plugins-common
-      gitProvider: github
-      buildOn:
-        commit: false
