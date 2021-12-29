@@ -43,6 +43,8 @@ dependencies {
 
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     testImplementation group: 'org.testng', name: 'testng', version: '7.4.0'
 }
 
