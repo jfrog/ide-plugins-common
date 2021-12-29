@@ -22,20 +22,23 @@ repositories {
     }
 }
 
-def buildInfoVersion = '2.32.3'
+def buildInfoVersion = '2.32.5'
 dependencies {
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
-    implementation group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.9.0'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'
+    implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
+        exclude group: 'commons-codec', module: 'commons-codec'
+    }
+    implementation group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.10.0'
     implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-    implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13'
     implementation group: 'org.jfrog.filespecs', name: 'file-specs-java', version: '1.1.0'
     implementation group: 'org.apache.httpcomponents', name: 'httpcore', version: '4.4.14'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
     implementation group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
+    implementation group: 'commons-codec', name: 'commons-codec', version: '1.13'
     implementation group: 'commons-io', name: 'commons-io', version: '2.9.0'
 
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
