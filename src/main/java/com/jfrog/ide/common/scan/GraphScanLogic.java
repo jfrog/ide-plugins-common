@@ -5,7 +5,7 @@ import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.xray.client.Xray;
-import com.jfrog.xray.client.services.graph.GraphResponse;
+import com.jfrog.xray.client.services.scan.GraphResponse;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
@@ -75,7 +75,7 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            scanAndCache(xrayClient, nodesToScan, server.getProject(), checkCanceled);
+            scanAndCache(xrayClient, nodesToScan, server.getProject(), checkCanceled, indicator);
 
             indicator.setFraction(1);
             log.debug("Saving scan cache...");
@@ -176,8 +176,8 @@ public class GraphScanLogic implements ScanLogic {
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, String projectKey, Runnable checkCanceled) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, checkCanceled, projectKey);
+    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, String projectKey, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
+        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, indicator, checkCanceled, projectKey);
 
         // Add licenses to all components
         emptyIfNull(scanResults.getLicenses()).stream()

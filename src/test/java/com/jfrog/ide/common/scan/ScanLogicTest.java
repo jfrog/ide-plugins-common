@@ -16,7 +16,8 @@ import com.jfrog.xray.client.impl.services.summary.SummaryResponseImpl;
 import com.jfrog.xray.client.impl.services.system.SystemImpl;
 import com.jfrog.xray.client.impl.services.system.VersionImpl;
 import com.jfrog.xray.client.impl.util.ObjectMapperHelper;
-import com.jfrog.xray.client.services.graph.GraphResponse;
+import com.jfrog.xray.client.services.scan.GraphResponse;
+import com.jfrog.xray.client.services.scan.ScanGraphProgress;
 import com.jfrog.xray.client.services.summary.Components;
 import com.jfrog.xray.client.services.summary.SummaryResponse;
 import com.jfrog.xray.client.services.system.Version;
@@ -208,7 +209,7 @@ public class ScanLogicTest {
         }
 
         @Override
-        public GraphResponse graph(DependencyTree dependencies, Runnable checkCanceled, String projectKey) throws IOException {
+        public GraphResponse graph(DependencyTree dependencies, ScanGraphProgress progress, Runnable checkCanceled, String projectKey) throws IOException {
             return mapper.readValue(new File(SCAN_RESPONSES.resolve("graphScanViolations.json").toString()), GraphResponseImpl.class);
         }
     }
@@ -219,7 +220,7 @@ public class ScanLogicTest {
         }
 
         @Override
-        public GraphResponse graph(DependencyTree dependencies, Runnable checkCanceled, String projectKey) throws IOException {
+        public GraphResponse graph(DependencyTree dependencies, ScanGraphProgress progress, Runnable checkCanceled, String projectKey) throws IOException {
             return mapper.readValue(new File(SCAN_RESPONSES.resolve("graphScanVulnerabilities.json").toString()), GraphResponseImpl.class);
         }
     }
