@@ -61,7 +61,17 @@ public class JfrogCliServerConfig implements ServerConfig {
     }
 
     @Override
+    public PolicyType getPolicyType() {
+        return null;
+    }
+
+    @Override
     public String getProject() {
+        return null;
+    }
+
+    @Override
+    public String getWatch() {
         return null;
     }
 

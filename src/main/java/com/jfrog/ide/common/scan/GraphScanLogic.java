@@ -75,7 +75,7 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            scanAndCache(xrayClient, nodesToScan, server.getProject(), checkCanceled);
+            scanAndCache(xrayClient, nodesToScan, server, checkCanceled);
 
             indicator.setFraction(1);
             log.debug("Saving scan cache...");
@@ -172,12 +172,15 @@ public class GraphScanLogic implements ScanLogic {
      *
      * @param xrayClient      - The Xray client.
      * @param artifactsToScan - The bulk of components to scan.
-     * @param projectKey      - The JFrog platform project-key parameter to be sent to Xray as context.
+     * @param server          - JFrog platform server configuration.
+     * @param checkCanceled   - Callback that throws an exception if scan was cancelled by user
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, String projectKey, Runnable checkCanceled) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, checkCanceled, projectKey);
+    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, ServerConfig server, Runnable checkCanceled) throws IOException, InterruptedException {
+        String projectKey = server.getPolicyType() == ServerConfig.PolicyType.PROJECT ? server.getProject() : "";
+        String watch = server.getPolicyType() == ServerConfig.PolicyType.WATCH ? server.getWatch() : "";
+        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, checkCanceled, projectKey, watch);
 
         // Add licenses to all components
         emptyIfNull(scanResults.getLicenses()).stream()

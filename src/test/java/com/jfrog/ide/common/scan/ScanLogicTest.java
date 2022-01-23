@@ -208,7 +208,7 @@ public class ScanLogicTest {
         }
 
         @Override
-        public GraphResponse graph(DependencyTree dependencies, Runnable checkCanceled, String projectKey) throws IOException {
+        public GraphResponse graph(DependencyTree dependencies, Runnable checkCanceled, String projectKey, String watch) throws IOException {
             return mapper.readValue(new File(SCAN_RESPONSES.resolve("graphScanViolations.json").toString()), GraphResponseImpl.class);
         }
     }
@@ -219,7 +219,7 @@ public class ScanLogicTest {
         }
 
         @Override
-        public GraphResponse graph(DependencyTree dependencies, Runnable checkCanceled, String projectKey) throws IOException {
+        public GraphResponse graph(DependencyTree dependencies, Runnable checkCanceled, String projectKey, String watch) throws IOException {
             return mapper.readValue(new File(SCAN_RESPONSES.resolve("graphScanVulnerabilities.json").toString()), GraphResponseImpl.class);
         }
     }
