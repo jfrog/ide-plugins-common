@@ -23,8 +23,7 @@ import java.util.concurrent.CancellationException;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.ListUtils.emptyIfNull;
-import static org.apache.commons.lang3.StringUtils.contains;
-import static org.apache.commons.lang3.StringUtils.substringAfter;
+import static org.apache.commons.lang3.StringUtils.*;
 
 /**
  * This class includes the implementation of the Graph Scan Logic, which is used with Xray 3.29.0 and above.
@@ -179,8 +178,8 @@ public class GraphScanLogic implements ScanLogic {
      */
     private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, ServerConfig server, Runnable checkCanceled) throws IOException, InterruptedException {
         String projectKey = server.getPolicyType() == ServerConfig.PolicyType.PROJECT ? server.getProject() : "";
-        String watch = server.getPolicyType() == ServerConfig.PolicyType.WATCH ? server.getWatch() : "";
-        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, checkCanceled, projectKey, watch);
+        String[] watches = server.getPolicyType() == ServerConfig.PolicyType.WATCHES ? split(server.getWatches(), ",") : null;
+        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, checkCanceled, projectKey, watches);
 
         // Add licenses to all components
         emptyIfNull(scanResults.getLicenses()).stream()

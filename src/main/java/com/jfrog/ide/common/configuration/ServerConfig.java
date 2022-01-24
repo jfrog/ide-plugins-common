@@ -18,7 +18,7 @@ public interface ServerConfig {
      * PROJECT - Show JFrog platform project's violations
      * WATCH - Show Watch's violations
      */
-    enum PolicyType {VULNERABILITIES, PROJECT, WATCH}
+    enum PolicyType {VULNERABILITIES, PROJECT, WATCHES}
 
     String getUrl();
 
@@ -36,7 +36,7 @@ public interface ServerConfig {
 
     String getProject();
 
-    String getWatch();
+    String getWatches();
 
     /**
      * Return true to disable SSL certificates verification.
