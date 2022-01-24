@@ -2,10 +2,10 @@ package com.jfrog.ide.common.persistency;
 
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.utils.Utils;
-import com.jfrog.xray.client.services.graph.Component;
-import com.jfrog.xray.client.services.graph.License;
-import com.jfrog.xray.client.services.graph.Violation;
-import com.jfrog.xray.client.services.graph.Vulnerability;
+import com.jfrog.xray.client.services.scan.Component;
+import com.jfrog.xray.client.services.scan.License;
+import com.jfrog.xray.client.services.scan.Violation;
+import com.jfrog.xray.client.services.scan.Vulnerability;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.GeneralInfo;
