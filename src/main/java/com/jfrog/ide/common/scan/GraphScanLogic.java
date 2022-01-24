@@ -6,6 +6,7 @@ import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.persistency.ScanCache;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.services.scan.GraphResponse;
+import com.jfrog.xray.client.services.scan.XrayScanProgress;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
@@ -177,7 +178,7 @@ public class GraphScanLogic implements ScanLogic {
      * @throws InterruptedException in case of scan canceled.
      */
     private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, String projectKey, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, indicator, checkCanceled, projectKey);
+        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, new XrayScanProgressImpl(indicator), checkCanceled, projectKey);
 
         // Add licenses to all components
         emptyIfNull(scanResults.getLicenses()).stream()
@@ -197,5 +198,21 @@ public class GraphScanLogic implements ScanLogic {
                 .filter(Objects::nonNull)
                 .filter(vulnerability -> vulnerability.getComponents() != null)
                 .forEach(vulnerability -> scanCache.add(vulnerability));
+    }
+
+    /**
+     * Utility class reporting progress in Xray client's {@link XrayScanProgress}, using {@link ProgressIndicator}.
+     */
+    private static class XrayScanProgressImpl implements XrayScanProgress {
+        private final ProgressIndicator indicator;
+
+        public XrayScanProgressImpl(ProgressIndicator indicator) {
+            this.indicator = indicator;
+        }
+
+        @Override
+        public void setFraction(double fraction) {
+            indicator.setFraction(fraction);
+        }
     }
 }
