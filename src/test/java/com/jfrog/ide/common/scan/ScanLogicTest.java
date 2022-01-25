@@ -209,7 +209,7 @@ public class ScanLogicTest {
         }
 
         @Override
-        public GraphResponse graph(DependencyTree dependencies, XrayScanProgress progress, Runnable checkCanceled, String projectKey) throws IOException {
+        public GraphResponse graph(DependencyTree dependencies, XrayScanProgress progress, Runnable checkCanceled, String projectKey, String[] watches) throws IOException {
             return mapper.readValue(new File(SCAN_RESPONSES.resolve("graphScanViolations.json").toString()), GraphResponseImpl.class);
         }
     }
@@ -220,7 +220,7 @@ public class ScanLogicTest {
         }
 
         @Override
-        public GraphResponse graph(DependencyTree dependencies, XrayScanProgress progress, Runnable checkCanceled, String projectKey) throws IOException {
+        public GraphResponse graph(DependencyTree dependencies, XrayScanProgress progress, Runnable checkCanceled, String projectKey, String[] watches) throws IOException {
             return mapper.readValue(new File(SCAN_RESPONSES.resolve("graphScanVulnerabilities.json").toString()), GraphResponseImpl.class);
         }
     }

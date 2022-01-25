@@ -5,6 +5,8 @@ import org.jfrog.build.client.ProxyConfiguration;
 
 import javax.net.ssl.SSLContext;
 
+import java.util.List;
+
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 /**
  * This class is used for managing JFrog CLI's configuration, so that is can be used by the IDEs.
@@ -61,7 +63,17 @@ public class JfrogCliServerConfig implements ServerConfig {
     }
 
     @Override
+    public PolicyType getPolicyType() {
+        return null;
+    }
+
+    @Override
     public String getProject() {
+        return null;
+    }
+
+    @Override
+    public String getWatches() {
         return null;
     }
 

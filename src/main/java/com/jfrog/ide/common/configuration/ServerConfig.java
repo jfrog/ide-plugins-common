@@ -12,6 +12,14 @@ import static org.apache.commons.lang3.StringUtils.isNoneBlank;
  */
 @SuppressWarnings("unused")
 public interface ServerConfig {
+    /**
+     * The policy for Xray scan:
+     * VULNERABILITIES - Show all vulnerabilities
+     * PROJECT - Show JFrog platform project's violations
+     * WATCH - Show Watch's violations
+     */
+    enum PolicyType {VULNERABILITIES, PROJECT, WATCHES}
+
     String getUrl();
 
     String getXrayUrl();
@@ -24,7 +32,11 @@ public interface ServerConfig {
 
     String getAccessToken();
 
+    PolicyType getPolicyType();
+
     String getProject();
+
+    String getWatches();
 
     /**
      * Return true to disable SSL certificates verification.

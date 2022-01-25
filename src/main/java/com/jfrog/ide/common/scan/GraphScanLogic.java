@@ -24,8 +24,7 @@ import java.util.concurrent.CancellationException;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.ListUtils.emptyIfNull;
-import static org.apache.commons.lang3.StringUtils.contains;
-import static org.apache.commons.lang3.StringUtils.substringAfter;
+import static org.apache.commons.lang3.StringUtils.*;
 
 /**
  * This class includes the implementation of the Graph Scan Logic, which is used with Xray 3.29.0 and above.
@@ -76,7 +75,7 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            scanAndCache(xrayClient, nodesToScan, server.getProject(), checkCanceled, indicator);
+            scanAndCache(xrayClient, nodesToScan, server, checkCanceled, indicator);
 
             indicator.setFraction(1);
             log.debug("Saving scan cache...");
@@ -173,12 +172,15 @@ public class GraphScanLogic implements ScanLogic {
      *
      * @param xrayClient      - The Xray client.
      * @param artifactsToScan - The bulk of components to scan.
-     * @param projectKey      - The JFrog platform project-key parameter to be sent to Xray as context.
+     * @param server          - JFrog platform server configuration.
+     * @param checkCanceled   - Callback that throws an exception if scan was cancelled by user
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, String projectKey, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
-        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, new XrayScanProgressImpl(indicator), checkCanceled, projectKey);
+    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, ServerConfig server, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
+        String projectKey = server.getPolicyType() == ServerConfig.PolicyType.PROJECT ? server.getProject() : "";
+        String[] watches = server.getPolicyType() == ServerConfig.PolicyType.WATCHES ? split(server.getWatches(), ",") : null;
+        GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, new XrayScanProgressImpl(indicator), checkCanceled, projectKey, watches);
 
         // Add licenses to all components
         emptyIfNull(scanResults.getLicenses()).stream()
