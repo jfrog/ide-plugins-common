@@ -25,7 +25,7 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
 @Setter
 abstract class ScanCacheMap {
 
-    static int CACHE_VERSION = 2;
+    static int CACHE_VERSION = 3;
     static ObjectMapper objectMapper = createMapper();
 
     @JsonProperty("version")

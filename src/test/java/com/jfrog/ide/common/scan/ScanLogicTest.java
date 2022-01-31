@@ -135,7 +135,7 @@ public class ScanLogicTest {
         Issue nettyIssue = artifact.getIssues().stream()
                 .filter(issue -> StringUtils.equals(issue.getIssueId(), "XRAY-89129")).findAny().orElse(null);
         assertNotNull(nettyIssue);
-        assertEquals(nettyIssue.getCve(), "CVE-2019-16869");
+        assertEquals(nettyIssue.getCves().get(0), "CVE-2019-16869");
         assertEquals(nettyIssue.getSummary(), "Netty before 4.1.42.Final mishandles whitespace before the colon in HTTP headers (such as a \"Transfer-Encoding : chunked\" line), which leads to HTTP request smuggling.");
         assertEquals(nettyIssue.getFixedVersions(), Lists.newArrayList("[4.1.44.Final]"));
 

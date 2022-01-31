@@ -14,12 +14,9 @@ import org.jfrog.build.extractor.scan.Severity;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static com.jfrog.ide.common.utils.Utils.getFirstCve;
+import static com.jfrog.ide.common.utils.Utils.extractCves;
 
 /**
  * Cache for Xray scan.
@@ -74,11 +71,13 @@ public abstract class ScanCache {
 
     public void add(Vulnerability vulnerability) {
         // Search for a CVE with ID. Due to UI limitations, we take only the first match.
-        String cveId = getFirstCve(vulnerability.getCves());
+        List<String> cves = extractCves(vulnerability.getCves());
         for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
             Component component = entry.getValue();
-            Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()), StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(), cveId);
+            Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
+                    StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"),
+                    component.getFixedVersions(), cves, vulnerability.getReferences(), vulnerability.getIgnoreUrl());
 
             if (contains(id)) {
                 Artifact artifact = get(id);
