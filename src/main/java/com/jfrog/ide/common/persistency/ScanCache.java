@@ -7,16 +7,16 @@ import com.jfrog.xray.client.services.scan.License;
 import com.jfrog.xray.client.services.scan.Violation;
 import com.jfrog.xray.client.services.scan.Vulnerability;
 import org.apache.commons.lang3.StringUtils;
-import org.jfrog.build.extractor.scan.Artifact;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.Issue;
-import org.jfrog.build.extractor.scan.Severity;
+import org.jfrog.build.extractor.scan.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static com.jfrog.ide.common.utils.Utils.extractCves;
+import static com.jfrog.ide.common.utils.Utils.toCves;
 
 /**
  * Cache for Xray scan.
@@ -51,7 +51,7 @@ public abstract class ScanCache {
     public void add(License license, boolean violation) {
         for (Map.Entry<String, ? extends Component> entry : license.getComponents().entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
-            org.jfrog.build.extractor.scan.License cacheLicense = new org.jfrog.build.extractor.scan.License(new ArrayList<>(),
+            org.jfrog.build.extractor.scan.License cacheLicense = new org.jfrog.build.extractor.scan.License(
                     license.getLicenseName(), license.getLicenseKey(), license.getReferences(), violation);
 
             Artifact artifact = get(id);
@@ -71,13 +71,13 @@ public abstract class ScanCache {
 
     public void add(Vulnerability vulnerability) {
         // Search for a CVE with ID. Due to UI limitations, we take only the first match.
-        List<String> cves = extractCves(vulnerability.getCves());
+        List<Cve> cves = toCves(vulnerability.getCves());
         for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
             Component component = entry.getValue();
             Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
                     StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"),
-                    component.getFixedVersions(), cves, vulnerability.getReferences(), vulnerability.getIgnoreUrl());
+                    component.getFixedVersions(), cves, vulnerability.getReferences(), vulnerability.getIgnoreRuleUrl());
 
             if (contains(id)) {
                 Artifact artifact = get(id);

@@ -36,6 +36,7 @@ public class BuildDependencyTree extends DependencyTree {
 
     public BuildDependencyTree(Object userObject) {
         super(userObject);
+        setMetadata(true);
     }
 
     /**
@@ -59,6 +60,7 @@ public class BuildDependencyTree extends DependencyTree {
                     .componentId(module.getId())
                     .pkgType(module.getType());
             DependencyTree moduleNode = new DependencyTree(module.getId());
+            moduleNode.setMetadata(true);
             moduleNode.setGeneralInfo(moduleGeneralInfo);
 
             // Populate artifacts
@@ -219,7 +221,7 @@ public class BuildDependencyTree extends DependencyTree {
                 buildArtifact.setIssues(artifact.getIssues().stream()
                         .map(com.jfrog.ide.common.utils.Utils::toIssue).collect(Collectors.toSet()));
             }
-            if (artifact.getLicenses() != null) {
+            if (CollectionUtils.isNotEmpty(artifact.getLicenses())) {
                 buildArtifact.setLicenses(artifact.getLicenses().stream()
                         .map(com.jfrog.ide.common.utils.Utils::toLicense).collect(Collectors.toSet()));
             }
