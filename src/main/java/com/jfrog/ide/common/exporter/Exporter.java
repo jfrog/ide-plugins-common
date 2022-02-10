@@ -78,8 +78,10 @@ public abstract class Exporter {
         for (Issue issue : node.getIssues()) {
             ExportableVulnerability exportable = exportableVulnerabilities.get(issue.getIssueId());
             if (exportable == null) {
+                // ExportableVulnerability is new. Add it to the map.
                 exportableVulnerabilities.put(issue.getIssueId(), createExportableVulnerability(node, issue));
             } else {
+                // ExportableVulnerability already exists in the map, Append the direct dependency to it.
                 exportable.appendDirectDependency(node);
             }
         }

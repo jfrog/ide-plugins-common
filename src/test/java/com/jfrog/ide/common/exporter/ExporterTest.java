@@ -24,13 +24,13 @@ public class ExporterTest {
     private static final File EXPECTED_VIOLATED_LICENSES_CSV = EXPORTER_RESULTS.resolve("violatedLicenses.csv").toFile();
 
     @Test
-    public void testGenerateEmptyIssuesReport() throws Exception {
+    public void testGenerateEmptyVulnerabilitiesReport() throws Exception {
         Exporter exporter = new CsvExporter(new DependencyTree());
         assertEquals("", exporter.generateVulnerabilitiesReport());
     }
 
     @Test
-    public void testGenerateIssuesReport() throws Exception {
+    public void testGenerateVulnerabilitiesReport() throws Exception {
         String expected = FileUtils.readFileToString(EXPECTED_ISSUES_CSV, StandardCharsets.UTF_8);
         Exporter exporter = new CsvExporter(createTestTree());
         assertEquals(exporter.generateVulnerabilitiesReport(), expected);

@@ -16,6 +16,7 @@ import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Severity;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Comparator;
@@ -50,35 +51,38 @@ public class CsvExporter extends Exporter {
     }
 
     @Override
-    public String generateVulnerabilitiesReport() throws CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
-        Writer writer = new StringWriter();
-        StatefulBeanToCsv<CsvVulnerabilityRow> csvWriter = createCsvWriter(CsvVulnerabilityRow.class, writer);
+    public String generateVulnerabilitiesReport() throws CsvRequiredFieldEmptyException, CsvDataTypeMismatchException, IOException {
+        try (Writer writer = new StringWriter()) {
+            StatefulBeanToCsv<CsvVulnerabilityRow> csvWriter = createCsvWriter(CsvVulnerabilityRow.class, writer);
 
-        List<CsvVulnerabilityRow> issueRows = collectVulnerabilities().stream()
-                .map(exportableIssue -> (CsvVulnerabilityRow) exportableIssue)
-                .sorted(Comparator.comparing(issueRow -> Severity.valueOf(issueRow.getSeverity()), Comparator.reverseOrder()))
-                .collect(Collectors.toList());
-        for (CsvVulnerabilityRow issue : issueRows) {
-            csvWriter.write(issue);
+            List<CsvVulnerabilityRow> issueRows = collectVulnerabilities().stream()
+                    .map(exportableIssue -> (CsvVulnerabilityRow) exportableIssue)
+                    .sorted(Comparator.comparing(issueRow -> Severity.valueOf(issueRow.getSeverity()), Comparator.reverseOrder()))
+                    .collect(Collectors.toList());
+            for (CsvVulnerabilityRow issue : issueRows) {
+                csvWriter.write(issue);
+            }
+
+            return writer.toString();
         }
 
-        return writer.toString();
     }
 
     @Override
-    public String generateViolatedLicensesReport() throws CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
-        Writer writer = new StringWriter();
-        StatefulBeanToCsv<CsvViolatedViolatedLicenseRow> csvWriter = createCsvWriter(CsvViolatedViolatedLicenseRow.class, writer);
+    public String generateViolatedLicensesReport() throws CsvRequiredFieldEmptyException, CsvDataTypeMismatchException, IOException {
+        try (Writer writer = new StringWriter()) {
+            StatefulBeanToCsv<CsvViolatedViolatedLicenseRow> csvWriter = createCsvWriter(CsvViolatedViolatedLicenseRow.class, writer);
 
-        List<CsvViolatedViolatedLicenseRow> violatedLicenseRows = collectViolatedLicenses().stream()
-                .map(exportableViolatedLicense -> (CsvViolatedViolatedLicenseRow) exportableViolatedLicense)
-                .sorted(Comparator.comparing(CsvViolatedViolatedLicenseRow::getName))
-                .collect(Collectors.toList());
-        for (CsvViolatedViolatedLicenseRow violatedLicenseRow : violatedLicenseRows) {
-            csvWriter.write(violatedLicenseRow);
+            List<CsvViolatedViolatedLicenseRow> violatedLicenseRows = collectViolatedLicenses().stream()
+                    .map(exportableViolatedLicense -> (CsvViolatedViolatedLicenseRow) exportableViolatedLicense)
+                    .sorted(Comparator.comparing(CsvViolatedViolatedLicenseRow::getName))
+                    .collect(Collectors.toList());
+            for (CsvViolatedViolatedLicenseRow violatedLicenseRow : violatedLicenseRows) {
+                csvWriter.write(violatedLicenseRow);
+            }
+
+            return writer.toString();
         }
-
-        return writer.toString();
     }
 
     private <T> StatefulBeanToCsv<T> createCsvWriter(Class<T> rowClass, Writer writer) {
