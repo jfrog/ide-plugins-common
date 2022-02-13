@@ -1,0 +1,4 @@
+"LICENSE","IMPACTED DEPENDENCY","VERSION","TYPE","DIRECT DEPENDENCIES"
+"Apache-2.0","impacted-1","1.0.0","Go","node-1:1.0.0;node-2:1.1.0"
+"EPL-1.0","impacted-3","1.0.0","Go","node-2:1.1.0"
+"MIT","impacted-2","1.0.0","Go","node-2:1.1.0"

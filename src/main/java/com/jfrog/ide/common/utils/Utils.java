@@ -12,10 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.extractor.scan.*;
 
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
@@ -57,7 +54,7 @@ public class Utils {
 
     public static License toLicense(com.jfrog.xray.client.services.summary.License other) {
         List<String> moreInfoUrl = Lists.newArrayList(ListUtils.emptyIfNull(other.moreInfoUrl()));
-        return new License(Lists.newArrayList(other.getComponents()), other.getFullName(), other.getName(), moreInfoUrl);
+        return new License(other.getFullName(), other.getName(), moreInfoUrl);
     }
 
     public static Issue toIssue(com.jfrog.xray.client.services.summary.Issue other) {
@@ -68,7 +65,8 @@ public class Utils {
             VulnerableComponents vulnerableComponents = vulnerableComponentsList.get(0);
             fixedVersions = vulnerableComponents.getFixedVersions();
         }
-        return new Issue(other.getIssueId(), severity, other.getSummary(), fixedVersions, getFirstCve(other.getCves()));
+        return new Issue(other.getIssueId(), severity, other.getSummary(), fixedVersions, toCves(other.getCves()),
+                Collections.emptyList(), "");
     }
 
     public static Artifact getArtifact(com.jfrog.xray.client.services.summary.Artifact other) {
@@ -82,17 +80,15 @@ public class Utils {
     }
 
     /**
-     * Search for a CVE with ID. Due to UI limitations, we take only the first match.
+     * Convert list of {@link Cve} to list of {@link org.jfrog.build.extractor.scan.Cve}
      *
      * @param cves - CVE list
      * @return first non-empty CVE ID or an empty string.
      */
-    public static String getFirstCve(List<? extends Cve> cves) {
+    public static List<org.jfrog.build.extractor.scan.Cve> toCves(List<? extends Cve> cves) {
         return ListUtils.emptyIfNull(cves).stream()
-                .map(Cve::getId)
-                .filter(StringUtils::isNotBlank)
-                .findAny()
-                .orElse("");
+                .map(clientCve -> new org.jfrog.build.extractor.scan.Cve(clientCve.getId(), clientCve.getCvssV2Score(), clientCve.getCvssV3Score()))
+                .collect(Collectors.toList());
     }
 
     /**

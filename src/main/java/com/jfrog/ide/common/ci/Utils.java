@@ -31,6 +31,7 @@ public class Utils {
     public static DependencyTree createDependenciesNode(String moduleId) {
         DependencyTree artifactsNode = new DependencyTree(DEPENDENCIES_NODE);
         GeneralInfo artifactsGeneralInfo = new GeneralInfo().componentId(moduleId).pkgType("Module dependencies");
+        artifactsNode.setMetadata(true);
         artifactsNode.setGeneralInfo(artifactsGeneralInfo);
         return artifactsNode;
     }
@@ -38,6 +39,7 @@ public class Utils {
     public static DependencyTree createArtifactsNode(String moduleId) {
         DependencyTree artifactsNode = new DependencyTree(ARTIFACTS_NODE);
         GeneralInfo artifactsGeneralInfo = new GeneralInfo().componentId(moduleId).pkgType("Module artifacts");
+        artifactsNode.setMetadata(true);
         artifactsNode.setGeneralInfo(artifactsGeneralInfo);
         return artifactsNode;
     }

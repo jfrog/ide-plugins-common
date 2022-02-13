@@ -19,8 +19,9 @@ public class Utils {
      * @param severity the issue severity
      * @return the random issue
      */
-    static Issue createIssue(Severity severity) {
-        return new Issue(generateUID(), severity, generateUID(), Lists.newArrayList(), generateUID());
+    public static Issue createIssue(Severity severity) {
+        return new Issue(generateUID(), severity, generateUID(), Lists.newArrayList(), Lists.newArrayList(),
+                Lists.newArrayList(), generateUID());
     }
 
     /**
@@ -30,7 +31,7 @@ public class Utils {
      * @return the license
      */
     static License createLicense(String name) {
-        return new License(new ArrayList<>(), name, name, new ArrayList<>());
+        return new License(name, name, new ArrayList<>());
     }
 
     private static String generateUID() {

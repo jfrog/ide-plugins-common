@@ -17,10 +17,7 @@ import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.*;
 
 import java.text.ParseException;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.jfrog.ide.common.ci.Utils.*;
@@ -39,6 +36,7 @@ public class BuildDependencyTree extends DependencyTree {
 
     public BuildDependencyTree(Object userObject) {
         super(userObject);
+        setMetadata(true);
     }
 
     /**
@@ -62,6 +60,7 @@ public class BuildDependencyTree extends DependencyTree {
                     .componentId(module.getId())
                     .pkgType(module.getType());
             DependencyTree moduleNode = new DependencyTree(module.getId());
+            moduleNode.setMetadata(true);
             moduleNode.setGeneralInfo(moduleGeneralInfo);
 
             // Populate artifacts
@@ -222,7 +221,7 @@ public class BuildDependencyTree extends DependencyTree {
                 buildArtifact.setIssues(artifact.getIssues().stream()
                         .map(com.jfrog.ide.common.utils.Utils::toIssue).collect(Collectors.toSet()));
             }
-            if (artifact.getLicenses() != null) {
+            if (CollectionUtils.isNotEmpty(artifact.getLicenses())) {
                 buildArtifact.setLicenses(artifact.getLicenses().stream()
                         .map(com.jfrog.ide.common.utils.Utils::toLicense).collect(Collectors.toSet()));
             }
@@ -245,7 +244,8 @@ public class BuildDependencyTree extends DependencyTree {
         Enumeration<?> bfs = depthFirstEnumeration();
         while (bfs.hasMoreElements()) {
             DependencyTree node = (DependencyTree) bfs.nextElement();
-            node.setIssues(Sets.newHashSet(new org.jfrog.build.extractor.scan.Issue("", Severity.Unknown, "", null, "")));
+            node.setIssues(Sets.newHashSet(new org.jfrog.build.extractor.scan.Issue("", Severity.Unknown, "",
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), "")));
         }
     }
 
