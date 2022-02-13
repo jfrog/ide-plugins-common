@@ -1,5 +1,12 @@
 # Release Notes
 
+## 1.11.0
+- Improve progress indicator
+- Support Xray watches
+- Add CVE exporter
+- Add ignore URL and vulnerabilities references to scan cache
+- Bug fix - dependencies and artifacts without a license in the CI view are hidden
+
 ## 1.10.0
 - Allow building Go dependency tree with errors
 - Populate missing fields of violations and vulnerabilities
