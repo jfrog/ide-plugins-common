@@ -8,6 +8,7 @@ import org.jfrog.build.extractor.scan.*;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,33 +21,42 @@ import static org.testng.Assert.assertEquals;
  **/
 public class ExporterTest {
     private static final Path EXPORTER_RESULTS = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "exporter"));
-    private static final File EXPECTED_ISSUES_CSV = EXPORTER_RESULTS.resolve("issues.csv").toFile();
+    private static final File EXPECTED_VULNERABILITIES_CSV = EXPORTER_RESULTS.resolve("vulnerabilities.csv").toFile();
     private static final File EXPECTED_VIOLATED_LICENSES_CSV = EXPORTER_RESULTS.resolve("violatedLicenses.csv").toFile();
 
     @Test
     public void testGenerateEmptyVulnerabilitiesReport() throws Exception {
         Exporter exporter = new CsvExporter(new DependencyTree());
-        assertEquals("", exporter.generateVulnerabilitiesReport());
+        assertEquals(exporter.generateVulnerabilitiesReport(), "");
     }
 
     @Test
     public void testGenerateVulnerabilitiesReport() throws Exception {
-        String expected = FileUtils.readFileToString(EXPECTED_ISSUES_CSV, StandardCharsets.UTF_8);
         Exporter exporter = new CsvExporter(createTestTree());
-        assertEquals(exporter.generateVulnerabilitiesReport(), expected);
+        assertEquals(exporter.generateVulnerabilitiesReport(), readCsvFile(EXPECTED_VULNERABILITIES_CSV));
     }
 
     @Test
     public void testGenerateEmptyViolatedLicensesReport() throws Exception {
         Exporter exporter = new CsvExporter(new DependencyTree());
-        assertEquals("", exporter.generateViolatedLicensesReport());
+        assertEquals(exporter.generateViolatedLicensesReport(), "");
     }
 
     @Test
     public void testGenerateViolatedLicenseReport() throws Exception {
-        String expected = FileUtils.readFileToString(EXPECTED_VIOLATED_LICENSES_CSV, StandardCharsets.UTF_8);
         Exporter exporter = new CsvExporter(createTestTree());
-        assertEquals(exporter.generateViolatedLicensesReport(), expected);
+        assertEquals(exporter.generateViolatedLicensesReport(), readCsvFile(EXPECTED_VIOLATED_LICENSES_CSV));
+    }
+
+    /**
+     * Read CSV file and replace all Windows line breaks with Posix line breaks.
+     *
+     * @param csvFile - The CSV file to read
+     * @return CSV file content.
+     * @throws IOException in case of any I/O error.
+     */
+    private String readCsvFile(File csvFile) throws IOException {
+        return FileUtils.readFileToString(csvFile, StandardCharsets.UTF_8).replaceAll("\r\n", "\n");
     }
 
     /**
