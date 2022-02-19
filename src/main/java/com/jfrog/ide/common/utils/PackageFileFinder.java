@@ -10,36 +10,40 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author yahavi
  */
 @SuppressWarnings("unused")
 public class PackageFileFinder implements FileVisitor<Path> {
+    private static final String EXCLUDED_DIRS_MESSAGE = "The following directories are excluded from Xray scanning due to the defined Excluded Paths pattern:";
     private final List<String> packageJsonDirectories = Lists.newArrayList();
     private final List<String> buildGradleDirectories = Lists.newArrayList();
     private final List<String> goModDirectories = Lists.newArrayList();
     private final Set<Path> excludedDirectories = Sets.newHashSet();
     private final PathMatcher exclusions;
+    private final Path basePath;
 
     /**
      * @param projectPaths  - List of project base paths
+     * @param basePath      - The project base path to make sure it is not excluded from scanning
      * @param excludedPaths - Pattern of project paths to exclude from Xray scanning for npm and Go projects
      * @param logger        - The logger to log excluded paths when found
      */
-    public PackageFileFinder(Set<Path> projectPaths, String excludedPaths, Log logger) throws IOException {
+    public PackageFileFinder(Set<Path> projectPaths, Path basePath, String excludedPaths, Log logger) throws IOException {
         this.exclusions = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
+        this.basePath = basePath;
 
         for (Path projectPath : Utils.consolidatePaths(projectPaths)) {
             Files.walkFileTree(projectPath, this);
         }
         if (!excludedDirectories.isEmpty()) {
-            logger.info("The following directories are excluded from Xray scanning due to the defined Excluded Paths pattern:");
-            for (Path excludedDir : Utils.consolidatePaths(excludedDirectories)) {
-                logger.info(excludedDir.toString());
-            }
+            String message = Utils.consolidatePaths(excludedDirectories).stream()
+                    .map(Path::toString)
+                    .collect(Collectors.joining(System.lineSeparator()));
+            logger.info(EXCLUDED_DIRS_MESSAGE + System.lineSeparator() + message);
         }
-
     }
 
     /**
@@ -70,6 +74,15 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
+     * Get to excluded directories after scan.
+     *
+     * @return the excluded directories.
+     */
+    Set<Path> getExcludedDirectories() {
+        return excludedDirectories;
+    }
+
+    /**
      * Skip excluded directories like node_modules.
      *
      * @param dir   - Current directory.
@@ -78,7 +91,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-        if (exclusions.matches(dir)) {
+        if (exclusions.matches(dir) && !basePath.equals(dir)) {
             // Adding path for logging.
             excludedDirectories.add(dir);
             return FileVisitResult.SKIP_SUBTREE;
