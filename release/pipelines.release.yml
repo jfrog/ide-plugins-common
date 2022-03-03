@@ -26,6 +26,10 @@ pipelines:
           onExecute:
             - cd $res_idePluginsJavaReleaseGit_resourcePath
 
+            # Fetch submodule files
+            - git submodule init
+            - git submodule update
+
             # Set env
             - export CI=true
             - export JFROG_BUILD_STATUS=PASS
