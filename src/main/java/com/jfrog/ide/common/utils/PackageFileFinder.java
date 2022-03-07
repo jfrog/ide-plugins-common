@@ -74,7 +74,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * Get to excluded directories after scan.
+     * Get the excluded directories after scan.
      *
      * @return the excluded directories.
      */
@@ -91,6 +91,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+        // Exclude the directory from scanning if it matches the exclusions pattern, and it is not the root project base path.
         if (exclusions.matches(dir) && !basePath.equals(dir)) {
             // Adding path for logging.
             excludedDirectories.add(dir);
