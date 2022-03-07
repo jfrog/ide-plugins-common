@@ -62,6 +62,7 @@ public class NpmTreeBuilderTest {
             tempProject.deleteOnExit();
             FileUtils.copyDirectory(((Project) testArgs[0]).path.toFile(), tempProject);
 
+            // If true, the test require to run "npm install"
             if ((Boolean) testArgs[1]) {
                 npmDriver.install(tempProject, Lists.newArrayList(), null);
             }
@@ -164,6 +165,7 @@ public class NpmTreeBuilderTest {
         DependencyTree child = dependencyTree.getChildren().get(0);
         assertEquals("progress:2.0.3", child.toString());
         Set<Scope> expectedScopes = Sets.newHashSet(new Scope("dev"));
+        // If using npm 6, the dependency may be either in dev and prod scopes
         if (!isNpm7) {
             expectedScopes.add(new Scope("prod"));
         }
