@@ -3,7 +3,11 @@
 This project includes the common code used by the [JFrog Idea Plugin](https://github.com/jfrog/jfrog-idea-plugin) and the [JFrog Eclipse plugin](https://github.com/jfrog/jfrog-eclipse-plugin).
 
 # Building and Testing the Sources
-
+After cloning the project, update submodules:
+```
+git submodule init
+git submodule update
+```
 To build the code using the Gradle wrapper in Linux/Unix run:  
 ```
 > ./gradlew clean build
