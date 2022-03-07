@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"unused"})
 public class GoTreeBuilder {
 
-    // Required files of the gomod-abs Go program
+    // Required files of the gomod-absolutizer Go program
     private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, String> env;
@@ -81,18 +81,18 @@ public class GoTreeBuilder {
     }
 
     /**
-     * Copy gomod-abs Go files to a temp directory.
-     * The gomod-abs is used to change relative paths in go.mod files to absolute paths.
+     * Copy gomod-absolutizer Go files to a temp directory.
+     * The gomod-absolutizer is used to change relative paths in go.mod files to absolute paths.
      *
      * @throws IOException in case of any I/O error.
      */
     private Path prepareGoModAbs() throws IOException {
         Path goModAbsDir = Files.createTempDirectory(null);
         for (String fileName : GO_MOD_ABS_COMPONENTS) {
-            try (InputStream is = getClass().getResourceAsStream("/gomod-abs/" + fileName);
+            try (InputStream is = getClass().getResourceAsStream("/gomod-absolutizer/" + fileName);
                  OutputStream os = new FileOutputStream(goModAbsDir.resolve(fileName).toFile())) {
                 if (is == null) {
-                    throw new IOException("Couldn't find resource /gomod-abs/" + fileName);
+                    throw new IOException("Couldn't find resource /gomod-absolutizer/" + fileName);
                 }
                 is.transferTo(os);
             }
