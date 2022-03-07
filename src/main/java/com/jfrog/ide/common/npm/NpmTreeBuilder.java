@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.Map;
 
-import static com.jfrog.ide.common.log.Utils.logError;
 import static com.jfrog.ide.common.utils.Utils.createComponentId;
 
 /**
@@ -49,7 +48,7 @@ public class NpmTreeBuilder {
         if (!npmDriver.isNpmInstalled()) {
             throw new IOException("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
         }
-        JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--prod"));
+        JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--prod", "--package-lock-only"));
         DependencyTree rootNode = buildUnifiedDependencyTree(npmLsResults);
         JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
         JsonNode nameNode = packageJson.get("name");
@@ -75,7 +74,7 @@ public class NpmTreeBuilder {
         rootNode.setMetadata(true);
 
         // Run "npm ls" on the development scope
-        npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev"));
+        npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev", "--package-lock-only"));
         DependencyTree devRootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.DEVELOPMENT, projectDir);
 
         // Merge trees. We'll convert to ArrayList to avoid ConcurrentModificationException on the vector.
@@ -139,7 +138,8 @@ public class NpmTreeBuilder {
         String postfix = "";
         if (npmLsResults.get("problems") != null) {
             postfix += " (Not installed)";
-            logError(logger, "JFrog Xray - npm ls command at " + projectDir.toString() + " result had errors:" + "\n" + npmLsResults.get("problems").toString(), shouldToast);
+            logger.warn("Errors occurred during building the Npm dependency tree. " +
+                    "The dependency tree may be incomplete:\n" + npmLsResults.get("problems").toString());
         }
         return postfix;
     }
