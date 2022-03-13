@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.Build;
 import org.jfrog.build.api.search.AqlSearchResult;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 import org.jfrog.build.extractor.clientConfiguration.client.artifactory.ArtifactoryManager;
 import org.jfrog.build.extractor.producerConsumer.ConsumerRunnableBase;
@@ -84,7 +85,7 @@ public class CiManagerBase {
     public void buildCiTree(String buildsPattern, String project, ProgressIndicator indicator, Runnable checkCanceled, boolean shouldToast) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
-        ArtifactoryManagerBuilder artifactoryManagerBuilder = createArtifactoryManagerBuilder(serverConfig, log);
+        ArtifactoryManagerBuilder artifactoryManagerBuilder = createArtifactoryManagerBuilder(serverConfig, new NullLog());
         try (ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build()) {
             buildsCache.createDirectories();
             String buildInfoRepo = StringUtils.defaultIfBlank(serverConfig.getProject(), DEFAULT_PROJECT) + "-build-info";
