@@ -50,11 +50,11 @@ public class BuildDependencyTree extends DependencyTree {
         setScopes(Sets.newHashSet(new Scope()));
         setGeneralInfo(createBuildGeneralInfo(build, logger));
         if (CollectionUtils.isNotEmpty(build.getModules())) {
-            populateModulesDependencyTree(this, build);
+            populateModulesDependencyTree(this, build, logger);
         }
     }
 
-    private void populateModulesDependencyTree(DependencyTree buildDependencyTree, Build build) {
+    private void populateModulesDependencyTree(DependencyTree buildDependencyTree, Build build, Log logger) {
         for (Module module : build.getModules()) {
             GeneralInfo moduleGeneralInfo = new GeneralInfo()
                     .componentId(module.getId())
@@ -74,7 +74,7 @@ public class BuildDependencyTree extends DependencyTree {
             DependencyTree dependenciesNode = createDependenciesNode(module.getId());
             moduleNode.add(dependenciesNode);
             if (CollectionUtils.isNotEmpty(module.getDependencies())) {
-                populateDependencies(dependenciesNode, module);
+                populateDependencies(dependenciesNode, module, logger);
             }
 
             buildDependencyTree.add(moduleNode);
@@ -95,46 +95,50 @@ public class BuildDependencyTree extends DependencyTree {
         }
     }
 
-    private void populateDependencies(DependencyTree dependenciesNode, Module module) {
-        Set<Dependency> directDependencies = Sets.newHashSet();
+    private void populateDependencies(DependencyTree dependenciesNode, Module module, Log logger) {
         Multimap<String, Dependency> parentToChildren = HashMultimap.create();
         for (Dependency dependency : module.getDependencies()) {
             String[][] requestedBy = dependency.getRequestedBy();
+            // If there is no "requestedBy" field or the module is the parent of the dependency,
+            // the direct parent is the dependencies node.
             if (isEmpty(requestedBy) || isEmpty(requestedBy[0])) {
-                directDependencies.add(dependency);
+                parentToChildren.put(dependenciesNode.toString(), dependency);
                 continue;
             }
 
             for (String[] parent : requestedBy) {
-                String directParent = parent[0];
-                if (StringUtils.isBlank(requestedBy[0][0]) || StringUtils.equals(requestedBy[0][0], module.getId())) {
-                    directDependencies.add(dependency);
+                String directParent;
+                // If there is an empty "requestedBy" field or the module is the parent of the dependency -
+                // the direct parent is the dependencies node.
+                // Otherwise - the direct parent is the first dependency in the requestedBy.
+                if (isBlank(requestedBy[0][0]) || StringUtils.equals(requestedBy[0][0], module.getId())) {
+                    directParent = dependenciesNode.toString();
                 } else {
-                    parentToChildren.put(directParent, dependency);
+                    directParent = parent[0];
                 }
+                parentToChildren.put(directParent, dependency);
             }
         }
-
-        for (Dependency directDependency : directDependencies) {
-            dependenciesNode.add(populateTransitiveDependencies(directDependency, parentToChildren));
-        }
+        populateTransitiveDependencies(dependenciesNode, parentToChildren, logger);
     }
 
-    private DependencyTree populateTransitiveDependencies(Dependency dependency, Multimap<String, Dependency> parentToChildren) {
-        GeneralInfo dependencyGeneralInfo = new GeneralInfo()
-                .componentId(dependency.getId())
-                .pkgType(dependency.getType())
-                .sha1(dependency.getSha1());
-        DependencyTree dependencyTree = new DependencyTree(dependency.getId());
-        dependencyTree.setGeneralInfo(dependencyGeneralInfo);
-        Collection<String> scopes = CollectionUtils.emptyIfNull(dependency.getScopes());
-        dependencyTree.setScopes(scopes.stream().map(Scope::new).collect(Collectors.toSet()));
-        dependencyTree.setLicenses(Sets.newHashSet(new License()));
-
-        for (Dependency child : parentToChildren.get(dependency.getId())) {
-            dependencyTree.add(populateTransitiveDependencies(child, parentToChildren));
+    private void populateTransitiveDependencies(DependencyTree node, Multimap<String, Dependency> parentToChildren, Log logger) {
+        for (Dependency childDependency : parentToChildren.get(node.toString())) {
+            GeneralInfo generalInfo = new GeneralInfo()
+                    .componentId(childDependency.getId())
+                    .pkgType(childDependency.getType())
+                    .sha1(childDependency.getSha1());
+            DependencyTree child = new DependencyTree(childDependency.getId());
+            child.setGeneralInfo(generalInfo);
+            Collection<String> scopes = CollectionUtils.emptyIfNull(childDependency.getScopes());
+            child.setScopes(scopes.stream().map(Scope::new).collect(Collectors.toSet()));
+            child.setLicenses(Sets.newHashSet(new License()));
+            node.add(child);
+            if (node.hasLoop(logger)) {
+                return;
+            }
+            populateTransitiveDependencies(child, parentToChildren, logger);
         }
-        return dependencyTree;
     }
 
     /**
