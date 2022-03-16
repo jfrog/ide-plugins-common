@@ -99,9 +99,9 @@ public class BuildDependencyTree extends DependencyTree {
         Multimap<String, Dependency> parentToChildren = HashMultimap.create();
         for (Dependency dependency : module.getDependencies()) {
             String[][] requestedBy = dependency.getRequestedBy();
+            // If there is no "requestedBy" field or the module is the parent of the dependency,
+            // the direct parent is the dependencies node.
             if (isEmpty(requestedBy) || isEmpty(requestedBy[0])) {
-                // If there is no "requestedBy" field or the module is the parent of the dependency,
-                // the direct parent is the dependencies node.
                 parentToChildren.put(dependenciesNode.toString(), dependency);
                 continue;
             }
