@@ -48,7 +48,7 @@ public class GoTreeBuilder {
                 throw new IOException("Could not scan go project dependencies, because go CLI is not in the PATH.");
             }
 
-            goDriver.modTidy(false);
+            goDriver.modTidy(false, true);
             DependencyTree rootNode = createDependencyTree(goDriver);
             setGeneralInfo(rootNode);
             setNoneScope(rootNode);
