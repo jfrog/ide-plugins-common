@@ -3,9 +3,11 @@ package com.jfrog.ide.common.go;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
 import org.jfrog.build.extractor.scan.DependencyTree;
@@ -27,7 +29,9 @@ public class GoTreeBuilder {
 
     // Required files of the gomod-absolutizer Go program
     private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
+    public static final String GO_VERSION_PATTERN = "^go(\\d*.\\d*.*\\d*)";
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final Version MIN_GO_VERSION = new Version("1.16");
     private final Map<String, String> env;
     private final String executablePath;
     private final Path projectDir;
@@ -48,7 +52,8 @@ public class GoTreeBuilder {
                 throw new IOException("Could not scan go project dependencies, because go CLI is not in the PATH.");
             }
 
-            goDriver.modTidy(false);
+            CommandResults versionRes = goDriver.version(false);
+            goDriver.modTidy(false, !isBelow16(versionRes, logger));
             DependencyTree rootNode = createDependencyTree(goDriver);
             setGeneralInfo(rootNode);
             setNoneScope(rootNode);
@@ -56,6 +61,26 @@ public class GoTreeBuilder {
         } finally {
             FileUtils.deleteDirectory(tmpDir);
         }
+    }
+
+    /**
+     * Return true if the Go version below 1.16 or in case of a failure in parsing the version.
+     * Failure in parsing the go version command implies a future version and therefore >= 1.16.
+     *
+     * @param versionRes - "go version" command results
+     * @param logger     - The logger
+     * @return true if the Go version is < 1.16
+     */
+    static boolean isBelow16(CommandResults versionRes, Log logger) {
+        String[] versionSplit = StringUtils.split(versionRes.getRes());
+        if (ArrayUtils.getLength(versionSplit) < 4 || !versionSplit[2].matches(GO_VERSION_PATTERN)) {
+            logger.info("Couldn't not retrieve Go version from version command results: " + versionRes.getRes() + ". Assuming >= 1.16");
+            // This in case of a future Go version that may return a version string different than the expected.
+            // This future version is not below 1.16 and therefore we should return false.
+            return false;
+        }
+        Version version = new Version(StringUtils.substringAfter(versionSplit[2], "go"));
+        return !version.isAtLeast(MIN_GO_VERSION);
     }
 
     /**

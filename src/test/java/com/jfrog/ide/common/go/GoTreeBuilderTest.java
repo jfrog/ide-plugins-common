@@ -4,8 +4,10 @@ import com.google.common.collect.Sets;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
+import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Scope;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -13,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static com.jfrog.ide.common.go.GoTreeBuilder.isBelow16;
 import static org.testng.Assert.*;
 
 /**
@@ -164,5 +167,33 @@ public class GoTreeBuilderTest {
                 assertTrue(current.getScopes().contains(NONE_SCOPE));
             }
         }
+    }
+
+    @DataProvider
+    private Object[][] goVersionProvider() {
+        return new Object[][]{
+                // Below 1.16
+                {"go version go1.9 darwin/amd64", true},
+                {"go version go1.15 darwin/amd64", true},
+                {"go version go1.15.4 darwin/amd64", true},
+
+                // Above 1.16
+                {"go version go1.16 darwin/amd64", false},
+                {"go version go1.16.1 darwin/amd64", false},
+                {"go version go1.17.7 darwin/amd64", false},
+
+                // Error values
+                {"go version 1.15 darwin/amd64", false},
+                {"go version 1.17 darwin/amd64", false},
+                {"1.17", false},
+                {"1.15", false},
+        };
+    }
+
+    @Test(dataProvider = "goVersionProvider")
+    public void testIsBelow16(String versionOutput, boolean expectedBelow) {
+        CommandResults commandResults = new CommandResults();
+        commandResults.setRes(versionOutput);
+        assertEquals(expectedBelow, isBelow16(commandResults, new NullLog()));
     }
 }
