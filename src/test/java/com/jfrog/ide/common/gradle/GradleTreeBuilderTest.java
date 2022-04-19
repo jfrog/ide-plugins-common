@@ -1,7 +1,9 @@
 package com.jfrog.ide.common.gradle;
 
+import com.jfrog.GradleDependencyTree;
 import com.jfrog.ide.common.TestUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
@@ -18,9 +20,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.*;
 
 /**
  * Test correctness of DependencyTree for different Gradle projects.
@@ -57,7 +60,7 @@ public class GradleTreeBuilderTest {
 
         DependencyTree junit = TestUtils.getAndAssertChild(shared, "junit:junit:4.7");
         assertEquals(junit.getLicenses(), Sets.newHashSet(new License()));
-        assertEquals(junit.getScopes(), Sets.newHashSet(new Scope("Compile"), new Scope("Runtime")));
+        assertEquals(junit.getScopes(), Sets.newHashSet(new Scope("TestImplementation"), new Scope("TestRuntimeClasspath"), new Scope("TestCompileClasspath")));
         assertGeneralInfo(junit.getGeneralInfo(), "junit", "junit", "4.7", "");
     }
 
@@ -78,18 +81,22 @@ public class GradleTreeBuilderTest {
         DependencyTree shared = getAndAssertSharedModule(dependencyTree);
 
         DependencyTree missing = TestUtils.getAndAssertChild(shared, "missing:dependency:404 [unresolved]");
-        assertEquals(Sets.newHashSet(new License()), missing.getLicenses());
-        assertEquals(Sets.newHashSet(new Scope()), missing.getScopes());
+        assertEquals(missing.getLicenses(), Sets.newHashSet(new License()));
+        assertTrue(missing.getScopes().contains(new Scope("TestImplementation")));
         assertGeneralInfo(missing.getGeneralInfo(), "missing", "dependency", "404", "");
     }
 
     private DependencyTree buildGradleDependencyTree() throws IOException {
-        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(tempProject.toPath(), null, "");
+        // Add path to gradle-dep-tree JAR to "pluginLibDir" environment variable, to be read in gradle-dep-tree.gradle init script
+        Map<String, String> env = new HashMap<>(System.getenv());
+        env.put("pluginLibDir", GradleDependencyTree.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+
+        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(tempProject.toPath(), env, "");
         DependencyTree dependencyTree = gradleTreeBuilder.buildTree(new NullLog());
         assertNotNull(dependencyTree);
 
         assertEquals(dependencyTree.getUserObject(), tempProject.getName());
-        assertEquals(5, dependencyTree.getChildren().size());
+        assertEquals(dependencyTree.getChildren().size(), 3);
         return dependencyTree;
     }
 
@@ -98,14 +105,16 @@ public class GradleTreeBuilderTest {
         assertEquals(shared.getChildren().size(), 1);
         assertEquals(Sets.newHashSet(new License()), shared.getLicenses());
         assertEquals(Sets.newHashSet(new Scope()), shared.getScopes());
-        assertGeneralInfo(shared.getGeneralInfo(), "org.jfrog.test.gradle.publish", "shared", "1.0-SNAPSHOT", tempProject.toString());
+        assertGeneralInfo(shared.getGeneralInfo(), "", "shared", "", tempProject.toString());
         return shared;
     }
 
     private void assertGeneralInfo(GeneralInfo generalInfo, String groupId, String artifactId, String version, String path) {
-        assertEquals(generalInfo.getGroupId(), groupId);
-        assertEquals(generalInfo.getArtifactId(), artifactId);
-        assertEquals(generalInfo.getVersion(), version);
+        if (StringUtils.isBlank(groupId)) {
+            assertEquals(generalInfo.getComponentId(), artifactId);
+        } else {
+            assertEquals(generalInfo.getComponentId(), groupId + ":" + artifactId + ":" + version);
+        }
         assertEquals(generalInfo.getPath(), path);
         assertEquals(generalInfo.getPkgType(), "gradle");
     }
