@@ -31,7 +31,6 @@ import static org.testng.Assert.assertNotNull;
  **/
 public class CiManagerBaseTest {
     private static final String BUILD_TIMESTAMP = "2021-03-17T17:08:38.989+0200";
-    private static final String BUILD_NUMBER = "1";
 
     ObjectMapper mapper = createMapper();
     private Path cachePath;
@@ -46,33 +45,34 @@ public class CiManagerBaseTest {
         FileUtils.deleteDirectory(cachePath.toFile());
     }
 
-    @DataProvider(name = "buildNames")
-    private Object[][] getBuildNames() {
-        return new Object[][]{{"testBuild"}, {"test/build"}, {"test::build"}, {"test::build:"}, {"test%build"}};
+    @DataProvider(name = "builds")
+    private Object[][] getBuildNamesAndNumbers() {
+        return new Object[][]{{"testBuild","1"}, {"test/build","1/f"}, {"test::build","2::h"}, {"test::build:","a1::23:"}, {"test%build","test%build"}};
     }
 
-    @Test(dataProvider = "buildNames")
-    public void testLoadBuildTree(String buildName) throws IOException, ParseException {
+
+    @Test(dataProvider = "builds")
+    public void testLoadBuildTree(String buildName,String buildNumber) throws IOException, ParseException {
         // Create CI Manager Base
         CiManagerBase ciManagerBase = new CiManagerBase(cachePath, "test", new NullLog(), null);
-        cacheDummyBuild(ciManagerBase, buildName);
+        cacheDummyBuild(ciManagerBase, buildName, buildNumber);
 
         // Load build tree
-        BuildDependencyTree buildDependencyTree = ciManagerBase.loadBuildTree(new GeneralInfo().componentId(buildName + ":" + BUILD_NUMBER));
+        BuildDependencyTree buildDependencyTree = ciManagerBase.loadBuildTree(new BuildGeneralInfo().buildName(buildName).buildNumber(buildNumber));
         assertNotNull(buildDependencyTree);
 
         // Check results
-        assertEquals(buildDependencyTree.getUserObject(), buildName + "/" + BUILD_NUMBER);
+        assertEquals(buildDependencyTree.getUserObject(), buildName + "/" + buildNumber);
         GeneralInfo generalInfo = buildDependencyTree.getGeneralInfo();
         assertNotNull(generalInfo);
-        assertEquals(generalInfo.getComponentId(), buildName + ":" + BUILD_NUMBER);
+        assertEquals(generalInfo.getComponentId(), buildName + ":" + buildNumber);
     }
 
-    private void cacheDummyBuild(CiManagerBase ciManagerBase, String buildName) throws IOException {
-        Build build = new BuildInfoBuilder(buildName).number(BUILD_NUMBER).started(BUILD_TIMESTAMP).build();
-        ciManagerBase.buildsCache.save(mapper.writeValueAsBytes(build), buildName, BUILD_NUMBER, BuildsScanCache.Type.BUILD_INFO);
+    private void cacheDummyBuild(CiManagerBase ciManagerBase, String buildName, String buildNumber) throws IOException {
+        Build build = new BuildInfoBuilder(buildName).number(buildNumber).started(BUILD_TIMESTAMP).build();
+        ciManagerBase.buildsCache.save(mapper.writeValueAsBytes(build), buildName, buildNumber, BuildsScanCache.Type.BUILD_INFO);
         DetailsResponse detailsResponse = new MockDetailsResponse();
-        ciManagerBase.buildsCache.save(mapper.writeValueAsBytes(detailsResponse), buildName, BUILD_NUMBER, BuildsScanCache.Type.BUILD_SCAN_RESULTS);
+        ciManagerBase.buildsCache.save(mapper.writeValueAsBytes(detailsResponse), buildName, buildNumber, BuildsScanCache.Type.BUILD_SCAN_RESULTS);
     }
 
     private static class MockDetailsResponse extends DetailsResponseImpl {

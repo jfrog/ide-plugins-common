@@ -21,9 +21,19 @@ public class BuildGeneralInfo extends GeneralInfo implements ProducerConsumerIte
 
     public enum Status {PASSED, FAILED, UNKNOWN}
 
+    private String buildName;
+    private String buildNumber;
     private Status status;
     private Date started;
     private Vcs vcs;
+
+    public String getBuildName() {
+        return buildName;
+    }
+
+    public String getBuildNumber() {
+        return buildNumber;
+    }
 
     public Status getStatus() {
         return status;
@@ -35,6 +45,18 @@ public class BuildGeneralInfo extends GeneralInfo implements ProducerConsumerIte
 
     public Vcs getVcs() {
         return vcs;
+    }
+
+    public BuildGeneralInfo buildName(String buildName) {
+        this.buildName = buildName;
+        updateComponentID();
+        return this;
+    }
+
+    public BuildGeneralInfo buildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+        updateComponentID();
+        return this;
     }
 
     public BuildGeneralInfo status(String status) {
@@ -64,5 +86,9 @@ public class BuildGeneralInfo extends GeneralInfo implements ProducerConsumerIte
     @Override
     public String getArtifactId() {
         return StringUtils.substringBeforeLast(getComponentId(), ":");
+    }
+
+    private void updateComponentID() {
+        this.componentId(buildName + ":" + buildNumber);
     }
 }

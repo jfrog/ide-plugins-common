@@ -117,20 +117,17 @@ public class CiManagerBase {
         }
     }
 
-    public BuildDependencyTree loadBuildTree(GeneralInfo buildGeneralInfo) throws IOException, ParseException {
+    public BuildDependencyTree loadBuildTree(BuildGeneralInfo buildGeneralInfo) throws IOException, ParseException {
         BuildDependencyTree buildDependencyTree = new BuildDependencyTree();
-        String buildName = substringBeforeLast(buildGeneralInfo.getComponentId(), ":");
-        String buildNumber = substringAfterLast(buildGeneralInfo.getComponentId(), ":");
-
         // Load build info from cache
-        Build build = buildsCache.loadBuildInfo(mapper, buildName, buildNumber);
+        Build build = buildsCache.loadBuildInfo(mapper, buildGeneralInfo.getBuildName(), buildGeneralInfo.getBuildNumber());
         if (build == null) {
-            throw new IOException(String.format("Couldn't find build info object in cache for '%s/%s'.", buildName, buildNumber));
+            throw new IOException(String.format("Couldn't find build info object in cache for '%s/%s'.", buildGeneralInfo.getBuildName(), buildGeneralInfo.getBuildNumber()));
         }
         buildDependencyTree.createBuildDependencyTree(build, log);
 
         // If the build was scanned by Xray, load Xray 'details/build' response from cache
-        DetailsResponse detailsResponse = buildsCache.loadScanResults(mapper, buildName, buildNumber);
+        DetailsResponse detailsResponse = buildsCache.loadScanResults(mapper, buildGeneralInfo.getBuildName(), buildGeneralInfo.getBuildNumber());
         buildDependencyTree.populateBuildDependencyTree(detailsResponse);
 
         return buildDependencyTree;
