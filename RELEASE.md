@@ -1,5 +1,13 @@
 # Release Notes
 
+## 1.12.0
+- Use gomod-absolutizer submodule
+- Allow scanning npm projects without node_modules
+- Root project should not be excluded from scanning
+- Allow missing modules in Go
+- Bugfix - Running AQL with wrong credentials logs non-informative message
+- Bugfix - Stackoverflow in CI tree when there is a loop
+
 ## 1.11.0
 - Improve progress indicator
 - Support Xray watches
