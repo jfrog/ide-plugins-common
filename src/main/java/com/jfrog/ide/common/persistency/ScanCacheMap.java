@@ -11,6 +11,7 @@ import org.jfrog.build.extractor.scan.Artifact;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 
 import static com.jfrog.ide.common.utils.Utils.createMapper;
@@ -85,7 +86,7 @@ abstract class ScanCacheMap {
                 logger.warn("Incorrect cache version " + scanCacheMap.getVersion() + ". Zapping the old cache and starting a new one.");
                 return;
             }
-            this.artifactsMap = scanCacheMap.artifactsMap;
+            this.artifactsMap = Collections.synchronizedMap(scanCacheMap.artifactsMap);
         } catch (JsonParseException | JsonMappingException e) {
             logger.warn("Failed reading cache file, zapping the old cache and starting a new one.");
         }
