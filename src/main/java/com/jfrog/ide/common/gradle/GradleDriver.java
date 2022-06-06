@@ -14,17 +14,18 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+
+import static java.lang.System.lineSeparator;
 
 /**
  * @author yahavi
  **/
 public class GradleDriver {
-    private static final Path GRADLE_DEPS = Paths.get(System.getProperty("user.home"), ".jfrog-ide-plugins", "gradle-dependencies");
     private final CommandExecutor commandExecutor;
 
     /**
@@ -61,13 +62,13 @@ public class GradleDriver {
      * @return list of files containing the dependency trees of the Gradle projects.
      * @throws IOException in case of any I/O error.
      */
-    public File[] generateDependenciesGraphAsJson(File workingDirectory, Log logger) throws IOException {
+    public List<File> generateDependenciesGraphAsJson(File workingDirectory, Log logger) throws IOException {
         String encodedPath = Base64.getEncoder().encodeToString(workingDirectory.getName().getBytes(StandardCharsets.UTF_8));
 
         // Create temp init script file
-        Path initScript = Files.createTempFile(null, encodedPath);
+        Path initScript = Files.createTempFile("init-script", encodedPath);
         logger.debug("dependencies.gradle init script path: " + initScript);
-        try (InputStream gradleInitScript = getClass().getResourceAsStream("/dependencies.gradle")) {
+        try (InputStream gradleInitScript = getClass().getResourceAsStream("/gradle-dep-tree.gradle")) {
             if (gradleInitScript == null) {
                 throw new IOException("Couldn't find dependencies.gradle init script.");
             }
@@ -75,12 +76,19 @@ public class GradleDriver {
             // Copy init script to the temp file
             Files.copy(gradleInitScript, initScript, StandardCopyOption.REPLACE_EXISTING);
 
-            // Run "gradle generateDependenciesGraphAsJson -I <path-to-init-script>"
-            List<String> args = Lists.newArrayList("generateDependenciesGraphAsJson", "-I", initScript.toString());
-            runCommand(workingDirectory, args, logger);
+            // Run "gradle generateDepTrees -q -I <path-to-init-script>"
+            List<String> args = Lists.newArrayList("generateDepTrees", "-q", "-I", initScript.toString());
+            CommandResults results = runCommand(workingDirectory, args, logger);
+            List<File> files = new ArrayList<>();
+            for (String line : results.getRes().split(lineSeparator())) {
+                line = StringUtils.trimToNull(line);
+                if (line == null) {
+                    continue;
+                }
+                files.add(new File(line));
+            }
 
-            // Return all files under <user-home>/.jfrog-ide-plugins/gradle-dependencies/<encodedPath>
-            return GRADLE_DEPS.resolve(encodedPath).toFile().listFiles();
+            return files;
         } catch (IOException | InterruptedException e) {
             throw new IOException("Couldn't build Gradle dependency tree in workspace '" + workingDirectory + "': " + ExceptionUtils.getRootCauseMessage(e), e);
         } finally {

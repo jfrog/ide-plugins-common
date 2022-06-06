@@ -1,0 +1,11 @@
+import com.jfrog.GradleDepTree
+
+initscript {
+    dependencies {
+        classpath fileTree(System.getenv("pluginLibDir"))
+    }
+}
+
+allprojects {
+    apply plugin: GradleDepTree
+}
