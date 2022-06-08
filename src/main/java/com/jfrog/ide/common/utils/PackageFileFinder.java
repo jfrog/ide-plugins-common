@@ -18,9 +18,10 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 public class PackageFileFinder implements FileVisitor<Path> {
     private static final String EXCLUDED_DIRS_MESSAGE = "The following directories are excluded from Xray scanning due to the defined Excluded Paths pattern:";
-    private final List<String> packageJsonDirectories = Lists.newArrayList();
+    private final Set<String> packageJsonDirectories = Sets.newHashSet();
     private final List<String> buildGradleDirectories = Lists.newArrayList();
     private final List<String> goModDirectories = Lists.newArrayList();
+    private final Set<String> yarnLockDirectories = Sets.newHashSet();
     private final Set<Path> excludedDirectories = Sets.newHashSet();
     private final PathMatcher exclusions;
     private final Path basePath;
@@ -52,7 +53,19 @@ public class PackageFileFinder implements FileVisitor<Path> {
      * @return List of package.json's parent directories.
      */
     public Set<String> getNpmPackagesFilePairs() {
-        return Sets.newHashSet(packageJsonDirectories);
+        Set<String> packageJsonDirectoriesSet = Sets.newHashSet(packageJsonDirectories);
+        // A yarn project might contain package.json file and shouldn't be identified as npm project.
+        packageJsonDirectoriesSet.removeAll(yarnLockDirectories);
+        return packageJsonDirectoriesSet;
+    }
+
+    /**
+     * Get package.json directories and their directories.
+     *
+     * @return List of yarn.lock's parent directories.
+     */
+    public Set<String> getYarnPackagesFilePairs() {
+        return Sets.newHashSet(yarnLockDirectories);
     }
 
     /**
@@ -109,7 +122,9 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-        if (isNpmPackageFile(file)) {
+        if (isYarnPackageFile(file)) {
+            yarnLockDirectories.add(file.getParent().toString());
+        } else if (isNpmPackageFile(file)) {
             packageJsonDirectories.add(file.getParent().toString());
         } else if (isGradlePackageFile(file)) {
             buildGradleDirectories.add(file.getParent().toString());
@@ -143,6 +158,15 @@ public class PackageFileFinder implements FileVisitor<Path> {
      */
     private static boolean isNpmPackageFile(Path file) {
         return "package.json".equals(file.getFileName().toString());
+    }
+
+    /**
+     * Return true iff this file is yarn.lock.
+     *
+     * @return true iff this file is yarn.lock.
+     */
+    private static boolean isYarnPackageFile(Path file) {
+        return "yarn.lock".equals(file.getFileName().toString());
     }
 
     /**

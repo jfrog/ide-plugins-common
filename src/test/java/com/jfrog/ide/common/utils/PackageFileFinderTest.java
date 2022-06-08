@@ -39,9 +39,10 @@ public class PackageFileFinderTest {
     public void testMultiProjects() throws IOException {
         Path goProject = PROJECTS_DIR.resolve("go");
         Path npmProject = PROJECTS_DIR.resolve("npm");
+        Path yarnProject = PROJECTS_DIR.resolve("yarn");
         Path gradleProject = PROJECTS_DIR.resolve("gradle");
         PackageFileFinder packageFileFinder = new PackageFileFinder(
-                Sets.newHashSet(PROJECTS_DIR, goProject, npmProject, gradleProject), PROJECTS_DIR,
+                Sets.newHashSet(PROJECTS_DIR, goProject, npmProject, yarnProject, gradleProject), PROJECTS_DIR,
                 "**/*{.idea,test,node_modules}*", new NullLog());
         assertPackageFilesIncluded(packageFileFinder);
         assertEquals(packageFileFinder.getExcludedDirectories().size(), 1);
@@ -51,6 +52,8 @@ public class PackageFileFinderTest {
     private void assertPackageFilesIncluded(PackageFileFinder packageFileFinder) {
         assertEquals(packageFileFinder.getGoPackagesFilePairs().size(), 1);
         assertTrue(packageFileFinder.getGoPackagesFilePairs().stream().anyMatch(path -> path.endsWith("go")));
+        assertEquals(packageFileFinder.getYarnPackagesFilePairs().size(), 1);
+        assertTrue(packageFileFinder.getYarnPackagesFilePairs().stream().anyMatch(path -> path.endsWith("yarn")));
         assertEquals(packageFileFinder.getNpmPackagesFilePairs().size(), 1);
         assertTrue(packageFileFinder.getNpmPackagesFilePairs().stream().anyMatch(path -> path.endsWith("npm")));
         assertEquals(packageFileFinder.getBuildGradlePackagesFilePairs().size(), 3);
