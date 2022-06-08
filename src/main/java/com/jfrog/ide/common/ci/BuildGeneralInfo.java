@@ -49,13 +49,11 @@ public class BuildGeneralInfo extends GeneralInfo implements ProducerConsumerIte
 
     public BuildGeneralInfo buildName(String buildName) {
         this.buildName = buildName;
-        updateComponentID();
         return this;
     }
 
     public BuildGeneralInfo buildNumber(String buildNumber) {
         this.buildNumber = buildNumber;
-        updateComponentID();
         return this;
     }
 
@@ -88,7 +86,13 @@ public class BuildGeneralInfo extends GeneralInfo implements ProducerConsumerIte
         return StringUtils.substringBeforeLast(getComponentId(), ":");
     }
 
-    private void updateComponentID() {
-        this.componentId(buildName + ":" + buildNumber);
+    @Override
+    public String getComponentId() {
+        return buildName + ":" + buildNumber;
+    }
+
+    @Override
+    public GeneralInfo componentId(String componentId) {
+        return this;
     }
 }

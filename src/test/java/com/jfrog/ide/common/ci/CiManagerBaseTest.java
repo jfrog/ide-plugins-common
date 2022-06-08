@@ -47,12 +47,11 @@ public class CiManagerBaseTest {
 
     @DataProvider(name = "builds")
     private Object[][] getBuildNamesAndNumbers() {
-        return new Object[][]{{"testBuild","1"}, {"test/build","1/f"}, {"test::build","2::h"}, {"test::build:","a1::23:"}, {"test%build","test%build"}};
+        return new Object[][]{{"testBuild", "1"}, {"test/build", "1/f"}, {"test::build", "2::h"}, {"test::build:", "a1::23:"}, {"test%build", "test%build"}};
     }
 
-
     @Test(dataProvider = "builds")
-    public void testLoadBuildTree(String buildName,String buildNumber) throws IOException, ParseException {
+    public void testLoadBuildTree(String buildName, String buildNumber) throws IOException, ParseException {
         // Create CI Manager Base
         CiManagerBase ciManagerBase = new CiManagerBase(cachePath, "test", new NullLog(), null);
         cacheDummyBuild(ciManagerBase, buildName, buildNumber);
