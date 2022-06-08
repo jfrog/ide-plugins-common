@@ -1,5 +1,11 @@
 # Release Notes
 
+## 1.13.0
+- Add support for yarn v1
+- Improve Gradle dependencies tree building by using gradle-deps-tree library 
+- Bugfix - handle build number with colon
+- Bugfix - ConcurrentModificationException in cache
+
 ## 1.12.0
 - Use gomod-absolutizer submodule
 - Allow scanning npm projects without node_modules
