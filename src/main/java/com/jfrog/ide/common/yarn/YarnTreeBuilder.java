@@ -76,7 +76,7 @@ public class YarnTreeBuilder {
         populateDependenciesTree(rootNode, dataNode.get("trees"), new String[]{projectName});
         for (DependencyTree child : rootNode.getChildren()) {
             NpmPackageInfo packageInfo = (NpmPackageInfo) child.getUserObject();
-            child.setScopes(getScopes(packageInfo.getName(), packageInfo.getScope()));
+            child.setScopes(getScopes(packageInfo.getName()));
         }
         rootNode.setMetadata(true);
 
@@ -84,9 +84,8 @@ public class YarnTreeBuilder {
         return rootNode;
     }
 
-    private static Set<Scope> getScopes(String name, String devScope) {
+    private static Set<Scope> getScopes(String name) {
         Set<Scope> scopes = new HashSet<>();
-        scopes.add(new Scope(devScope));
         String customScope = StringUtils.substringBetween(name, "@", "/");
         if (customScope != null) {
             scopes.add(new Scope(customScope));
