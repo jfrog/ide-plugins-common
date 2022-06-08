@@ -53,10 +53,11 @@ public class Utils {
 
         Properties buildProperties = build.getProperties();
         return (BuildGeneralInfo) new BuildGeneralInfo()
+                .buildName(build.getName())
+                .buildNumber(build.getNumber())
                 .started(build.getStarted())
                 .status(buildProperties != null ? buildProperties.getProperty(BUILD_STATUS_PROP, "") : "")
                 .vcs(vcsList.get(0))
-                .componentId(build.getName() + ":" + build.getNumber())
                 .path(build.getUrl());
     }
 

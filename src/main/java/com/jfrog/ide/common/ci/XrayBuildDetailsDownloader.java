@@ -112,8 +112,8 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
         buildsCache.save(mapper.writeValueAsBytes(response), buildName, buildNumber, BuildsScanCache.Type.BUILD_SCAN_RESULTS);
     }
 
-    private void addResults(GeneralInfo generalInfo) {
-        BuildDependencyTree dependencyTree = new BuildDependencyTree(generalInfo.getArtifactId() + "/" + generalInfo.getVersion());
+    private void addResults(BuildGeneralInfo generalInfo) {
+        BuildDependencyTree dependencyTree = new BuildDependencyTree(generalInfo.getBuildName() + "/" + generalInfo.getBuildNumber());
         dependencyTree.setGeneralInfo(generalInfo);
         synchronized (root) {
             root.add(dependencyTree);
