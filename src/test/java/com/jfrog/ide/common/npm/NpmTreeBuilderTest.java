@@ -26,7 +26,7 @@ import static org.testng.Assert.*;
 
 /**
  * Test correctness of DependencyTree for different npm projects.
- * The tests verifies correctness before and after 'npm install' command.
+ * The tests verify correctness before and after 'npm install' command.
  *
  * @author yahavi
  */
@@ -177,7 +177,7 @@ public class NpmTreeBuilderTest {
         for (DependencyTree child : dependencyTree.getChildren()) {
             switch (child.toString()) {
                 case "progress:2.0.3":
-                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("prod")));
+                    assertTrue(child.getScopes().contains(new Scope("prod")));
                     break;
                 case "debug:4.1.1":
                     assertEquals(child.getScopes(), Sets.newHashSet(new Scope("dev")));
