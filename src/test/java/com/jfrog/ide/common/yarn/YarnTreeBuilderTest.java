@@ -107,7 +107,6 @@ public class YarnTreeBuilderTest {
         assertTrue(dependencyTree.isLeaf());
     }
 
-
     private void fourChildrenScenario(DependencyTree dependencyTree, String expectedProjectName) {
         int count = 0;
         for (DependencyTree child : dependencyTree.getChildren()) {
@@ -133,5 +132,4 @@ public class YarnTreeBuilderTest {
         }
         assertEquals(count, 4);
     }
-
 }

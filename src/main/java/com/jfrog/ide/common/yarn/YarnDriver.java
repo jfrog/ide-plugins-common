@@ -75,7 +75,6 @@ public class YarnDriver implements Serializable {
         return runCommand(workingDirectory, args, Collections.emptyList());
     }
 
-
     private CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs) throws IOException, InterruptedException {
         List<String> finalArgs = Stream.concat(Arrays.stream(args), extraArgs.stream()).collect(Collectors.toList());
         CommandResults commandRes = commandExecutor.exeCommand(workingDirectory, finalArgs, null, null);

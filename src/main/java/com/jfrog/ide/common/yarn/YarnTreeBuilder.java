@@ -79,8 +79,6 @@ public class YarnTreeBuilder {
             child.setScopes(getScopes(packageInfo.getName()));
         }
         rootNode.setMetadata(true);
-
-
         return rootNode;
     }
 
