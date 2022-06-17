@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jfrog.ide.common.log.Utils;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
@@ -88,7 +89,7 @@ abstract class ScanCacheMap {
             }
             this.artifactsMap = Collections.synchronizedMap(scanCacheMap.artifactsMap);
         } catch (JsonParseException | JsonMappingException e) {
-            logger.warn("Failed reading cache file, zapping the old cache and starting a new one.");
+            Utils.logError(logger, "Failed reading cache file, zapping the old cache and starting a new one.", e,false);
         }
     }
 }
