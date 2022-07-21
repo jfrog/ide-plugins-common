@@ -89,7 +89,7 @@ abstract class ScanCacheMap {
             }
             this.artifactsMap = Collections.synchronizedMap(scanCacheMap.artifactsMap);
         } catch (JsonParseException | JsonMappingException e) {
-            Utils.logError(logger, "Failed reading cache file, zapping the old cache and starting a new one.", e,false);
+            Utils.logError(logger, "Failed reading cache file, zapping the old cache and starting a new one.", e, false);
         }
     }
 }
