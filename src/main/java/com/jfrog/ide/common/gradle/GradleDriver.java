@@ -20,8 +20,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-import static java.lang.System.lineSeparator;
-
 /**
  * @author yahavi
  **/
@@ -68,6 +66,7 @@ public class GradleDriver {
         // Create temp init script file
         Path initScript = Files.createTempFile("init-script", encodedPath);
         logger.debug("dependencies.gradle init script path: " + initScript);
+        Path outputFile = Files.createTempFile("gradle-deps-tree", "");
         try (InputStream gradleInitScript = getClass().getResourceAsStream("/gradle-dep-tree.gradle")) {
             if (gradleInitScript == null) {
                 throw new IOException("Couldn't find dependencies.gradle init script.");
@@ -76,11 +75,12 @@ public class GradleDriver {
             // Copy init script to the temp file
             Files.copy(gradleInitScript, initScript, StandardCopyOption.REPLACE_EXISTING);
 
-            // Run "gradle generateDepTrees -q -I <path-to-init-script>"
-            List<String> args = Lists.newArrayList("generateDepTrees", "-q", "-I", initScript.toString());
-            CommandResults results = runCommand(workingDirectory, args, logger);
+            // Run "gradle generateDepTrees -q -I <path-to-init-script>" -Dcom.jfrog.depsTreeOutputFile=<path-to-output-file>
+            List<String> args = Lists.newArrayList("generateDepTrees", "-q", "-I", initScript.toString(),
+                    "-Dcom.jfrog.depsTreeOutputFile=" + outputFile.toString());
+            runCommand(workingDirectory, args, logger);
             List<File> files = new ArrayList<>();
-            for (String line : results.getRes().split(lineSeparator())) {
+            for (String line : Files.readAllLines(outputFile)) {
                 line = StringUtils.trimToNull(line);
                 if (line == null) {
                     continue;
@@ -93,6 +93,7 @@ public class GradleDriver {
             throw new IOException("Couldn't build Gradle dependency tree in workspace '" + workingDirectory + "': " + ExceptionUtils.getRootCauseMessage(e), e);
         } finally {
             FileUtils.forceDelete(initScript.toFile());
+            FileUtils.forceDelete(outputFile.toFile());
         }
     }
 
