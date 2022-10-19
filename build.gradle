@@ -28,7 +28,7 @@ dependencies {
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6.1'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.4.2'
     implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
         exclude group: 'commons-codec', module: 'commons-codec'
     }
@@ -39,15 +39,17 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
     implementation group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.13'
-    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '1.1.0'
+    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '2.0.0'
     implementation group: 'commons-io', name: 'commons-io', version: '2.9.0'
-    implementation group: 'com.opencsv', name: 'opencsv', version: '5.5.2'
+    implementation(group: 'com.opencsv', name: 'opencsv', version: '5.7.0') {
+        exclude group: 'common-collections', module: 'commons-collections'
+    }
 
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
-    testImplementation group: 'org.testng', name: 'testng', version: '7.4.0'
+    testImplementation group: 'org.testng', name: 'testng', version: '7.6.1'
 }
 
 task uberJar(type: Jar) {
