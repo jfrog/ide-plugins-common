@@ -1,5 +1,8 @@
 # Release Notes
 
+| Release notes moved to https://github.com/jfrog/ide-plugins-common/releases |
+|-----------------------------------------------------------------------------|
+
 ## 1.13.0
 - Add support for yarn v1
 - Improve Gradle dependencies tree building by using gradle-deps-tree library 
