@@ -1,0 +1,8 @@
+version: 1
+type: gradle
+deployer:
+  deployMavenDescriptors: true
+  deployIvyDescriptors: true
+  ivyPattern: '[organization]/[module]/ivy-[revision].xml'
+  artifactPattern: '[organization]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]'
+useWrapper: true
