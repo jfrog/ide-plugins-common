@@ -24,6 +24,7 @@ public class JfrogCliDriver {
     private static final ObjectMapper jsonReader = createMapper();
     private final CommandExecutor commandExecutor;
 
+    @SuppressWarnings("unused")
     public JfrogCliDriver(Map<String, String> env) {
         this(env, "");
     }
@@ -46,6 +47,7 @@ public class JfrogCliDriver {
         }
     }
 
+    @SuppressWarnings("unused")
     public JfrogCliServerConfig getServerConfig() throws IOException {
         return getServerConfig(Paths.get(".").toAbsolutePath().normalize().toFile(), Collections.emptyList());
     }
@@ -66,7 +68,7 @@ public class JfrogCliDriver {
             String decodedString = new String(decodedBytes);
             return new JfrogCliServerConfig(jsonReader.readTree(decodedString));
         } catch (IOException | InterruptedException e) {
-            throw new IOException("jfrog config export command failed." +
+            throw new IOException("'jfrog config export' command failed. " +
                     "That might be happen if you haven't config any CLI server yet or using the config encryption feature.", e);
         }
     }
