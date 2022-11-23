@@ -69,8 +69,8 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
                     break;
                 }
                 BuildGeneralInfo generalInfo = (BuildGeneralInfo) item;
-                String buildName = generalInfo.getArtifactId();
-                String buildNumber = generalInfo.getVersion();
+                String buildName = generalInfo.getBuildName();
+                String buildNumber = generalInfo.getBuildNumber();
                 try {
                     checkCancel.run();
                     if (!xraySupported) {
