@@ -2,9 +2,9 @@ package com.jfrog.ide.common.persistency;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jfrog.ide.common.tree.Artifact;
 import lombok.Getter;
 import lombok.Setter;
-import org.jfrog.build.extractor.scan.Artifact;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;

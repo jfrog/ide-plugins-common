@@ -3,16 +3,17 @@ package com.jfrog.ide.common.scan;
 import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
+import com.jfrog.ide.common.tree.Artifact;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 
@@ -48,22 +49,6 @@ public abstract class ScanManagerBase {
     }
 
     /**
-     * Populate a DependencyTree node with issues, licenses and general info from the scan cache.
-     *
-     * @param node - The root node.
-     */
-    protected void populateDependencyTreeNode(DependencyTree node) {
-        Artifact scanArtifact = getArtifactSummary(node.toString());
-        if (scanArtifact != null) {
-            node.setIssues(Sets.newHashSet(scanArtifact.getIssues()));
-            node.setLicenses(Sets.newHashSet(scanArtifact.getLicenses()));
-            if (node.getGeneralInfo() == null) {
-                node.setGeneralInfo(scanArtifact.getGeneralInfo());
-            }
-        }
-    }
-
-    /**
      * Recursively, add all dependencies list licenses to the licenses set.
      *
      * @param node - The root DependencyTree node.
@@ -93,52 +78,58 @@ public abstract class ScanManagerBase {
         return allScopes;
     }
 
-    /**
-     * @param componentId artifact component ID.
-     * @return {@link Artifact} according to the component ID.
-     */
-    protected Artifact getArtifactSummary(String componentId) {
-        return scanLogic.getArtifactSummary(componentId);
-    }
-
+    // TODO: update comment
     /**
      * Scan and cache components.
      *
      * @param indicator - Progress bar.
-     * @param quickScan - Quick or full scan.
      */
-    public void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) throws IOException, InterruptedException {
+    public Map<String, Artifact> scanArtifacts(ProgressIndicator indicator, DependencyTree dependencyTree) throws IOException, InterruptedException {
         log.debug("Start scan for '" + projectName + "'.");
-        if (scanLogic.scanAndCacheArtifacts(serverConfig, indicator, quickScan, prefix, this::checkCanceled)) {
+        Map<String, Artifact> results = scanLogic.scanArtifacts(dependencyTree, serverConfig, indicator, prefix, this::checkCanceled);
+        // TODO: consider removing this if
+        if (results != null) {
             log.debug("Scan for '" + projectName + "' finished successfully.");
         } else {
             log.debug("Wasn't able to scan '" + projectName + "'.");
         }
+        return results;
     }
 
 
-    /**
-     * Add Xray scan results from cache to the dependency tree.
-     *
-     * @param node - The dependency tree.
-     */
-    protected void addXrayInfoToTree(DependencyTree node) {
-        if (node == null || node.isLeaf()) {
-            return;
-        }
-        for (DependencyTree child : node.getChildren()) {
-            populateDependencyTreeNode(child);
-            addXrayInfoToTree(child);
-        }
-    }
+    // TODO: update comment
+//    /**
+//     * Add Xray scan results from cache to the dependency tree.
+//     *
+//     * @param node - The dependency tree.
+//     */
+//    private void populateDescriptorNode(BasicTreeNode fileNode, DependencyTree node) {
+//        if (!node.getIssues().isEmpty() || !node.getViolatedLicenses().isEmpty()) {
+//            BasicTreeNode depNode = new DependencyTreeNode(node);
+//            for (Issue issue : node.getIssues()) {
+//                BasicTreeNode issueNode = new IssueTreeNode(issue);
+//                // TODO: not done
+//            }
+//            fileNode.add(depNode);
+//        }
+//        if (node.isLeaf()) {
+//            return;
+//        }
+//        for (DependencyTree child : node.getChildren()) {
+//            populateDependencyTreeNode(child);
+//            populateDescriptorNode(fileNode, child);
+//        }
+//    }
 
-    public DependencyTree getScanResults() {
-        return scanLogic.getScanResults();
-    }
+    // TODO: remove? or save the scan results in the new format, and then filter.
+//    public DependencyTree getScanResults() {
+//        return scanLogic.getScanResults();
+//    }
 
-    public void setScanResults(DependencyTree results) {
-        scanLogic.setScanResults(results);
-    }
+    // TODO: remove
+//    public void setScanResults(DependencyTree results) {
+//        scanLogic.setScanResults(results);
+//    }
 
     /**
      * @throws CancellationException if the user clicked on the cancel button.

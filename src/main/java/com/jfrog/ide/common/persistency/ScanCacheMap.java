@@ -5,10 +5,10 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.ide.common.log.Utils;
+import com.jfrog.ide.common.tree.Artifact;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.Artifact;
 
 import java.io.File;
 import java.io.IOException;
