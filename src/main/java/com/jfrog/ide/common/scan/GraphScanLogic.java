@@ -19,6 +19,7 @@ import org.jfrog.build.extractor.scan.License;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
@@ -98,7 +99,8 @@ public class GraphScanLogic implements ScanLogic {
      */
     DependencyTree createScanTree(DependencyTree root, boolean quickScan) {
         DependencyTree scanTree = new DependencyTree(root.getUserObject());
-        populateScanTree(root, scanTree, quickScan);
+        Set<String> componentsAdded = new HashSet<>();
+        populateScanTree(root, scanTree, quickScan, componentsAdded);
         return scanTree;
     }
 
@@ -106,15 +108,16 @@ public class GraphScanLogic implements ScanLogic {
      * Recursively, populate scan tree with the project's dependencies.
      * The result is a flat tree with only dependencies needed for the Xray scan.
      *
-     * @param root      - The root dependency tree node
-     * @param scanTree  - The result
-     * @param quickScan - Quick or full scan
+     * @param root            - The root dependency tree node
+     * @param scanTree        - The result
+     * @param quickScan       - Quick or full scan
+     * @param componentsAdded - Set of added components used to remove duplications
      */
-    private void populateScanTree(DependencyTree root, DependencyTree scanTree, boolean quickScan) {
+    private void populateScanTree(DependencyTree root, DependencyTree scanTree, boolean quickScan, Set<String> componentsAdded) {
         for (DependencyTree child : root.getChildren()) {
             // Don't add metadata nodes to the scan tree
             if (child.isMetadata()) {
-                populateScanTree(child, scanTree, quickScan);
+                populateScanTree(child, scanTree, quickScan, componentsAdded);
                 continue;
             }
 
@@ -129,8 +132,10 @@ public class GraphScanLogic implements ScanLogic {
                             substringAfter(childFullId, "://") : childFullId;
                     scanCache.add(new Artifact(new GeneralInfo().componentId(componentId), new HashSet<>(), new HashSet<>()));
                 }
-                scanTree.add(new DependencyTree(child.getComponentId()));
-                populateScanTree(child, scanTree, quickScan);
+                if (componentsAdded.add(child.getComponentId())) {
+                    scanTree.add(new DependencyTree(child.getComponentId()));
+                }
+                populateScanTree(child, scanTree, quickScan, componentsAdded);
             }
         }
     }
