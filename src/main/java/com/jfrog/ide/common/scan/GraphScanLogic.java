@@ -45,6 +45,7 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     // TODO: update comment
+
     /**
      * Scan and cache components.
      *
@@ -104,7 +105,8 @@ public class GraphScanLogic implements ScanLogic {
 //     */
 //    DependencyTree createScanTree(DependencyTree root) {
 //        DependencyTree scanTree = new DependencyTree(root.getUserObject());
-//        populateScanTree(root, scanTree);
+//        Set<String> componentsAdded = new HashSet<>();
+//        populateScanTree(root, scanTree, componentsAdded);
 //        return scanTree;
 //    }
 
@@ -114,14 +116,14 @@ public class GraphScanLogic implements ScanLogic {
 //     * Recursively, populate scan tree with the project's dependencies.
 //     * The result is a flat tree with only dependencies needed for the Xray scan.
 //     *
-//     * @param root      - The root dependency tree node
-//     * @param scanTree  - The result
-//     */
-//    private void populateScanTree(DependencyTree root, DependencyTree scanTree) {
+//     * @param root            - The root dependency tree node
+//     * @param scanTree        - The result
+//     * @param componentsAdded - Set of added components used to remove duplications//     */
+//    private void populateScanTree(DependencyTree root, DependencyTree scanTree, Set<String> componentsAdded) {
 //        for (DependencyTree child : root.getChildren()) {
 //            // Don't add metadata nodes to the scan tree
 //            if (child.isMetadata()) {
-//                populateScanTree(child, scanTree);
+//                populateScanTree(child, scanTree, componentsAdded);
 //                continue;
 //            }
 //
@@ -135,8 +137,10 @@ public class GraphScanLogic implements ScanLogic {
 //                String componentId = contains(childFullId, "://") ?
 //                        substringAfter(childFullId, "://") : childFullId;
 //            }
-//            scanTree.add(new DependencyTree(child.getComponentId()));
-//            populateScanTree(child, scanTree);
+//            if (componentsAdded.add(child.getComponentId())) {
+//                scanTree.add(new DependencyTree(child.getComponentId()));
+//            }
+//            populateScanTree(child, scanTree, componentsAdded);
 //        }
 //    }
 
