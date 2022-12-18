@@ -56,10 +56,14 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
         children.sort((treeNode1, treeNode2) -> ((IssueOrLicense) treeNode2).getSeverity().ordinal() - ((IssueOrLicense) treeNode1).getSeverity().ordinal());
     }
 
-    // TODO: complete these
     @Override
     public String getTitle() {
-        return generalInfo.getArtifactId();
+        final String prefixSeparator = "://";
+        int prefixIndex = generalInfo.getComponentId().indexOf(prefixSeparator);
+        if (prefixIndex == -1) {
+            return generalInfo.getComponentId();
+        }
+        return generalInfo.getComponentId().substring(prefixIndex + prefixSeparator.length());
     }
 
     @Override

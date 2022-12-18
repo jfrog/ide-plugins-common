@@ -79,6 +79,10 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
         return ignoreRuleUrl;
     }
 
+    public Cve getCve() {
+        return cve;
+    }
+
     @JsonIgnore
     @SuppressWarnings("WeakerAccess")
     public boolean isTopSeverity() {
