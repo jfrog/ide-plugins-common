@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.tree;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import java.io.Serializable;
 import java.util.List;
 
@@ -74,5 +75,16 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
     @Override
     public String getIcon() {
         return topSeverity.getIconName();
+    }
+
+    @Override
+    public Object clone() {
+        Artifact newNode = (Artifact)super.clone();
+        for (TreeNode child : children) {
+            IssueOrLicense issue = (IssueOrLicense) child;
+            IssueOrLicense clonedIssue = (IssueOrLicense) issue.clone();
+            newNode.addIssueOrLicense(clonedIssue);
+        }
+        return newNode;
     }
 }

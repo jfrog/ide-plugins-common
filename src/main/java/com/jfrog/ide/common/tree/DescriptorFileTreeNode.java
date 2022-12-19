@@ -10,6 +10,15 @@ public class DescriptorFileTreeNode extends FileTreeNode {
         super(filePath);
     }
 
+    public void addDependency(Artifact dependency) {
+        Artifact clonedDep = (Artifact) dependency.clone();
+        add(clonedDep);
+        if (clonedDep.getTopSeverity().isHigherThan(topSeverity)) {
+            topSeverity = clonedDep.getTopSeverity();
+        }
+        sortChildren();
+    }
+
     public void addDependencies(Collection<Artifact> dependencies) {
         for (Artifact dependency : dependencies) {
             add(dependency);
