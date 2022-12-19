@@ -28,8 +28,8 @@ dependencies {
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.4.2'
-    implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.14.1'
+    implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.14') {
         exclude group: 'commons-codec', module: 'commons-codec'
     }
     implementation group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.11.0'
