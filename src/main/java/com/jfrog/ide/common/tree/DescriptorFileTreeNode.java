@@ -21,6 +21,14 @@ public class DescriptorFileTreeNode extends FileTreeNode {
         addDependencies(Collections.singletonList(dependency));
     }
 
+    public void addDependency(IssueTreeNode issue) {
+        add(issue);
+        if (issue.getSeverity().isHigherThan(topSeverity)) {
+            topSeverity = issue.getSeverity();
+        }
+    }
+
+
     /**
      * Adds dependencies as children of the descriptor file.
      * Each dependency can have only one parent.
