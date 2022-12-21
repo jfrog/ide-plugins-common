@@ -3,7 +3,7 @@ import org.jfrog.gradle.plugin.artifactory.task.ArtifactoryTask
 buildscript {
     repositories {
         mavenLocal()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath("org.jfrog.buildinfo", "build-info-extractor-gradle", "4.+")
