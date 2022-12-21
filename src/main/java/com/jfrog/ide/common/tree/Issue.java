@@ -16,26 +16,29 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
 
     private Severity severity = Severity.Normal;
     private List<String> fixedVersions;
+    private List<String> infectedVersions;
     private List<String> references;
-    private String component = "";
-    private String ignoreRuleUrl;
     private Cve cve;
     private String summary;
     private String issueId;
+    private String lastUpdated;
+    private ResearchInfo researchInfo;
 
     public Issue() {
     }
 
     @SuppressWarnings("unused")
-    public Issue(String issueId, Severity severity, String summary, List<String> fixedVersions, Cve cve,
-                 List<String> references, String ignoreRuleUrl) {
+    public Issue(String issueId, Severity severity, String summary, List<String> fixedVersions, List<String> infectedVersions,
+                 Cve cve, String lastUpdated, List<String> references, ResearchInfo researchInfo) {
         this.issueId = issueId;
         this.severity = severity;
         this.summary = summary;
         this.fixedVersions = fixedVersions;
+        this.infectedVersions = infectedVersions;
         this.cve = cve;
+        this.lastUpdated = lastUpdated;
         this.references = references;
-        this.ignoreRuleUrl = ignoreRuleUrl;
+        this.researchInfo = researchInfo;
     }
 
     public String getIssueId() {
@@ -44,14 +47,6 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
 
     public Severity getSeverity() {
         return this.severity;
-    }
-
-    public String getComponent() {
-        return this.component;
-    }
-
-    public void setComponent(String component) {
-        this.component = component;
     }
 
     @SuppressWarnings("unused")
@@ -69,18 +64,26 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
         this.fixedVersions = fixedVersions;
     }
 
+    public List<String> getInfectedVersions() {
+        return infectedVersions;
+    }
+
     @SuppressWarnings("unused")
     public List<String> getReferences() {
         return references;
     }
 
-    @SuppressWarnings("unused")
-    public String getIgnoreRuleUrl() {
-        return ignoreRuleUrl;
-    }
-
     public Cve getCve() {
         return cve;
+    }
+
+    public String getLastUpdated() {
+        return lastUpdated;
+    }
+
+    @SuppressWarnings("unused")
+    public ResearchInfo getResearchInfo() {
+        return researchInfo;
     }
 
     @JsonIgnore

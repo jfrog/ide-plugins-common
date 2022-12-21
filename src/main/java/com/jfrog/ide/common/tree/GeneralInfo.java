@@ -38,23 +38,25 @@ public class GeneralInfo implements Serializable {
     }
 
     public String getArtifactId() {
-        int colonMatches = StringUtils.countMatches(componentId, ":");
+        String compIdWithoutPrefix = getComponentIdWithoutPrefix();
+        int colonMatches = StringUtils.countMatches(compIdWithoutPrefix, ":");
         if (colonMatches < 1 || colonMatches > 2) {
             return "";
         }
-        int indexOfColon = componentId.indexOf(":");
+        int indexOfColon = compIdWithoutPrefix.indexOf(":");
         if (colonMatches == 1) {
-            return componentId.substring(0, indexOfColon);
+            return compIdWithoutPrefix.substring(0, indexOfColon);
         }
-        return componentId.substring(indexOfColon + 1, componentId.lastIndexOf(":"));
+        return compIdWithoutPrefix.substring(indexOfColon + 1, compIdWithoutPrefix.lastIndexOf(":"));
     }
 
     public String getVersion() {
-        int colonMatches = StringUtils.countMatches(componentId, ":");
+        String compIdWithoutPrefix = getComponentIdWithoutPrefix();
+        int colonMatches = StringUtils.countMatches(compIdWithoutPrefix, ":");
         if (colonMatches < 1 || colonMatches > 2) {
             return "";
         }
-        return componentId.substring(componentId.lastIndexOf(":") + 1);
+        return compIdWithoutPrefix.substring(compIdWithoutPrefix.lastIndexOf(":") + 1);
     }
 
     @SuppressWarnings("unused")
@@ -95,5 +97,11 @@ public class GeneralInfo implements Serializable {
     public GeneralInfo sha1(String sha1) {
         this.sha1 = sha1;
         return this;
+    }
+
+    protected String getComponentIdWithoutPrefix() {
+        final String prefixSeparator = "://";
+        int prefixIndex = componentId.indexOf(prefixSeparator);
+        return componentId.substring(prefixIndex + prefixSeparator.length());
     }
 }

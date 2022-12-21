@@ -9,4 +9,12 @@ public abstract class IssueOrLicense extends DefaultMutableTreeNode implements S
     public String getIcon() {
         return getSeverity().getIconName();
     }
+
+    public Artifact getParentArtifact() {
+        Object parent = getParent();
+        if (parent == null || !(parent instanceof Artifact)) {
+            return null;
+        }
+        return (Artifact) parent;
+    }
 }

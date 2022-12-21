@@ -14,8 +14,9 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
     private static final long serialVersionUID = 1L;
 
     private GeneralInfo generalInfo;
-    private List<List<String>> impactPaths;
+    private ImpactTreeNode impactPaths;
     private Severity topSeverity = Severity.Normal;
+    private String licenseName;
 
     // Empty constructor for serialization
     public Artifact() {
@@ -25,11 +26,6 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
     // TODO: remove if not used
     public Artifact(GeneralInfo generalInfo) {
         this.generalInfo = generalInfo;
-    }
-
-    public Artifact(GeneralInfo generalInfo, List<List<String>> impactPaths) {
-        this(generalInfo);
-        this.impactPaths = impactPaths;
     }
 
     @SuppressWarnings("unused")
@@ -42,8 +38,24 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
         this.generalInfo = generalInfo;
     }
 
+    public String getLicenseName() {
+        return licenseName;
+    }
+
+    public void setLicenseName(String licenseName) {
+        this.licenseName = licenseName;
+    }
+
     public Severity getTopSeverity() {
         return topSeverity;
+    }
+
+    public ImpactTreeNode getImpactPaths() {
+        return impactPaths;
+    }
+
+    public void setImpactPaths(ImpactTreeNode impactPaths) {
+        this.impactPaths = impactPaths;
     }
 
     public void addIssueOrLicense(IssueOrLicense issueOrLicense) {
@@ -59,12 +71,7 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
 
     @Override
     public String getTitle() {
-        final String prefixSeparator = "://";
-        int prefixIndex = generalInfo.getComponentId().indexOf(prefixSeparator);
-        if (prefixIndex == -1) {
-            return generalInfo.getComponentId();
-        }
-        return generalInfo.getComponentId().substring(prefixIndex + prefixSeparator.length());
+        return generalInfo.getComponentIdWithoutPrefix();
     }
 
     @Override

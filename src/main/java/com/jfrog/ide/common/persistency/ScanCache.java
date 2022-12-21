@@ -47,7 +47,7 @@ public abstract class ScanCache {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
             // TODO: I set unknown severity, but all this will probably be changed or removed.
             com.jfrog.ide.common.tree.License cacheLicense = new com.jfrog.ide.common.tree.License(
-                    license.getLicenseName(), license.getLicenseKey(), license.getReferences(), Severity.Unknown);
+                    license.getLicenseName(), license.getLicenseKey(), license.getReferences(), Severity.Unknown, "");
 
             Artifact artifact = get(id);
             if (artifact != null) {

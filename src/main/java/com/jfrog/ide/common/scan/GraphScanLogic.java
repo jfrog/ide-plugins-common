@@ -2,12 +2,8 @@ package com.jfrog.ide.common.scan;
 
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
-import com.jfrog.ide.common.tree.Artifact;
-import com.jfrog.ide.common.tree.GeneralInfo;
-import com.jfrog.ide.common.tree.Issue;
-import com.jfrog.ide.common.tree.Severity;
+import com.jfrog.ide.common.tree.*;
 import com.jfrog.xray.client.Xray;
-import com.jfrog.xray.client.impl.services.scan.ImpactPathImpl;
 import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.scan.*;
 import com.jfrog.xray.client.services.system.Version;
@@ -20,7 +16,6 @@ import org.jfrog.build.extractor.scan.DependencyTree;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
-import java.util.stream.Collectors;
 
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.apache.commons.collections4.ListUtils.emptyIfNull;
@@ -38,30 +33,22 @@ import static org.apache.commons.lang3.StringUtils.*;
 @Setter
 public class GraphScanLogic implements ScanLogic {
     public static final String MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN = "3.29.0";
+    private String pkgType;
     private Log log;
 
-    public GraphScanLogic(Log log) {
+    public GraphScanLogic(String pkgType, Log log) {
+        this.pkgType = pkgType;
         this.log = log;
     }
 
-    // TODO: update comment
-
-    /**
-     * Scan and cache components.
-     *
-     * @param server    - JFrog platform server configuration.
-     * @param indicator - Progress bar.
-     * @return true if the scan completed successfully, false otherwise.
-     */
     @Override
     public Map<String, Artifact> scanArtifacts(DependencyTree dependencyTree, ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
         dependencyTree.setPrefix(prefix.toString());
+        DependencyTree nodesToScan = createScanTree(dependencyTree);
 
-        // TODO: needed?
-//        DependencyTree nodesToScan = createScanTree(scanResults);
-        if (dependencyTree.isLeaf()) {
+        if (nodesToScan.isLeaf()) {
             log.debug("No components found to scan.");
             // No components found to scan
             // TODO: throw error instead? or return an empty map? if return empty map, the scan didn't fail
@@ -77,72 +64,61 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            Map<String, Artifact> response = scan(xrayClient, dependencyTree, server, checkCanceled, indicator);
-
+            Map<String, Artifact> response = scan(xrayClient, nodesToScan, server, checkCanceled, indicator);
             indicator.setFraction(1);
-
-            // TODO: remove
-//            log.debug("Saving scan cache...");
-//            scanCache.write();
-//            log.debug("Scan cache saved successfully.");
 
             return response;
         } catch (CancellationException e) {
             log.info("Xray scan was canceled.");
-            // TODO: throw error instead?
             return null;
         }
     }
 
-    // TODO: consider removing
-//    // TODO: update comment, if needed
-//    /**
-//     * Create a flat tree of all components required to scan.
-//     * Add all direct dependencies to cache to make sure that dependencies will not be scanned again in the next quick scan.
-//     *
-//     * @param root      - The root dependency tree node
-//     * @return a graph of non cached component for Xray scan.
-//     */
-//    DependencyTree createScanTree(DependencyTree root) {
-//        DependencyTree scanTree = new DependencyTree(root.getUserObject());
-//        Set<String> componentsAdded = new HashSet<>();
-//        populateScanTree(root, scanTree, componentsAdded);
-//        return scanTree;
-//    }
+    /**
+     * Create a flat tree of all components required to scan.
+     * Add all direct dependencies to cache to make sure that dependencies will not be scanned again in the next quick scan.
+     *
+     * @param root      - The root dependency tree node
+     * @return a graph of non cached component for Xray scan.
+     */
+    DependencyTree createScanTree(DependencyTree root) {
+        DependencyTree scanTree = new DependencyTree(root.getUserObject());
+        Set<String> componentsAdded = new HashSet<>();
+        populateScanTree(root, scanTree, componentsAdded);
+        return scanTree;
+    }
 
-    // TODO: update comment, if needed
-    // TODO: consider removing
-//    /**
-//     * Recursively, populate scan tree with the project's dependencies.
-//     * The result is a flat tree with only dependencies needed for the Xray scan.
-//     *
-//     * @param root            - The root dependency tree node
-//     * @param scanTree        - The result
-//     * @param componentsAdded - Set of added components used to remove duplications//     */
-//    private void populateScanTree(DependencyTree root, DependencyTree scanTree, Set<String> componentsAdded) {
-//        for (DependencyTree child : root.getChildren()) {
-//            // Don't add metadata nodes to the scan tree
-//            if (child.isMetadata()) {
-//                populateScanTree(child, scanTree, componentsAdded);
-//                continue;
-//            }
-//
-//            // TODO: consider removing this comment
-//            // If dependency not in cache or this is a full scan - add the dependency subtree to the scan tree.
-//            // If dependency is in cache and this is a quick scan - skip subtree.
-//            String childFullId = child.toString();
-//            if (((DependencyTree) child.getParent()).isMetadata()) {
-//                // All direct dependencies should be in the cache. This line makes sure that dependencies that
-//                // wouldn't return from Xray will not be scanned again during the next quick scan.
-//                String componentId = contains(childFullId, "://") ?
-//                        substringAfter(childFullId, "://") : childFullId;
-//            }
-//            if (componentsAdded.add(child.getComponentId())) {
-//                scanTree.add(new DependencyTree(child.getComponentId()));
-//            }
-//            populateScanTree(child, scanTree, componentsAdded);
-//        }
-//    }
+    /**
+     * Recursively, populate scan tree with the project's dependencies.
+     * The result is a flat tree with only dependencies needed for the Xray scan.
+     *
+     * @param root            - The root dependency tree node
+     * @param scanTree        - The result
+     * @param componentsAdded - Set of added components used to remove duplications
+     */
+    private void populateScanTree(DependencyTree root, DependencyTree scanTree, Set<String> componentsAdded) {
+        for (DependencyTree child : root.getChildren()) {
+            // Don't add metadata nodes to the scan tree
+            if (child.isMetadata()) {
+                populateScanTree(child, scanTree, componentsAdded);
+                continue;
+            }
+
+            // Add the dependency subtree to the scan tree
+            String childFullId = child.toString();
+            if (((DependencyTree) child.getParent()).isMetadata()) {
+                // All direct dependencies should be in the cache. This line make sure that dependencies that
+                // wouldn't return from Xray will not be scanned again during the next quick scan.
+                String componentId = contains(childFullId, "://") ?
+                        substringAfter(childFullId, "://") : childFullId;
+            }
+            if (componentsAdded.add(child.getComponentId())) {
+                scanTree.add(new DependencyTree(child.getComponentId()));
+            }
+            populateScanTree(child, scanTree, componentsAdded);
+
+        }
+    }
 
     public static boolean isSupportedInXrayVersion(Version xrayVersion) {
         return xrayVersion.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN);
@@ -180,13 +156,6 @@ public class GraphScanLogic implements ScanLogic {
         GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, new XrayScanProgressImpl(indicator), checkCanceled, projectKey, watches);
         Map<String, Artifact> results = new HashMap<>();
 
-        // TODO: consider removing
-        //        // Add licenses to all components
-//        emptyIfNull(scanResults.getLicenses()).stream()
-//                .filter(Objects::nonNull)
-//                .filter(license -> license.getComponents() != null)
-//                .forEach(license -> addLicenseResult(results, license));
-
         // If a project key provided, add all returned violated licenses and vulnerabilities.
         // In case of a violated license, the license added in above section will be overridden with violated=true.
         emptyIfNull(scanResults.getViolations()).stream()
@@ -199,6 +168,21 @@ public class GraphScanLogic implements ScanLogic {
                 .filter(Objects::nonNull)
                 .filter(vulnerability -> vulnerability.getComponents() != null)
                 .forEach(vulnerability -> addVulnerabilityResult(results, vulnerability));
+
+        emptyIfNull(scanResults.getLicenses()).stream()
+                .filter(Objects::nonNull)
+                .filter(license -> license.getComponents() != null)
+                .forEach(license ->
+                        license.getComponents().forEach(
+                                (compId, comp) -> {
+                                    Artifact dep = results.get(compId);
+                                    if (dep == null) {
+                                        return;
+                                    }
+                                    dep.setLicenseName(license.getLicenseKey());
+                                }
+                        )
+                );
 
         // Sort issues and licenses inside all artifacts
         results.values().forEach(Artifact::sortChildren);
@@ -219,15 +203,24 @@ public class GraphScanLogic implements ScanLogic {
     private void addVulnerabilityResult(Map<String, Artifact> results, Vulnerability vulnerability) {
         for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
             Artifact artifact = getArtifact(results, entry);
+
+            if (vulnerability.getCves() == null || vulnerability.getCves().size() == 0) {
             // TODO: handle no cves! possible?
-            for (Cve cve : vulnerability.getCves()) {
-                Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
-                        StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"),
-                        entry.getValue().getFixedVersions(), new com.jfrog.ide.common.tree.Cve(cve.getId(), cve.getCvssV2Score(), cve.getCvssV3Score()), vulnerability.getReferences(), vulnerability.getIgnoreRuleUrl());
-//                        entry.getValue().getFixedVersions(), toCves(vulnerability.getCves()), vulnerability.getReferences(), vulnerability.getIgnoreRuleUrl());
-// TODO: remove if not reverted
-                //            artifact.getIssues().add(issue);
-                artifact.addIssueOrLicense(issue);
+
+            } else {
+                for (Cve cve : vulnerability.getCves()) {
+                    ResearchInfo researchInfo = null;
+                    if (vulnerability.getExtendedInformation() != null) {
+                        ExtendedInformation extInfo = vulnerability.getExtendedInformation();
+                        researchInfo = new ResearchInfo(Severity.valueOf(extInfo.getJFrogResearchSeverity()), extInfo.getShortDescription(), extInfo.getFullDescription(), extInfo.getRemediation(), convertSeverityReasons(extInfo.getJFrogResearchSeverityReasons()));
+                    }
+                    Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
+                            StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), entry.getValue().getFixedVersions(),
+                            entry.getValue().getInfectedVersions(),
+                            new com.jfrog.ide.common.tree.Cve(cve.getId(), cve.getCvssV2Score(), cve.getCvssV2Vector(), cve.getCvssV3Score(), cve.getCvssV3Vector()),
+                            vulnerability.getEdited(), vulnerability.getReferences(), researchInfo);
+                    artifact.addIssueOrLicense(issue);
+                }
             }
         }
     }
@@ -239,9 +232,7 @@ public class GraphScanLogic implements ScanLogic {
             Artifact artifact = getArtifact(results, entry);
             com.jfrog.ide.common.tree.License licenseResult = new com.jfrog.ide.common.tree.License(
                     licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
-                    Severity.valueOf(licenseViolation.getSeverity()));
-            // TODO: remove if not reverted
-//            artifact.getLicenses().add(licenseResult);
+                    Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated());
             artifact.addIssueOrLicense(licenseResult);
         }
     }
@@ -249,17 +240,16 @@ public class GraphScanLogic implements ScanLogic {
     private Artifact getArtifact(Map<String, Artifact> results, Map.Entry<String, ? extends Component> compEntry) {
         String componentId = compEntry.getKey();
         if (!results.containsKey(componentId)) {
-            results.put(componentId, new Artifact(new GeneralInfo().componentId(componentId), convertImpactPaths(compEntry.getValue().getImpactPaths())));
+            results.put(componentId, new Artifact(new GeneralInfo().componentId(componentId).pkgType(pkgType)));
         }
         return results.get(componentId);
     }
 
-    private List<List<String>> convertImpactPaths(List<List<ImpactPathImpl>> xrayImpactPaths) {
-        return xrayImpactPaths.stream()
-                .map(impactPath -> impactPath.stream()
-                        .map(impactPathNode -> impactPathNode.getComponentId())
-                        .collect(Collectors.toList()))
-                .collect(Collectors.toList());
+    private SeverityReason[] convertSeverityReasons(com.jfrog.xray.client.services.scan.SeverityReasons[] xraySeverityReasons) {
+        return Arrays.stream(xraySeverityReasons)
+                .map(xrSeverityReason ->
+                        new SeverityReason(xrSeverityReason.getName(), xrSeverityReason.getDescription(), xrSeverityReason.isPositive())
+                ).toArray(SeverityReason[]::new);
     }
 
     /**

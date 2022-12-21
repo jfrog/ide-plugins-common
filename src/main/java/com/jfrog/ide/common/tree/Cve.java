@@ -8,18 +8,22 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Cve {
     private String cveId;
-    private String cvssV1;
-    private String cvssV2;
+    private String cvssV2Score;
+    private String cvssV2Vector;
+    private String cvssV3Score;
+    private String cvssV3Vector;
 
     @SuppressWarnings("unused")
     public Cve() {
     }
 
     @SuppressWarnings("unused")
-    public Cve(String cveId, String cvssV1, String cvssV2) {
+    public Cve(String cveId, String cvssV2Score, String cvssV2Vector, String cvssV3Score, String cvssV3Vector) {
         this.cveId = cveId;
-        this.cvssV1 = cvssV1;
-        this.cvssV2 = cvssV2;
+        this.cvssV2Score = cvssV2Score;
+        this.cvssV2Vector = cvssV2Vector;
+        this.cvssV3Score = cvssV3Score;
+        this.cvssV3Vector = cvssV3Vector;
     }
 
     @SuppressWarnings("unused")
@@ -28,27 +32,22 @@ public class Cve {
     }
 
     @SuppressWarnings("unused")
-    public void setCveId(String cveId) {
-        this.cveId = cveId;
+    public String getCvssV2Score() {
+        return cvssV2Score;
     }
 
     @SuppressWarnings("unused")
-    public String getCvssV1() {
-        return cvssV1;
+    public String getCvssV2Vector() {
+        return cvssV2Vector;
     }
 
     @SuppressWarnings("unused")
-    public void setCvssV1(String cvssV1) {
-        this.cvssV1 = cvssV1;
+    public String getCvssV3Score() {
+        return cvssV3Score;
     }
 
     @SuppressWarnings("unused")
-    public String getCvssV2() {
-        return cvssV2;
-    }
-
-    @SuppressWarnings("unused")
-    public void setCvssV2(String cvssV2) {
-        this.cvssV2 = cvssV2;
+    public String getCvssV3Vector() {
+        return cvssV3Vector;
     }
 }

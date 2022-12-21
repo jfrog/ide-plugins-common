@@ -21,22 +21,19 @@ public class License extends IssueOrLicense {
     private final String name;
     private List<String> moreInfoUrl = new ArrayList<>();
     private Severity severity;
+    private String lastUpdated;
 
     public License() {
         this.fullName = UNKNOWN_LICENCE_FULL_NAME;
         this.name = UNKNOWN_LICENCE_NAME;
     }
 
-    // TODO: can be removed?
-    public License(String fullName, String name, List<String> moreInfoUrl) {
-        this(fullName, name, moreInfoUrl, Severity.Unknown);
-    }
-
-    public License(String fullName, String name, List<String> moreInfoUrl, Severity severity) {
+    public License(String fullName, String name, List<String> moreInfoUrl, Severity severity, String lastUpdated) {
         this.fullName = StringUtils.trim(fullName);
         this.name = StringUtils.trim(name);
         this.moreInfoUrl = moreInfoUrl;
         this.severity = severity;
+        this.lastUpdated = lastUpdated;
     }
 
     @SuppressWarnings("unused")
@@ -60,6 +57,10 @@ public class License extends IssueOrLicense {
     @SuppressWarnings("unused")
     public List<String> getMoreInfoUrl() {
         return moreInfoUrl;
+    }
+
+    public String getLastUpdated() {
+        return lastUpdated;
     }
 
     @JsonIgnore
