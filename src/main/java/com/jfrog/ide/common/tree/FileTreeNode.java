@@ -22,11 +22,16 @@ public abstract class FileTreeNode extends DefaultMutableTreeNode implements Sub
     // TODO: implement these
     @Override
     public String getTitle() {
-        return "<html><b>" + fileName + "</b></html>";
+        return fileName;
     }
 
     @Override
     public String getSubtitle() {
         return filePath;
+    }
+
+    @Override
+    public String toString() {
+        return fileName;
     }
 }
