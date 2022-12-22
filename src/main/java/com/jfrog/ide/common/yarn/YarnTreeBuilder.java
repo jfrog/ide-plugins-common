@@ -39,11 +39,10 @@ public class YarnTreeBuilder {
      * Build the yarn dependency tree.
      *
      * @param logger      - The logger.
-     * @param shouldToast - True if should popup a balloon in case of errors.
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
-    public DependencyTree buildTree(Log logger, boolean shouldToast) throws IOException {
+    public DependencyTree buildTree(Log logger) throws IOException {
         if (!yarnDriver.isYarnInstalled()) {
             throw new IOException("Could not scan yarn project dependencies, because yarn CLI is not in the PATH.");
         }
@@ -53,7 +52,7 @@ public class YarnTreeBuilder {
             throw new IOException("Could not scan yarn project dependencies, because package.json file is missing.");
         }
         JsonNode nameNode = packageJson.get("name");
-        String packageName = getPackageName(logger, packageJson, listResults, shouldToast);
+        String packageName = getPackageName(logger, packageJson, listResults);
         JsonNode versionNode = packageJson.get("version");
         String packageVersion = versionNode != null ? versionNode.asText() : "N/A";
 
@@ -121,16 +120,15 @@ public class YarnTreeBuilder {
      * @param logger       - The logger.
      * @param packageJson  - The package.json.
      * @param npmLsResults - Npm ls results.
-     * @param shouldToast  - True if should popup a balloon in case of errors.
      * @return root package name.
      */
-    private String getPackageName(Log logger, JsonNode packageJson, JsonNode npmLsResults, boolean shouldToast) {
+    private String getPackageName(Log logger, JsonNode packageJson, JsonNode npmLsResults) {
         JsonNode nameNode = packageJson.get("name");
         if (nameNode != null) {
-            return nameNode.asText() + getPostfix(logger, npmLsResults, shouldToast);
+            return nameNode.asText() + getPostfix(logger, npmLsResults);
         }
         if (projectDir.getFileName() != null) {
-            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, npmLsResults, shouldToast);
+            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, npmLsResults);
         }
         return "N/A";
     }
@@ -140,10 +138,9 @@ public class YarnTreeBuilder {
      *
      * @param logger       - The logger.
      * @param npmLsResults - Npm ls results.
-     * @param shouldToast  - True if should popup a balloon in case of errors.
      * @return (Not installed) or empty.
      */
-    private String getPostfix(Log logger, JsonNode npmLsResults, boolean shouldToast) {
+    private String getPostfix(Log logger, JsonNode npmLsResults) {
         String postfix = "";
         if (npmLsResults.get("problems") != null) {
             postfix += " (Not installed)";
