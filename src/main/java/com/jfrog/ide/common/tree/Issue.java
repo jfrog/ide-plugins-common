@@ -22,6 +22,7 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
     private String summary;
     private String issueId;
     private String lastUpdated;
+    private List<String> watchNames;
     private ResearchInfo researchInfo;
 
     public Issue() {
@@ -29,7 +30,7 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
 
     @SuppressWarnings("unused")
     public Issue(String issueId, Severity severity, String summary, List<String> fixedVersions, List<String> infectedVersions,
-                 Cve cve, String lastUpdated, List<String> references, ResearchInfo researchInfo) {
+                 Cve cve, String lastUpdated, List<String> watchNames, List<String> references, ResearchInfo researchInfo) {
         this.issueId = issueId;
         this.severity = severity;
         this.summary = summary;
@@ -37,6 +38,7 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
         this.infectedVersions = infectedVersions;
         this.cve = cve;
         this.lastUpdated = lastUpdated;
+        this.watchNames = watchNames;
         this.references = references;
         this.researchInfo = researchInfo;
     }
@@ -79,6 +81,10 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
 
     public String getLastUpdated() {
         return lastUpdated;
+    }
+
+    public List<String> getWatchNames() {
+        return watchNames;
     }
 
     @SuppressWarnings("unused")

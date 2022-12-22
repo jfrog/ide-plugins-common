@@ -45,9 +45,9 @@ public abstract class ScanCache {
     public void add(License license, boolean violation) {
         for (Map.Entry<String, ? extends Component> entry : license.getComponents().entrySet()) {
             String id = StringUtils.substringAfter(entry.getKey(), "://");
-            // TODO: I set unknown severity, but all this will probably be changed or removed.
+            // TODO: I set unknown severity and update time and watch names, but all this will probably be changed or removed.
             com.jfrog.ide.common.tree.License cacheLicense = new com.jfrog.ide.common.tree.License(
-                    license.getLicenseName(), license.getLicenseKey(), license.getReferences(), Severity.Unknown, "");
+                    license.getLicenseName(), license.getLicenseKey(), license.getReferences(), Severity.Unknown, "", null);
 
             Artifact artifact = get(id);
             if (artifact != null) {

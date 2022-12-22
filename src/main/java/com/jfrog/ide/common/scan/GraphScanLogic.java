@@ -190,17 +190,23 @@ public class GraphScanLogic implements ScanLogic {
         return results;
     }
 
-    // TODO: add comment
     private void addViolationResult(Map<String, Artifact> results, Violation violation) {
         if (StringUtils.isBlank(violation.getLicenseKey())) {
-            addVulnerabilityResult(results, violation);
+            addSecurityViolationResult(results, violation);
         } else {
             addLicenseViolationResult(results, violation);
         }
     }
 
-    // TODO: add comment
+    private void addSecurityViolationResult(Map<String, Artifact> results, Violation violation) {
+        addVulnerabilityResult(results, violation, violation.getWatchName());
+    }
+
     private void addVulnerabilityResult(Map<String, Artifact> results, Vulnerability vulnerability) {
+        addVulnerabilityResult(results, vulnerability, null);
+    }
+
+    private void addVulnerabilityResult(Map<String, Artifact> results, Vulnerability vulnerability, String watchName) {
         for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
             Artifact artifact = getArtifact(results, entry);
 
@@ -214,11 +220,12 @@ public class GraphScanLogic implements ScanLogic {
                         ExtendedInformation extInfo = vulnerability.getExtendedInformation();
                         researchInfo = new ResearchInfo(Severity.valueOf(extInfo.getJFrogResearchSeverity()), extInfo.getShortDescription(), extInfo.getFullDescription(), extInfo.getRemediation(), convertSeverityReasons(extInfo.getJFrogResearchSeverityReasons()));
                     }
+                    // TODO: handle multiple watches. collect all identical issues of different watches together.
                     Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
                             StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), entry.getValue().getFixedVersions(),
                             entry.getValue().getInfectedVersions(),
                             new com.jfrog.ide.common.tree.Cve(cve.getId(), cve.getCvssV2Score(), cve.getCvssV2Vector(), cve.getCvssV3Score(), cve.getCvssV3Vector()),
-                            vulnerability.getEdited(), vulnerability.getReferences(), researchInfo);
+                            vulnerability.getEdited(), Collections.singletonList(watchName), vulnerability.getReferences(), researchInfo);
                     artifact.addIssueOrLicense(issue);
                 }
             }
@@ -230,9 +237,11 @@ public class GraphScanLogic implements ScanLogic {
     private void addLicenseViolationResult(Map<String, Artifact> results, Violation licenseViolation) {
         for (Map.Entry<String, ? extends Component> entry : licenseViolation.getComponents().entrySet()) {
             Artifact artifact = getArtifact(results, entry);
+            // TODO: handle multiple watches. collect all identical violations of different watches together.
             com.jfrog.ide.common.tree.License licenseResult = new com.jfrog.ide.common.tree.License(
                     licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
-                    Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated());
+                    Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated(),
+                    Collections.singletonList(licenseViolation.getWatchName()));
             artifact.addIssueOrLicense(licenseResult);
         }
     }

@@ -22,18 +22,20 @@ public class License extends IssueOrLicense {
     private List<String> moreInfoUrl = new ArrayList<>();
     private Severity severity;
     private String lastUpdated;
+    private List<String> watchNames;
 
     public License() {
         this.fullName = UNKNOWN_LICENCE_FULL_NAME;
         this.name = UNKNOWN_LICENCE_NAME;
     }
 
-    public License(String fullName, String name, List<String> moreInfoUrl, Severity severity, String lastUpdated) {
+    public License(String fullName, String name, List<String> moreInfoUrl, Severity severity, String lastUpdated, List<String> watchNames) {
         this.fullName = StringUtils.trim(fullName);
         this.name = StringUtils.trim(name);
         this.moreInfoUrl = moreInfoUrl;
         this.severity = severity;
         this.lastUpdated = lastUpdated;
+        this.watchNames = watchNames;
     }
 
     @SuppressWarnings("unused")
@@ -61,6 +63,10 @@ public class License extends IssueOrLicense {
 
     public String getLastUpdated() {
         return lastUpdated;
+    }
+
+    public List<String> getWatchNames() {
+        return watchNames;
     }
 
     @JsonIgnore
