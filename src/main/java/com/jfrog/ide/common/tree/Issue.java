@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Objects;
 
@@ -12,7 +11,7 @@ import java.util.Objects;
  * @author yahavi
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class Issue extends IssueOrLicense implements Comparable<Issue> {
+public class Issue extends IssueOrLicense {
 
     private Severity severity = Severity.Normal;
     private List<String> fixedVersions;
@@ -104,27 +103,23 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
     }
 
     @Override
-    public int compareTo(@Nonnull Issue otherIssue) {
-        return Integer.compare(hashCode(), Objects.hashCode(otherIssue));
-    }
-
-    @Override
     public boolean equals(Object other) {
         if (!(other instanceof Issue)) {
             return false;
         }
-        return StringUtils.equals(((Issue) other).getIssueId(), getIssueId());
+        Issue otherIssue = (Issue) other;
+        return StringUtils.equals(otherIssue.getIssueId(), getIssueId()) &&
+                StringUtils.equals(otherIssue.getCveIdOrEmpty(), getCveIdOrEmpty());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(issueId);
+        return Objects.hash(issueId, cve);
     }
 
     @Override
     public String getTitle() {
-        String title = cve != null && cve.getCveId() != null && !cve.getCveId().isEmpty() ? cve.getCveId() : issueId;
-        return title + "";
+        return StringUtils.firstNonBlank(getCveIdOrEmpty(), issueId);
     }
 
     @Override
@@ -136,5 +131,12 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
     @Override
     public String toString() {
         return getTitle();
+    }
+
+    private String getCveIdOrEmpty() {
+        if (cve == null) {
+            return "";
+        }
+        return cve.getCveId();
     }
 }
