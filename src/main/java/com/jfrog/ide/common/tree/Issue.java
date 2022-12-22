@@ -132,4 +132,9 @@ public class Issue extends IssueOrLicense implements Comparable<Issue> {
         // TODO: return null or something else
         return null;
     }
+
+    @Override
+    public String toString() {
+        return getTitle();
+    }
 }
