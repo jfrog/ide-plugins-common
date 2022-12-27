@@ -2,10 +2,7 @@ package com.jfrog.ide.common.tree;
 
 import java.util.Collection;
 
-// TODO: used?
 public class DescriptorFileTreeNode extends FileTreeNode {
-    // TODO: consider if neeeded. if not, consider if this class is needed, and also if FileTreeNode is needed.
-
     public DescriptorFileTreeNode(String filePath) {
         super(filePath);
     }
@@ -30,7 +27,9 @@ public class DescriptorFileTreeNode extends FileTreeNode {
     }
 
     private void sortChildren() {
-        children.sort((treeNode1, treeNode2) -> ((Artifact) treeNode2).getTopSeverity().ordinal() - ((Artifact) treeNode1).getTopSeverity().ordinal());
+        if (children != null && children.size() > 1) {
+            children.sort((treeNode1, treeNode2) -> ((Artifact) treeNode2).getTopSeverity().ordinal() - ((Artifact) treeNode1).getTopSeverity().ordinal());
+        }
     }
 
     @Override

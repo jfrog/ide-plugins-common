@@ -56,8 +56,7 @@ public class ProjectsMap extends TreeMap<ProjectsMap.ProjectKey, DependencyTree>
                     .compare(this, other);
         }
 
-        // TODO: temporary change! consider removing the event logic
-        public String getProjectName() {
+        private String getProjectName() {
             return projectName;
         }
 

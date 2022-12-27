@@ -11,7 +11,7 @@ import java.util.Objects;
  * @author yahavi
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class Issue extends IssueOrLicense {
+public class Issue extends VulnerabilityOrViolation {
 
     private Severity severity = Severity.Normal;
     private List<String> fixedVersions;
@@ -124,7 +124,6 @@ public class Issue extends IssueOrLicense {
 
     @Override
     public String getSubtitle() {
-        // TODO: return null or something else
         return null;
     }
 

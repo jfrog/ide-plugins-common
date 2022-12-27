@@ -3,7 +3,6 @@ package com.jfrog.ide.common.tree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
 
-// TODO: used?
 public abstract class FileTreeNode extends DefaultMutableTreeNode implements SubtitledTreeNode {
     protected String fileName;
     protected String filePath;
@@ -19,7 +18,6 @@ public abstract class FileTreeNode extends DefaultMutableTreeNode implements Sub
         return topSeverity;
     }
 
-    // TODO: implement these
     @Override
     public String getTitle() {
         return fileName;

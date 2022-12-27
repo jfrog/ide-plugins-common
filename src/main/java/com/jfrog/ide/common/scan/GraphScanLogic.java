@@ -3,12 +3,14 @@ package com.jfrog.ide.common.scan;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.tree.*;
+import com.jfrog.ide.common.tree.License;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.scan.*;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.DependencyTree;
@@ -136,7 +138,6 @@ public class GraphScanLogic implements ScanLogic {
         return false;
     }
 
-    // TODO: change comment
     /**
      * Xray scan a graph of components.
      * A scan with project key may produce a list of licenses and a list of violated licenses and violated vulnerabilities.
@@ -179,7 +180,11 @@ public class GraphScanLogic implements ScanLogic {
                                     if (dep == null) {
                                         return;
                                     }
-                                    dep.setLicenseName(license.getLicenseKey());
+                                    String moreInfoUrl = null;
+                                    if (!CollectionUtils.isEmpty(license.getReferences())) {
+                                        moreInfoUrl = license.getReferences().get(0);
+                                    }
+                                    dep.addLicense(new License(license.getLicenseKey(), moreInfoUrl));
                                 }
                         )
                 );
@@ -211,38 +216,55 @@ public class GraphScanLogic implements ScanLogic {
             Artifact artifact = getArtifact(results, entry);
 
             if (vulnerability.getCves() == null || vulnerability.getCves().size() == 0) {
-            // TODO: handle no cves! possible?
-
+                Issue issue = convertToIssue(vulnerability, entry.getValue(), null, watchName);
+                artifact.addVulnerabilityOrViolation(issue);
             } else {
                 for (Cve cve : vulnerability.getCves()) {
-                    ResearchInfo researchInfo = null;
-                    if (vulnerability.getExtendedInformation() != null) {
-                        ExtendedInformation extInfo = vulnerability.getExtendedInformation();
-                        researchInfo = new ResearchInfo(Severity.valueOf(extInfo.getJFrogResearchSeverity()), extInfo.getShortDescription(), extInfo.getFullDescription(), extInfo.getRemediation(), convertSeverityReasons(extInfo.getJFrogResearchSeverityReasons()));
-                    }
-                    // TODO: handle multiple watches. collect all identical issues of different watches together.
-                    Issue issue = new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
-                            StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), entry.getValue().getFixedVersions(),
-                            entry.getValue().getInfectedVersions(),
-                            new com.jfrog.ide.common.tree.Cve(cve.getId(), cve.getCvssV2Score(), cve.getCvssV2Vector(), cve.getCvssV3Score(), cve.getCvssV3Vector()),
-                            vulnerability.getEdited(), Collections.singletonList(watchName), vulnerability.getReferences(), researchInfo);
-                    artifact.addIssueOrLicense(issue);
+                    Issue issue = convertToIssue(vulnerability, entry.getValue(), cve, watchName);
+                    artifact.addVulnerabilityOrViolation(issue);
                 }
             }
         }
     }
 
-    // TODO: attention!!! this method is only for adding license violations! to add license that is not violated, need to change violate=false in the ctor below.
-    // TODO: add comment
+    private Issue convertToIssue(Vulnerability vulnerability, Component component, Cve cve, String watchName) {
+        ResearchInfo researchInfo = null;
+        if (vulnerability.getExtendedInformation() != null) {
+            ExtendedInformation extInfo = vulnerability.getExtendedInformation();
+            researchInfo = new ResearchInfo(Severity.valueOf(extInfo.getJFrogResearchSeverity()), extInfo.getShortDescription(), extInfo.getFullDescription(), extInfo.getRemediation(), convertSeverityReasons(extInfo.getJFrogResearchSeverityReasons()));
+        }
+        String cveId = null, cvssV2Score = null, cvssV2Vector = null, cvssV3Score = null, cvssV3Vector = null;
+        if (cve != null) {
+            cveId = cve.getId();
+            cvssV2Score = cve.getCvssV2Score();
+            cvssV2Vector = cve.getCvssV2Vector();
+            cvssV3Score = cve.getCvssV3Score();
+            cvssV3Vector = cve.getCvssV3Vector();
+        }
+        // TODO: handle multiple watches. collect all identical issues of different watches together. - postponed
+        List<String> watchNames = null;
+        if (watchName != null) {
+            watchNames = Collections.singletonList(watchName);
+        }
+        return new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
+                StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(),
+                component.getInfectedVersions(),
+                new com.jfrog.ide.common.tree.Cve(cveId, cvssV2Score, cvssV2Vector, cvssV3Score, cvssV3Vector),
+                vulnerability.getEdited(), watchNames, vulnerability.getReferences(), researchInfo);
+    }
+
     private void addLicenseViolationResult(Map<String, Artifact> results, Violation licenseViolation) {
         for (Map.Entry<String, ? extends Component> entry : licenseViolation.getComponents().entrySet()) {
             Artifact artifact = getArtifact(results, entry);
-            // TODO: handle multiple watches. collect all identical violations of different watches together.
-            com.jfrog.ide.common.tree.License licenseResult = new com.jfrog.ide.common.tree.License(
+            // TODO: handle multiple watches. collect all identical violations of different watches together. - postponed
+            List<String> watchNames = null;
+            if (licenseViolation.getWatchName() != null) {
+                watchNames = Collections.singletonList(licenseViolation.getWatchName());
+            }
+            LicenseViolation licenseResult = new LicenseViolation(
                     licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
-                    Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated(),
-                    Collections.singletonList(licenseViolation.getWatchName()));
-            artifact.addIssueOrLicense(licenseResult);
+                    Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated(), watchNames);
+            artifact.addVulnerabilityOrViolation(licenseResult);
         }
     }
 
@@ -255,6 +277,9 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     private SeverityReason[] convertSeverityReasons(com.jfrog.xray.client.services.scan.SeverityReasons[] xraySeverityReasons) {
+        if (xraySeverityReasons == null) {
+            return null;
+        }
         return Arrays.stream(xraySeverityReasons)
                 .map(xrSeverityReason ->
                         new SeverityReason(xrSeverityReason.getName(), xrSeverityReason.getDescription(), xrSeverityReason.isPositive())
