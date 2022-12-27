@@ -60,7 +60,6 @@ public class GraphScanLogic implements ScanLogic {
             // Create Xray client and check version
             Xray xrayClient = createXrayClientBuilder(server, log).build();
             if (!isSupportedInXrayVersion(xrayClient)) {
-                // TODO: throw error instead? or move this check to another place?
                 return null;
             }
             // Start scan
