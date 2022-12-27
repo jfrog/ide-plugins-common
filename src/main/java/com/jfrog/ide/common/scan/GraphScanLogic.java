@@ -241,6 +241,7 @@ public class GraphScanLogic implements ScanLogic {
             cvssV3Score = cve.getCvssV3Score();
             cvssV3Vector = cve.getCvssV3Vector();
         }
+        // TODO: handle multiple watches. collect all identical issues of different watches together. - postponed
         List<String> watchNames = null;
         if (watchName != null) {
             watchNames = Collections.singletonList(watchName);
@@ -255,7 +256,6 @@ public class GraphScanLogic implements ScanLogic {
     private void addLicenseViolationResult(Map<String, Artifact> results, Violation licenseViolation) {
         for (Map.Entry<String, ? extends Component> entry : licenseViolation.getComponents().entrySet()) {
             Artifact artifact = getArtifact(results, entry);
-            // TODO: handle multiple watches. collect all identical violations of different watches together. - postponed
             List<String> watchNames = null;
             if (licenseViolation.getWatchName() != null) {
                 watchNames = Collections.singletonList(licenseViolation.getWatchName());
