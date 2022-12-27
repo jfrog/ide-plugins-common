@@ -241,7 +241,6 @@ public class GraphScanLogic implements ScanLogic {
             cvssV3Score = cve.getCvssV3Score();
             cvssV3Vector = cve.getCvssV3Vector();
         }
-        // TODO: handle multiple watches. collect all identical issues of different watches together. - postponed
         List<String> watchNames = null;
         if (watchName != null) {
             watchNames = Collections.singletonList(watchName);
