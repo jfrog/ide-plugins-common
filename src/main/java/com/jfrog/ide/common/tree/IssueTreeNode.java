@@ -23,7 +23,7 @@ public class IssueTreeNode extends DefaultMutableTreeNode implements SubtitledTr
 
     @Override
     public String getTitle() {
-        return "<html><b>" + name + "</b></html>";
+        return name;
     }
 
     @Override
