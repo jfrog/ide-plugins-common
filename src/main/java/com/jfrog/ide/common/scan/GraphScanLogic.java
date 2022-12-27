@@ -53,7 +53,6 @@ public class GraphScanLogic implements ScanLogic {
         if (nodesToScan.isLeaf()) {
             log.debug("No components found to scan.");
             // No components found to scan
-            // TODO: throw error instead? or return an empty map? if return empty map, the scan didn't fail
             return null;
         }
         try {
