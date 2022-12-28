@@ -67,7 +67,7 @@ public class NpmTreeBuilderTest {
                 npmDriver.install(tempProject, Lists.newArrayList(), null);
             }
             NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath(), null);
-            dependencyTree = npmTreeBuilder.buildTree(new NullLog(), false);
+            dependencyTree = npmTreeBuilder.buildTree(new NullLog());
             assertNotNull(dependencyTree);
         } catch (IOException e) {
             fail(e.getMessage(), e);
