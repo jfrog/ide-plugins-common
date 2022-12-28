@@ -53,7 +53,7 @@ public class YarnTreeBuilderTest {
             tempProject.deleteOnExit();
             FileUtils.copyDirectory(((Project) testArgs[0]).path.toFile(), tempProject);
             YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(tempProject.toPath(), null);
-            dependencyTree = yarnTreeBuilder.buildTree(new NullLog(), false);
+            dependencyTree = yarnTreeBuilder.buildTree(new NullLog());
             assertNotNull(dependencyTree);
         } catch (IOException e) {
             fail(e.getMessage(), e);
