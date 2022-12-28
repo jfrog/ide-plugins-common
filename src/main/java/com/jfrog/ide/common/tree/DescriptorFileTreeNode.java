@@ -21,7 +21,7 @@ public class DescriptorFileTreeNode extends FileTreeNode {
         addDependencies(Collections.singletonList(dependency));
     }
 
-    public void addDependency(IssueTreeNode issue) {
+    public void addDependency(ApplicableIssue issue) {
         add(issue);
         if (issue.getSeverity().isHigherThan(topSeverity)) {
             topSeverity = issue.getSeverity();
