@@ -14,7 +14,6 @@ public class ApplicableIssue extends VulnerabilityOrViolation implements Subtitl
         this.col = col;
         this.issue = issue;
         this.filePath = filePath;
-
     }
 
     @Override
@@ -41,14 +40,17 @@ public class ApplicableIssue extends VulnerabilityOrViolation implements Subtitl
         return issue;
     }
 
+    @SuppressWarnings("unused")
     public String getFilePath() {
         return filePath;
     }
 
+    @SuppressWarnings("unused")
     public int getRow() {
         return row;
     }
 
+    @SuppressWarnings("unused")
     public int getCol() {
         return col;
     }
