@@ -1,7 +1,9 @@
 package com.jfrog.ide.common.utils;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
 import com.jfrog.ide.common.tree.GeneralInfo;
 import com.jfrog.xray.client.services.common.Cve;
@@ -28,10 +30,19 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 public class Utils {
 
     public static ObjectMapper createMapper() {
-        return new ObjectMapper()
+        return createMapper(null);
+    }
+
+    public static ObjectMapper createYAMLMapper() {
+        return createMapper(new YAMLFactory());
+    }
+
+    private static ObjectMapper createMapper(JsonFactory jf) {
+        return new ObjectMapper(jf)
                 .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .setSerializationInclusion(NON_EMPTY)
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+
     }
 
     public static String createComponentId(String artifactId, String version) {
