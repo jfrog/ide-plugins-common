@@ -29,7 +29,7 @@ public class ApplicableIssue extends VulnerabilityOrViolation implements Subtitl
 
     @Override
     public String getSubtitle() {
-        return "row: " + row + " col: " + col;
+        return "row: " + (row + 1) + " col: " + col;
     }
 
     @Override
