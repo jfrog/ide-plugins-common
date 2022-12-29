@@ -22,7 +22,7 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     private String lastUpdated;
     private List<String> watchNames;
     private ResearchInfo researchInfo;
-    private List<ApplicableIssue> applicableIssues;
+    private List<ApplicableIssueNode> applicableIssues;
 
     public IssueNode() {
     }
@@ -135,11 +135,11 @@ public class IssueNode extends VulnerabilityOrViolationNode {
         return cve.getCveId();
     }
 
-    public List<ApplicableIssue> getApplicableIssues() {
+    public List<ApplicableIssueNode> getApplicableIssues() {
         return applicableIssues;
     }
 
-    public void AddApplicableIssues(ApplicableIssue issue) {
+    public void AddApplicableIssues(ApplicableIssueNode issue) {
         this.applicableIssues = this.applicableIssues == null ? new ArrayList<>() : this.applicableIssues;
         this.applicableIssues.add(issue);
     }

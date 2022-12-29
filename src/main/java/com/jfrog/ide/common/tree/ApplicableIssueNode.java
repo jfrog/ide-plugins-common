@@ -1,6 +1,6 @@
 package com.jfrog.ide.common.tree;
 
-public class ApplicableIssue extends VulnerabilityOrViolation implements SubtitledTreeNode {
+public class ApplicableIssueNode extends VulnerabilityOrViolationNode implements SubtitledTreeNode {
 
     protected String name;
     protected String reason;
@@ -9,9 +9,9 @@ public class ApplicableIssue extends VulnerabilityOrViolation implements Subtitl
     protected int row;
     protected int col;
     protected String filePath;
-    protected Issue issue;
+    protected IssueNode issue;
 
-    public ApplicableIssue(String name, int row, int col, String filePath, String reason, String lineSnippet, Issue issue) {
+    public ApplicableIssueNode(String name, int row, int col, String filePath, String reason, String lineSnippet, IssueNode issue) {
         this.name = name;
         this.row = row;
         this.col = col;
@@ -41,7 +41,7 @@ public class ApplicableIssue extends VulnerabilityOrViolation implements Subtitl
         return getSeverity().getIconName();
     }
 
-    public Issue getIssue() {
+    public IssueNode getIssue() {
         return issue;
     }
 

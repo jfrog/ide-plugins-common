@@ -37,7 +37,7 @@ public class FileTreeNode extends DefaultMutableTreeNode implements SubtitledTre
         return topSeverity.getIconName();
     }
 
-    public void addDependency(ApplicableIssue issue) {
+    public void addDependency(ApplicableIssueNode issue) {
         add(issue);
         if (issue.getSeverity().isHigherThan(topSeverity)) {
             topSeverity = issue.getSeverity();
