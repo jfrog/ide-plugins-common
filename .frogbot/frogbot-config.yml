@@ -1,0 +1,5 @@
+- params:
+    git:
+      repoName: ide-plugins-common
+      branches:
+        - master
