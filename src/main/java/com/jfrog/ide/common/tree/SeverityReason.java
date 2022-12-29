@@ -1,9 +1,9 @@
 package com.jfrog.ide.common.tree;
 
 public class SeverityReason {
-    String name;
-    String description;
-    boolean isPositive;
+    private final String name;
+    private final String description;
+    private final boolean isPositive;
 
     public SeverityReason(String name, String description, boolean isPositive) {
         this.name = name;

@@ -1,8 +1,8 @@
 package com.jfrog.ide.common.tree;
 
 public class License {
-    private String name;
-    private String moreInfoUrl;
+    private final String name;
+    private final String moreInfoUrl;
 
     public License(String name, String moreInfoUrl) {
         this.name = name;

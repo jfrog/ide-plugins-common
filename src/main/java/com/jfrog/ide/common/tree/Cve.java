@@ -1,11 +1,8 @@
 package com.jfrog.ide.common.tree;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 /**
  * @author yahavi
  **/
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Cve {
     private String cveId;
     private String cvssV2Score;

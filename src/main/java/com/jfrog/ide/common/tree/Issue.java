@@ -10,7 +10,6 @@ import java.util.Objects;
 /**
  * @author yahavi
  */
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Issue extends VulnerabilityOrViolation {
 
     private Severity severity = Severity.Normal;
@@ -65,6 +64,7 @@ public class Issue extends VulnerabilityOrViolation {
         this.fixedVersions = fixedVersions;
     }
 
+    @SuppressWarnings("unused")
     public List<String> getInfectedVersions() {
         return infectedVersions;
     }

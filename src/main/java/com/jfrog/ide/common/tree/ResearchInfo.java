@@ -1,11 +1,11 @@
 package com.jfrog.ide.common.tree;
 
 public class ResearchInfo {
-    private Severity severity;
-    private String shortDescription;
-    private String fullDescription;
-    private String remediation;
-    private SeverityReason[] severityReasons;
+    private final Severity severity;
+    private final String shortDescription;
+    private final String fullDescription;
+    private final String remediation;
+    private final SeverityReason[] severityReasons;
 
     public ResearchInfo(Severity severity, String shortDescription, String fullDescription, String remediation, SeverityReason[] severityReasons) {
         this.severity = severity;

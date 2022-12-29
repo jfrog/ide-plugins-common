@@ -11,7 +11,6 @@ import java.util.Objects;
 /**
  * @author yahavi
  */
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class LicenseViolation extends VulnerabilityOrViolation {
     private static final String UNKNOWN_LICENCE_FULL_NAME = "Unknown license";
     @SuppressWarnings("FieldCanBeLocal")

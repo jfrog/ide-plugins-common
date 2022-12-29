@@ -1,6 +1,5 @@
 package com.jfrog.ide.common.tree;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
@@ -8,7 +7,6 @@ import java.io.Serializable;
 /**
  * @author yahavi
  */
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class GeneralInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -16,7 +14,6 @@ public class GeneralInfo implements Serializable {
     private String componentId = "";
     private String pkgType = "";
     private String path = "";
-    private String sha1 = "";
 
     @SuppressWarnings("WeakerAccess")
     public GeneralInfo() {
@@ -73,10 +70,6 @@ public class GeneralInfo implements Serializable {
         return pkgType;
     }
 
-    public String getSha1() {
-        return sha1;
-    }
-
     @SuppressWarnings("unused")
     public GeneralInfo componentId(String componentId) {
         this.componentId = componentId;
@@ -91,11 +84,6 @@ public class GeneralInfo implements Serializable {
     @SuppressWarnings("unused")
     public GeneralInfo pkgType(String pkgType) {
         this.pkgType = pkgType;
-        return this;
-    }
-
-    public GeneralInfo sha1(String sha1) {
-        this.sha1 = sha1;
         return this;
     }
 
