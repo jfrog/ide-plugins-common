@@ -51,8 +51,4 @@ public class DescriptorFileTreeNode extends FileTreeNode {
         }
     }
 
-    @Override
-    public String getIcon() {
-        return topSeverity.getIconName();
-    }
 }

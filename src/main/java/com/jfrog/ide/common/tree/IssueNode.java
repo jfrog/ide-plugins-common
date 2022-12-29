@@ -3,6 +3,7 @@ package com.jfrog.ide.common.tree;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,6 +22,7 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     private String lastUpdated;
     private List<String> watchNames;
     private ResearchInfo researchInfo;
+    private List<ApplicableIssue> applicableIssues;
 
     public IssueNode() {
     }
@@ -132,4 +134,14 @@ public class IssueNode extends VulnerabilityOrViolationNode {
         }
         return cve.getCveId();
     }
+
+    public List<ApplicableIssue> getApplicableIssues() {
+        return applicableIssues;
+    }
+
+    public void AddApplicableIssues(ApplicableIssue issue) {
+        this.applicableIssues = this.applicableIssues == null ? new ArrayList<>() : this.applicableIssues;
+        this.applicableIssues.add(issue);
+    }
+
 }
