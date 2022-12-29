@@ -22,7 +22,7 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     private List<String> watchNames;
     private ResearchInfo researchInfo;
 
-    public Issue() {
+    public IssueNode() {
     }
 
     @SuppressWarnings("unused")
