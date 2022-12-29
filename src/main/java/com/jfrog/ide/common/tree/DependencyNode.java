@@ -60,7 +60,7 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
         this.impactPaths = impactPaths;
     }
 
-    public void addVulnerabilityOrViolation(VulnerabilityOrViolation vulnerabilityOrViolation) {
+    public void addVulnerabilityOrViolation(VulnerabilityOrViolationNode vulnerabilityOrViolation) {
         add(vulnerabilityOrViolation);
         if (vulnerabilityOrViolation.getSeverity().isHigherThan(topSeverity)) {
             topSeverity = vulnerabilityOrViolation.getSeverity();
@@ -68,7 +68,7 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
     }
 
     public void sortChildren() {
-        children.sort((treeNode1, treeNode2) -> ((VulnerabilityOrViolation) treeNode2).getSeverity().ordinal() - ((VulnerabilityOrViolation) treeNode1).getSeverity().ordinal());
+        children.sort((treeNode1, treeNode2) -> ((VulnerabilityOrViolationNode) treeNode2).getSeverity().ordinal() - ((VulnerabilityOrViolationNode) treeNode1).getSeverity().ordinal());
     }
 
     @Override
@@ -90,8 +90,8 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
     public Object clone() {
         DependencyNode newNode = (DependencyNode) super.clone();
         for (TreeNode child : children) {
-            VulnerabilityOrViolation issue = (VulnerabilityOrViolation) child;
-            VulnerabilityOrViolation clonedIssue = (VulnerabilityOrViolation) issue.clone();
+            VulnerabilityOrViolationNode issue = (VulnerabilityOrViolationNode) child;
+            VulnerabilityOrViolationNode clonedIssue = (VulnerabilityOrViolationNode) issue.clone();
             newNode.addVulnerabilityOrViolation(clonedIssue);
         }
         return newNode;

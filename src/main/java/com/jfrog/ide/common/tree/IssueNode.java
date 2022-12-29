@@ -1,7 +1,6 @@
 package com.jfrog.ide.common.tree;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -10,7 +9,7 @@ import java.util.Objects;
 /**
  * @author yahavi
  */
-public class Issue extends VulnerabilityOrViolation {
+public class IssueNode extends VulnerabilityOrViolationNode {
 
     private Severity severity = Severity.Normal;
     private List<String> fixedVersions;
@@ -27,8 +26,8 @@ public class Issue extends VulnerabilityOrViolation {
     }
 
     @SuppressWarnings("unused")
-    public Issue(String issueId, Severity severity, String summary, List<String> fixedVersions, List<String> infectedVersions,
-                 Cve cve, String lastUpdated, List<String> watchNames, List<String> references, ResearchInfo researchInfo) {
+    public IssueNode(String issueId, Severity severity, String summary, List<String> fixedVersions, List<String> infectedVersions,
+                     Cve cve, String lastUpdated, List<String> watchNames, List<String> references, ResearchInfo researchInfo) {
         this.issueId = issueId;
         this.severity = severity;
         this.summary = summary;
@@ -97,17 +96,12 @@ public class Issue extends VulnerabilityOrViolation {
         return getSeverity() == Severity.Critical;
     }
 
-    @JsonIgnore
-    public boolean isHigherSeverityThan(Issue o) {
-        return getSeverity().isHigherThan(o.getSeverity());
-    }
-
     @Override
     public boolean equals(Object other) {
-        if (!(other instanceof Issue)) {
+        if (!(other instanceof IssueNode)) {
             return false;
         }
-        Issue otherIssue = (Issue) other;
+        IssueNode otherIssue = (IssueNode) other;
         return StringUtils.equals(otherIssue.getIssueId(), getIssueId()) &&
                 StringUtils.equals(otherIssue.getCveIdOrEmpty(), getCveIdOrEmpty());
     }

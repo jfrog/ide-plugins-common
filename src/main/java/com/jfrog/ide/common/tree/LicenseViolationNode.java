@@ -1,7 +1,6 @@
 package com.jfrog.ide.common.tree;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -11,7 +10,7 @@ import java.util.Objects;
 /**
  * @author yahavi
  */
-public class LicenseViolation extends VulnerabilityOrViolation {
+public class LicenseViolationNode extends VulnerabilityOrViolationNode {
     private static final String UNKNOWN_LICENCE_FULL_NAME = "Unknown license";
     @SuppressWarnings("FieldCanBeLocal")
     private static final String UNKNOWN_LICENCE_NAME = "Unknown";
@@ -22,12 +21,12 @@ public class LicenseViolation extends VulnerabilityOrViolation {
     private String lastUpdated;
     private List<String> watchNames;
 
-    public LicenseViolation() {
+    public LicenseViolationNode() {
         this.fullName = UNKNOWN_LICENCE_FULL_NAME;
         this.name = UNKNOWN_LICENCE_NAME;
     }
 
-    public LicenseViolation(String fullName, String name, List<String> references, Severity severity, String lastUpdated, List<String> watchNames) {
+    public LicenseViolationNode(String fullName, String name, List<String> references, Severity severity, String lastUpdated, List<String> watchNames) {
         this.fullName = StringUtils.trim(fullName);
         this.name = StringUtils.trim(name);
         this.references = references;
@@ -61,7 +60,7 @@ public class LicenseViolation extends VulnerabilityOrViolation {
     @JsonIgnore
     @SuppressWarnings("unused")
     public boolean isFullNameEmpty() {
-        return StringUtils.isBlank(fullName) || fullName.equals(LicenseViolation.UNKNOWN_LICENCE_FULL_NAME);
+        return StringUtils.isBlank(fullName) || fullName.equals(LicenseViolationNode.UNKNOWN_LICENCE_FULL_NAME);
     }
 
     @Override
@@ -72,7 +71,7 @@ public class LicenseViolation extends VulnerabilityOrViolation {
         if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        LicenseViolation otherLicense = (LicenseViolation) other;
+        LicenseViolationNode otherLicense = (LicenseViolationNode) other;
         return StringUtils.equals(fullName, otherLicense.fullName) && StringUtils.equals(name, otherLicense.name);
     }
 

@@ -214,18 +214,18 @@ public class GraphScanLogic implements ScanLogic {
             DependencyNode dependencyNode = getDependency(results, entry);
 
             if (vulnerability.getCves() == null || vulnerability.getCves().size() == 0) {
-                Issue issue = convertToIssue(vulnerability, entry.getValue(), null, watchName);
-                dependencyNode.addVulnerabilityOrViolation(issue);
+                IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), null, watchName);
+                dependencyNode.addVulnerabilityOrViolation(issueNode);
             } else {
                 for (Cve cve : vulnerability.getCves()) {
-                    Issue issue = convertToIssue(vulnerability, entry.getValue(), cve, watchName);
-                    dependencyNode.addVulnerabilityOrViolation(issue);
+                    IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), cve, watchName);
+                    dependencyNode.addVulnerabilityOrViolation(issueNode);
                 }
             }
         }
     }
 
-    private Issue convertToIssue(Vulnerability vulnerability, Component component, Cve cve, String watchName) {
+    private IssueNode convertToIssue(Vulnerability vulnerability, Component component, Cve cve, String watchName) {
         ResearchInfo researchInfo = null;
         if (vulnerability.getExtendedInformation() != null) {
             ExtendedInformation extInfo = vulnerability.getExtendedInformation();
@@ -243,7 +243,7 @@ public class GraphScanLogic implements ScanLogic {
         if (watchName != null) {
             watchNames = Collections.singletonList(watchName);
         }
-        return new Issue(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
+        return new IssueNode(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
                 StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(),
                 component.getInfectedVersions(),
                 new com.jfrog.ide.common.tree.Cve(cveId, cvssV2Score, cvssV2Vector, cvssV3Score, cvssV3Vector),
@@ -257,7 +257,7 @@ public class GraphScanLogic implements ScanLogic {
             if (licenseViolation.getWatchName() != null) {
                 watchNames = Collections.singletonList(licenseViolation.getWatchName());
             }
-            LicenseViolation licenseResult = new LicenseViolation(
+            LicenseViolationNode licenseResult = new LicenseViolationNode(
                     licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
                     Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated(), watchNames);
             dependencyNode.addVulnerabilityOrViolation(licenseResult);
