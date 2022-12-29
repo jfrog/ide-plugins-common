@@ -17,7 +17,7 @@ public class DescriptorFileTreeNode extends FileTreeNode {
      *
      * @param dependency
      */
-    public void addDependency(Artifact dependency) {
+    public void addDependency(DependencyNode dependency) {
         addDependencies(Collections.singletonList(dependency));
     }
 
@@ -27,8 +27,8 @@ public class DescriptorFileTreeNode extends FileTreeNode {
      *
      * @param dependencies
      */
-    public void addDependencies(Collection<Artifact> dependencies) {
-        for (Artifact dependency : dependencies) {
+    public void addDependencies(Collection<DependencyNode> dependencies) {
+        for (DependencyNode dependency : dependencies) {
             add(dependency);
             if (dependency.getTopSeverity().isHigherThan(topSeverity)) {
                 topSeverity = dependency.getTopSeverity();
@@ -39,7 +39,7 @@ public class DescriptorFileTreeNode extends FileTreeNode {
 
     private void sortChildren() {
         if (CollectionUtils.isNotEmpty(children)) {
-            children.sort((treeNode1, treeNode2) -> ((Artifact) treeNode2).getTopSeverity().ordinal() - ((Artifact) treeNode1).getTopSeverity().ordinal());
+            children.sort((treeNode1, treeNode2) -> ((DependencyNode) treeNode2).getTopSeverity().ordinal() - ((DependencyNode) treeNode1).getTopSeverity().ordinal());
         }
     }
 

@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * @author yahavi
  */
-public class Artifact extends DefaultMutableTreeNode implements Serializable, SubtitledTreeNode {
+public class DependencyNode extends DefaultMutableTreeNode implements Serializable, SubtitledTreeNode {
 
     private static final long serialVersionUID = 1L;
 
@@ -19,11 +19,11 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
     private List<License> licenses;
 
     // Empty constructor for serialization
-    public Artifact() {
+    public DependencyNode() {
         generalInfo = new GeneralInfo();
     }
 
-    public Artifact(GeneralInfo generalInfo) {
+    public DependencyNode(GeneralInfo generalInfo) {
         this.generalInfo = generalInfo;
     }
 
@@ -88,7 +88,7 @@ public class Artifact extends DefaultMutableTreeNode implements Serializable, Su
 
     @Override
     public Object clone() {
-        Artifact newNode = (Artifact) super.clone();
+        DependencyNode newNode = (DependencyNode) super.clone();
         for (TreeNode child : children) {
             VulnerabilityOrViolation issue = (VulnerabilityOrViolation) child;
             VulnerabilityOrViolation clonedIssue = (VulnerabilityOrViolation) issue.clone();

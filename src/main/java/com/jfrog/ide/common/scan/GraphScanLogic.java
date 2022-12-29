@@ -44,7 +44,7 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     @Override
-    public Map<String, Artifact> scanArtifacts(DependencyTree dependencyTree, ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
+    public Map<String, DependencyNode> scanArtifacts(DependencyTree dependencyTree, ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
         dependencyTree.setPrefix(prefix.toString());
@@ -64,7 +64,7 @@ public class GraphScanLogic implements ScanLogic {
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            Map<String, Artifact> response = scan(xrayClient, nodesToScan, server, checkCanceled, indicator);
+            Map<String, DependencyNode> response = scan(xrayClient, nodesToScan, server, checkCanceled, indicator);
             indicator.setFraction(1);
 
             return response;
@@ -149,11 +149,11 @@ public class GraphScanLogic implements ScanLogic {
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private Map<String, Artifact> scan(Xray xrayClient, DependencyTree artifactsToScan, ServerConfig server, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
+    private Map<String, DependencyNode> scan(Xray xrayClient, DependencyTree artifactsToScan, ServerConfig server, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
         String projectKey = server.getPolicyType() == ServerConfig.PolicyType.PROJECT ? server.getProject() : "";
         String[] watches = server.getPolicyType() == ServerConfig.PolicyType.WATCHES ? split(server.getWatches(), ",") : null;
         GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, new XrayScanProgressImpl(indicator), checkCanceled, projectKey, watches);
-        Map<String, Artifact> results = new HashMap<>();
+        Map<String, DependencyNode> results = new HashMap<>();
 
         // If a project key provided, add all returned violated licenses and vulnerabilities.
         // In case of a violated license, the license added in above section will be overridden with violated=true.
@@ -174,7 +174,7 @@ public class GraphScanLogic implements ScanLogic {
                 .forEach(license ->
                         license.getComponents().forEach(
                                 (compId, comp) -> {
-                                    Artifact dep = results.get(compId);
+                                    DependencyNode dep = results.get(compId);
                                     if (dep == null) {
                                         return;
                                     }
@@ -188,12 +188,12 @@ public class GraphScanLogic implements ScanLogic {
                 );
 
         // Sort issues and licenses inside all artifacts
-        results.values().forEach(Artifact::sortChildren);
+        results.values().forEach(DependencyNode::sortChildren);
 
         return results;
     }
 
-    private void addViolationResult(Map<String, Artifact> results, Violation violation) {
+    private void addViolationResult(Map<String, DependencyNode> results, Violation violation) {
         if (StringUtils.isBlank(violation.getLicenseKey())) {
             addSecurityViolationResult(results, violation);
         } else {
@@ -201,25 +201,25 @@ public class GraphScanLogic implements ScanLogic {
         }
     }
 
-    private void addSecurityViolationResult(Map<String, Artifact> results, Violation violation) {
+    private void addSecurityViolationResult(Map<String, DependencyNode> results, Violation violation) {
         addVulnerabilityResult(results, violation, violation.getWatchName());
     }
 
-    private void addVulnerabilityResult(Map<String, Artifact> results, Vulnerability vulnerability) {
+    private void addVulnerabilityResult(Map<String, DependencyNode> results, Vulnerability vulnerability) {
         addVulnerabilityResult(results, vulnerability, null);
     }
 
-    private void addVulnerabilityResult(Map<String, Artifact> results, Vulnerability vulnerability, String watchName) {
+    private void addVulnerabilityResult(Map<String, DependencyNode> results, Vulnerability vulnerability, String watchName) {
         for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
-            Artifact artifact = getArtifact(results, entry);
+            DependencyNode dependencyNode = getDependency(results, entry);
 
             if (vulnerability.getCves() == null || vulnerability.getCves().size() == 0) {
                 Issue issue = convertToIssue(vulnerability, entry.getValue(), null, watchName);
-                artifact.addVulnerabilityOrViolation(issue);
+                dependencyNode.addVulnerabilityOrViolation(issue);
             } else {
                 for (Cve cve : vulnerability.getCves()) {
                     Issue issue = convertToIssue(vulnerability, entry.getValue(), cve, watchName);
-                    artifact.addVulnerabilityOrViolation(issue);
+                    dependencyNode.addVulnerabilityOrViolation(issue);
                 }
             }
         }
@@ -250,9 +250,9 @@ public class GraphScanLogic implements ScanLogic {
                 vulnerability.getEdited(), watchNames, vulnerability.getReferences(), researchInfo);
     }
 
-    private void addLicenseViolationResult(Map<String, Artifact> results, Violation licenseViolation) {
+    private void addLicenseViolationResult(Map<String, DependencyNode> results, Violation licenseViolation) {
         for (Map.Entry<String, ? extends Component> entry : licenseViolation.getComponents().entrySet()) {
-            Artifact artifact = getArtifact(results, entry);
+            DependencyNode dependencyNode = getDependency(results, entry);
             List<String> watchNames = null;
             if (licenseViolation.getWatchName() != null) {
                 watchNames = Collections.singletonList(licenseViolation.getWatchName());
@@ -260,14 +260,14 @@ public class GraphScanLogic implements ScanLogic {
             LicenseViolation licenseResult = new LicenseViolation(
                     licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
                     Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated(), watchNames);
-            artifact.addVulnerabilityOrViolation(licenseResult);
+            dependencyNode.addVulnerabilityOrViolation(licenseResult);
         }
     }
 
-    private Artifact getArtifact(Map<String, Artifact> results, Map.Entry<String, ? extends Component> compEntry) {
+    private DependencyNode getDependency(Map<String, DependencyNode> results, Map.Entry<String, ? extends Component> compEntry) {
         String componentId = compEntry.getKey();
         if (!results.containsKey(componentId)) {
-            results.put(componentId, new Artifact(new GeneralInfo().componentId(componentId).pkgType(pkgType)));
+            results.put(componentId, new DependencyNode(new GeneralInfo().componentId(componentId).pkgType(pkgType)));
         }
         return results.get(componentId);
     }
