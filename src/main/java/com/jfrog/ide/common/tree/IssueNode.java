@@ -24,6 +24,8 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     private ResearchInfo researchInfo;
     private List<ApplicableIssueNode> applicableIssues;
 
+    private Boolean isApplicable;
+
     public IssueNode() {
     }
 
@@ -144,4 +146,11 @@ public class IssueNode extends VulnerabilityOrViolationNode {
         this.applicableIssues.add(issue);
     }
 
+    public Boolean isApplicable() {
+        return isApplicable;
+    }
+
+    public void setApplicable(boolean applicable) {
+        isApplicable = applicable;
+    }
 }
