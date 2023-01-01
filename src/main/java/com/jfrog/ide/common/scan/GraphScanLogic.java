@@ -266,9 +266,7 @@ public class GraphScanLogic implements ScanLogic {
 
     private DependencyNode getDependency(Map<String, DependencyNode> results, Map.Entry<String, ? extends Component> compEntry) {
         String componentId = compEntry.getKey();
-        if (!results.containsKey(componentId)) {
-            results.put(componentId, new DependencyNode(new GeneralInfo().componentId(componentId).pkgType(pkgType)));
-        }
+        results.putIfAbsent(componentId, new DependencyNode(new GeneralInfo().componentId(componentId).pkgType(pkgType)));
         return results.get(componentId);
     }
 
