@@ -3,13 +3,16 @@ package com.jfrog.ide.common.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Lists;
+import com.jfrog.ide.common.tree.GeneralInfo;
 import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.summary.General;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jfrog.build.extractor.scan.*;
+import org.jfrog.build.extractor.scan.Issue;
+import org.jfrog.build.extractor.scan.License;
+import org.jfrog.build.extractor.scan.Severity;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -67,16 +70,6 @@ public class Utils {
         }
         return new Issue(other.getIssueId(), severity, other.getSummary(), fixedVersions, toCves(other.getCves()),
                 Collections.emptyList(), "");
-    }
-
-    public static Artifact getArtifact(com.jfrog.xray.client.services.summary.Artifact other) {
-        Artifact artifact = new Artifact();
-        artifact.setGeneralInfo(getGeneralInfo(other.getGeneral()));
-        Set<Issue> issues = other.getIssues().stream().map(Utils::toIssue).collect(Collectors.toSet());
-        Set<License> licenses = other.getLicenses().stream().map(Utils::toLicense).collect(Collectors.toSet());
-        artifact.setIssues(issues);
-        artifact.setLicenses(licenses);
-        return artifact;
     }
 
     /**

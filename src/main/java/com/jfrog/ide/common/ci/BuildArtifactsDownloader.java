@@ -40,18 +40,16 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
     private final Runnable checkCancel;
     private final String buildInfoRepo;
     private final AtomicInteger count;
-    private final boolean shouldToast;
     private final double total;
     private final Log log;
 
-    public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts, boolean shouldToast,
+    public BuildArtifactsDownloader(Queue<AqlSearchResult.SearchEntry> buildArtifacts,
                                     ArtifactoryManagerBuilder artifactoryManagerBuilder, BuildsScanCache buildsCache,
                                     ProgressIndicator indicator, AtomicInteger count, double total, Log log, Runnable checkCancel,
                                     String buildInfoRepo) {
         this.artifactoryManagerBuilder = artifactoryManagerBuilder;
         this.buildArtifacts = buildArtifacts;
         this.buildInfoRepo = buildInfoRepo;
-        this.shouldToast = shouldToast;
         this.buildsCache = buildsCache;
         this.checkCancel = checkCancel;
         this.indicator = indicator;
@@ -86,9 +84,9 @@ public class BuildArtifactsDownloader extends ProducerRunnableBase {
                 } catch (CancellationException e) {
                     break;
                 } catch (ParseException | IllegalArgumentException | DecoderException e) {
-                    logError(log, String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e, shouldToast);
+                    logError(log, String.format(BUILD_RET_ERR_FMT, buildName, buildNumber), e, true);
                 } catch (IOException e) {
-                    logError(log, "", e, shouldToast);
+                    logError(log, "", e, true);
                 } finally {
                     indicator.setFraction(count.incrementAndGet() / total);
                 }

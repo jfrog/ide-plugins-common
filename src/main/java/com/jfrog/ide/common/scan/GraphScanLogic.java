@@ -1,29 +1,25 @@
 package com.jfrog.ide.common.scan;
 
-import com.google.common.collect.Sets;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
-import com.jfrog.ide.common.persistency.ScanCache;
+import com.jfrog.ide.common.tree.*;
+import com.jfrog.ide.common.tree.License;
 import com.jfrog.xray.client.Xray;
-import com.jfrog.xray.client.services.scan.GraphResponse;
-import com.jfrog.xray.client.services.scan.XrayScanProgress;
+import com.jfrog.xray.client.services.common.Cve;
+import com.jfrog.xray.client.services.scan.*;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.License;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
-import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.ListUtils.emptyIfNull;
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -39,54 +35,43 @@ import static org.apache.commons.lang3.StringUtils.*;
 @Setter
 public class GraphScanLogic implements ScanLogic {
     public static final String MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN = "3.29.0";
-    private ScanCache scanCache;
+    private String pkgType;
     private Log log;
-    private DependencyTree scanResults;
 
-    public GraphScanLogic(ScanCache scanCache, Log log) {
-        this.scanCache = scanCache;
+    public GraphScanLogic(String pkgType, Log log) {
+        this.pkgType = pkgType;
         this.log = log;
     }
 
-    /**
-     * Scan and cache components.
-     *
-     * @param server    - JFrog platform server configuration.
-     * @param indicator - Progress bar.
-     * @param quickScan - Quick or full scan.
-     * @return true if the scan completed successfully, false otherwise.
-     */
     @Override
-    public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
+    public Map<String, DependencyNode> scanArtifacts(DependencyTree dependencyTree, ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
-        scanResults.setPrefix(prefix.toString());
-        DependencyTree nodesToScan = createScanTree(scanResults, quickScan);
+        dependencyTree.setPrefix(prefix.toString());
+        DependencyTree nodesToScan = createScanTree(dependencyTree);
+
         if (nodesToScan.isLeaf()) {
             log.debug("No components found to scan.");
             // No components found to scan
-            return false;
+            return null;
         }
         try {
             // Create Xray client and check version
             Xray xrayClient = createXrayClientBuilder(server, log).build();
             if (!isSupportedInXrayVersion(xrayClient)) {
-                return false;
+                return null;
             }
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
-            scanAndCache(xrayClient, nodesToScan, server, checkCanceled, indicator);
-
+            Map<String, DependencyNode> response = scan(xrayClient, nodesToScan, server, checkCanceled, indicator);
             indicator.setFraction(1);
-            log.debug("Saving scan cache...");
-            scanCache.write();
-            log.debug("Scan cache saved successfully.");
+
+            return response;
         } catch (CancellationException e) {
             log.info("Xray scan was canceled.");
-            return false;
+            return null;
         }
-        return true;
     }
 
     /**
@@ -94,13 +79,12 @@ public class GraphScanLogic implements ScanLogic {
      * Add all direct dependencies to cache to make sure that dependencies will not be scanned again in the next quick scan.
      *
      * @param root      - The root dependency tree node
-     * @param quickScan - Quick or full scan
      * @return a graph of non cached component for Xray scan.
      */
-    DependencyTree createScanTree(DependencyTree root, boolean quickScan) {
+    DependencyTree createScanTree(DependencyTree root) {
         DependencyTree scanTree = new DependencyTree(root.getUserObject());
         Set<String> componentsAdded = new HashSet<>();
-        populateScanTree(root, scanTree, quickScan, componentsAdded);
+        populateScanTree(root, scanTree, componentsAdded);
         return scanTree;
     }
 
@@ -110,47 +94,30 @@ public class GraphScanLogic implements ScanLogic {
      *
      * @param root            - The root dependency tree node
      * @param scanTree        - The result
-     * @param quickScan       - Quick or full scan
      * @param componentsAdded - Set of added components used to remove duplications
      */
-    private void populateScanTree(DependencyTree root, DependencyTree scanTree, boolean quickScan, Set<String> componentsAdded) {
+    private void populateScanTree(DependencyTree root, DependencyTree scanTree, Set<String> componentsAdded) {
         for (DependencyTree child : root.getChildren()) {
             // Don't add metadata nodes to the scan tree
             if (child.isMetadata()) {
-                populateScanTree(child, scanTree, quickScan, componentsAdded);
+                populateScanTree(child, scanTree, componentsAdded);
                 continue;
             }
 
-            // If dependency not in cache or this is a full scan - add the dependency subtree to the scan tree.
-            // If dependency is in cache and this is a quick scan - skip subtree.
+            // Add the dependency subtree to the scan tree
             String childFullId = child.toString();
-            if (!quickScan || !scanCache.contains(childFullId)) {
-                if (((DependencyTree) child.getParent()).isMetadata()) {
-                    // All direct dependencies should be in the cache. This line make sure that dependencies that
-                    // wouldn't return from Xray will not be scanned again during the next quick scan.
-                    String componentId = contains(childFullId, "://") ?
-                            substringAfter(childFullId, "://") : childFullId;
-                    scanCache.add(new Artifact(new GeneralInfo().componentId(componentId), new HashSet<>(), new HashSet<>()));
-                }
-                if (componentsAdded.add(child.getComponentId())) {
-                    scanTree.add(new DependencyTree(child.getComponentId()));
-                }
-                populateScanTree(child, scanTree, quickScan, componentsAdded);
+            if (((DependencyTree) child.getParent()).isMetadata()) {
+                // All direct dependencies should be in the cache. This line make sure that dependencies that
+                // wouldn't return from Xray will not be scanned again during the next quick scan.
+                String componentId = contains(childFullId, "://") ?
+                        substringAfter(childFullId, "://") : childFullId;
             }
-        }
-    }
+            if (componentsAdded.add(child.getComponentId())) {
+                scanTree.add(new DependencyTree(child.getComponentId()));
+            }
+            populateScanTree(child, scanTree, componentsAdded);
 
-    @Override
-    public Artifact getArtifactSummary(String componentId) {
-        Artifact artifact = scanCache.get(componentId);
-        if (artifact == null) {
-            return new Artifact(new GeneralInfo().componentId(componentId), Sets.newHashSet(), Sets.newHashSet(new License()));
         }
-        if (isEmpty(artifact.getLicenses())) {
-            // If no license detected in Xray, set a new unknown license
-            artifact.getLicenses().add(new License());
-        }
-        return artifact;
     }
 
     public static boolean isSupportedInXrayVersion(Version xrayVersion) {
@@ -182,29 +149,135 @@ public class GraphScanLogic implements ScanLogic {
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
-    private void scanAndCache(Xray xrayClient, DependencyTree artifactsToScan, ServerConfig server, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
+    private Map<String, DependencyNode> scan(Xray xrayClient, DependencyTree artifactsToScan, ServerConfig server, Runnable checkCanceled, ProgressIndicator indicator) throws IOException, InterruptedException {
         String projectKey = server.getPolicyType() == ServerConfig.PolicyType.PROJECT ? server.getProject() : "";
         String[] watches = server.getPolicyType() == ServerConfig.PolicyType.WATCHES ? split(server.getWatches(), ",") : null;
         GraphResponse scanResults = xrayClient.scan().graph(artifactsToScan, new XrayScanProgressImpl(indicator), checkCanceled, projectKey, watches);
-
-        // Add licenses to all components
-        emptyIfNull(scanResults.getLicenses()).stream()
-                .filter(Objects::nonNull)
-                .filter(license -> license.getComponents() != null)
-                .forEach(license -> scanCache.add(license, false));
+        Map<String, DependencyNode> results = new HashMap<>();
 
         // If a project key provided, add all returned violated licenses and vulnerabilities.
         // In case of a violated license, the license added in above section will be overridden with violated=true.
         emptyIfNull(scanResults.getViolations()).stream()
                 .filter(Objects::nonNull)
                 .filter(violation -> violation.getComponents() != null)
-                .forEach(violation -> scanCache.add(violation));
+                .forEach(violation -> addViolationResult(results, violation));
 
         // If no project key provided, Add all returned vulnerabilities.
         emptyIfNull(scanResults.getVulnerabilities()).stream()
                 .filter(Objects::nonNull)
                 .filter(vulnerability -> vulnerability.getComponents() != null)
-                .forEach(vulnerability -> scanCache.add(vulnerability));
+                .forEach(vulnerability -> addVulnerabilityResult(results, vulnerability));
+
+        emptyIfNull(scanResults.getLicenses()).stream()
+                .filter(Objects::nonNull)
+                .filter(license -> license.getComponents() != null)
+                .forEach(license ->
+                        license.getComponents().forEach(
+                                (compId, comp) -> {
+                                    DependencyNode dep = results.get(compId);
+                                    if (dep == null) {
+                                        return;
+                                    }
+                                    String moreInfoUrl = null;
+                                    if (!CollectionUtils.isEmpty(license.getReferences())) {
+                                        moreInfoUrl = license.getReferences().get(0);
+                                    }
+                                    dep.addLicense(new License(license.getLicenseKey(), moreInfoUrl));
+                                }
+                        )
+                );
+
+        // Sort issues and licenses inside all artifacts
+        results.values().forEach(DependencyNode::sortChildren);
+
+        return results;
+    }
+
+    private void addViolationResult(Map<String, DependencyNode> results, Violation violation) {
+        if (StringUtils.isBlank(violation.getLicenseKey())) {
+            addSecurityViolationResult(results, violation);
+        } else {
+            addLicenseViolationResult(results, violation);
+        }
+    }
+
+    private void addSecurityViolationResult(Map<String, DependencyNode> results, Violation violation) {
+        addVulnerabilityResult(results, violation, violation.getWatchName());
+    }
+
+    private void addVulnerabilityResult(Map<String, DependencyNode> results, Vulnerability vulnerability) {
+        addVulnerabilityResult(results, vulnerability, null);
+    }
+
+    private void addVulnerabilityResult(Map<String, DependencyNode> results, Vulnerability vulnerability, String watchName) {
+        for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
+            DependencyNode dependencyNode = getDependency(results, entry);
+
+            if (vulnerability.getCves() == null || vulnerability.getCves().size() == 0) {
+                IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), null, watchName);
+                dependencyNode.addVulnerabilityOrViolation(issueNode);
+            } else {
+                for (Cve cve : vulnerability.getCves()) {
+                    IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), cve, watchName);
+                    dependencyNode.addVulnerabilityOrViolation(issueNode);
+                }
+            }
+        }
+    }
+
+    private IssueNode convertToIssue(Vulnerability vulnerability, Component component, Cve cve, String watchName) {
+        ResearchInfo researchInfo = null;
+        if (vulnerability.getExtendedInformation() != null) {
+            ExtendedInformation extInfo = vulnerability.getExtendedInformation();
+            researchInfo = new ResearchInfo(Severity.valueOf(extInfo.getJFrogResearchSeverity()), extInfo.getShortDescription(), extInfo.getFullDescription(), extInfo.getRemediation(), convertSeverityReasons(extInfo.getJFrogResearchSeverityReasons()));
+        }
+        String cveId = null, cvssV2Score = null, cvssV2Vector = null, cvssV3Score = null, cvssV3Vector = null;
+        if (cve != null) {
+            cveId = cve.getId();
+            cvssV2Score = cve.getCvssV2Score();
+            cvssV2Vector = cve.getCvssV2Vector();
+            cvssV3Score = cve.getCvssV3Score();
+            cvssV3Vector = cve.getCvssV3Vector();
+        }
+        List<String> watchNames = null;
+        if (watchName != null) {
+            watchNames = Collections.singletonList(watchName);
+        }
+        return new IssueNode(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
+                StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(),
+                component.getInfectedVersions(),
+                new com.jfrog.ide.common.tree.Cve(cveId, cvssV2Score, cvssV2Vector, cvssV3Score, cvssV3Vector),
+                vulnerability.getEdited(), watchNames, vulnerability.getReferences(), researchInfo);
+    }
+
+    private void addLicenseViolationResult(Map<String, DependencyNode> results, Violation licenseViolation) {
+        for (Map.Entry<String, ? extends Component> entry : licenseViolation.getComponents().entrySet()) {
+            DependencyNode dependencyNode = getDependency(results, entry);
+            List<String> watchNames = null;
+            if (licenseViolation.getWatchName() != null) {
+                watchNames = Collections.singletonList(licenseViolation.getWatchName());
+            }
+            LicenseViolationNode licenseResult = new LicenseViolationNode(
+                    licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
+                    Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated(), watchNames);
+            dependencyNode.addVulnerabilityOrViolation(licenseResult);
+        }
+    }
+
+    private DependencyNode getDependency(Map<String, DependencyNode> results, Map.Entry<String, ? extends Component> compEntry) {
+        String componentId = compEntry.getKey();
+        results.putIfAbsent(componentId, new DependencyNode(new GeneralInfo().componentId(componentId).pkgType(pkgType)));
+        return results.get(componentId);
+    }
+
+    private SeverityReason[] convertSeverityReasons(com.jfrog.xray.client.services.scan.SeverityReasons[] xraySeverityReasons) {
+        if (xraySeverityReasons == null) {
+            return null;
+        }
+        return Arrays.stream(xraySeverityReasons)
+                .map(xrSeverityReason ->
+                        new SeverityReason(xrSeverityReason.getName(), xrSeverityReason.getDescription(), xrSeverityReason.isPositive())
+                ).toArray(SeverityReason[]::new);
     }
 
     /**

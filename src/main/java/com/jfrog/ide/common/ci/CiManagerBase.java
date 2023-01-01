@@ -77,12 +77,11 @@ public class CiManagerBase {
      * @param project       - The JFrog project to scan
      * @param indicator     - The progress indicator to show
      * @param checkCanceled - Callback that throws an exception if scan was cancelled by user
-     * @param shouldToast   - True if scan was triggered by the "refresh" button
      * @throws NoSuchAlgorithmException in case of error during creating the Artifactory dependencies client.
      * @throws KeyStoreException        in case of error during creating the Artifactory dependencies client.
      * @throws KeyManagementException   in case of error during creating the Artifactory dependencies client.
      */
-    public void buildCiTree(String buildsPattern, String project, ProgressIndicator indicator, Runnable checkCanceled, boolean shouldToast) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void buildCiTree(String buildsPattern, String project, ProgressIndicator indicator, Runnable checkCanceled) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         root = new DependencyTree();
         XrayClientBuilder xrayClientBuilder = createXrayClientBuilder(serverConfig, log);
         ArtifactoryManagerBuilder artifactoryManagerBuilder = createArtifactoryManagerBuilder(serverConfig, new NullLog());
@@ -101,7 +100,7 @@ public class CiManagerBase {
             double total = buildArtifacts.size() * 2;
             // Create producer Runnables.
             ProducerRunnableBase[] producerRunnable = new ProducerRunnableBase[]{new BuildArtifactsDownloader(
-                    buildArtifacts, shouldToast, artifactoryManagerBuilder,
+                    buildArtifacts, artifactoryManagerBuilder,
                     buildsCache, indicator, count, total, log, checkCanceled, buildInfoRepo)};
             // Create consumer Runnables.
             ConsumerRunnableBase[] consumerRunnables = new ConsumerRunnableBase[]{new XrayBuildDetailsDownloader(
@@ -113,7 +112,7 @@ public class CiManagerBase {
         } catch (CancellationException cancellationException) {
             log.info("Builds scan was canceled.");
         } catch (Exception e) {
-            logError(log, "Failed to build CI tree", e, shouldToast);
+            logError(log, "Failed to build CI tree", e, true);
         }
     }
 
