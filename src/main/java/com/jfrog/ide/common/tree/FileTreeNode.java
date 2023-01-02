@@ -1,5 +1,7 @@
 package com.jfrog.ide.common.tree;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
 
@@ -32,6 +34,7 @@ public class FileTreeNode extends DefaultMutableTreeNode implements SubtitledTre
     public String toString() {
         return fileName;
     }
+
     @Override
     public String getIcon() {
         return topSeverity.getIconName();
@@ -41,6 +44,12 @@ public class FileTreeNode extends DefaultMutableTreeNode implements SubtitledTre
         add(issue);
         if (issue.getSeverity().isHigherThan(topSeverity)) {
             topSeverity = issue.getSeverity();
+        }
+    }
+
+    public void sortChildren() {
+        if (CollectionUtils.isNotEmpty(children)) {
+            children.sort((treeNode1, treeNode2) -> ((DependencyNode) treeNode2).getTopSeverity().ordinal() - ((DependencyNode) treeNode1).getTopSeverity().ordinal());
         }
     }
 }

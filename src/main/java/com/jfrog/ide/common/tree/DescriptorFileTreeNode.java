@@ -1,7 +1,5 @@
 package com.jfrog.ide.common.tree;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import java.util.Collection;
 import java.util.Collections;
 
@@ -21,14 +19,6 @@ public class DescriptorFileTreeNode extends FileTreeNode {
         addDependencies(Collections.singletonList(dependency));
     }
 
-    public void addDependency(ApplicableIssueNode issue) {
-        add(issue);
-        if (issue.getSeverity().isHigherThan(topSeverity)) {
-            topSeverity = issue.getSeverity();
-        }
-    }
-
-
     /**
      * Adds dependencies as children of the descriptor file.
      * Each dependency can have only one parent.
@@ -44,11 +34,4 @@ public class DescriptorFileTreeNode extends FileTreeNode {
         }
         sortChildren();
     }
-
-    private void sortChildren() {
-        if (CollectionUtils.isNotEmpty(children)) {
-            children.sort((treeNode1, treeNode2) -> ((DependencyNode) treeNode2).getTopSeverity().ordinal() - ((DependencyNode) treeNode1).getTopSeverity().ordinal());
-        }
-    }
-
 }

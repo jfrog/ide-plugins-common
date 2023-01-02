@@ -15,7 +15,6 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
 
     private GeneralInfo generalInfo;
     private ImpactTreeNode impactPaths;
-    private Severity topSeverity = Severity.Normal;
     private List<License> licenses;
 
     // Empty constructor for serialization
@@ -49,6 +48,13 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
     }
 
     public Severity getTopSeverity() {
+        Severity topSeverity = Severity.Normal;
+        for (TreeNode child : children) {
+            Severity childSeverity = ((VulnerabilityOrViolationNode) child).getSeverity();
+            if (childSeverity.isHigherThan(topSeverity)) {
+                topSeverity = childSeverity;
+            }
+        }
         return topSeverity;
     }
 
@@ -62,9 +68,6 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
 
     public void addVulnerabilityOrViolation(VulnerabilityOrViolationNode vulnerabilityOrViolation) {
         add(vulnerabilityOrViolation);
-        if (vulnerabilityOrViolation.getSeverity().isHigherThan(topSeverity)) {
-            topSeverity = vulnerabilityOrViolation.getSeverity();
-        }
     }
 
     public void sortChildren() {
@@ -83,7 +86,7 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
 
     @Override
     public String getIcon() {
-        return topSeverity.getIconName();
+        return getTopSeverity().getIconName();
     }
 
     @Override
