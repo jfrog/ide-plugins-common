@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Build Gradle dependency tree before the Xray scan.
@@ -105,7 +105,7 @@ public class GradleTreeBuilder {
      * @return the dependency tree node.
      */
     private DependencyTree createNode(GeneralInfo generalInfo, GradleDependencyTree gradleDependencyNode) {
-        DependencyTree node = new DependencyTree(getNodeName(generalInfo, gradleDependencyNode.isUnresolved()));
+        DependencyTree node = new DependencyTree(generalInfo.getComponentId());
         node.setGeneralInfo(generalInfo);
         Set<Scope> scopes = gradleDependencyNode.getConfigurations().stream().map(Scope::new).collect(Collectors.toSet());
         if (scopes.isEmpty()) {
@@ -117,20 +117,5 @@ public class GradleTreeBuilder {
             node.setMetadata(true);
         }
         return node;
-    }
-
-    /**
-     * Get the dependency tree node name.
-     * If the dependency is a subproject, the name is the project artifact name.
-     * If the dependency is a regular dependency, the name is a GAV string.
-     * If the dependency is unresolved, add an [unresolved] suffix.
-     *
-     * @param generalInfo - The dependency general info
-     * @param unresolved  - True if the dependency could not be resolved
-     * @return the dependency tree node name.
-     */
-    private String getNodeName(GeneralInfo generalInfo, boolean unresolved) {
-        String unresolvedStr = unresolved ? " [unresolved]" : "";
-        return generalInfo.getComponentId() + unresolvedStr;
     }
 }
