@@ -28,8 +28,8 @@ public class DescriptorFileTreeNode extends FileTreeNode {
     public void addDependencies(Collection<DependencyNode> dependencies) {
         for (DependencyNode dependency : dependencies) {
             add(dependency);
-            if (dependency.getTopSeverity().isHigherThan(topSeverity)) {
-                topSeverity = dependency.getTopSeverity();
+            if (dependency.getSeverity().isHigherThan(topSeverity)) {
+                topSeverity = dependency.getSeverity();
             }
         }
         sortChildren();

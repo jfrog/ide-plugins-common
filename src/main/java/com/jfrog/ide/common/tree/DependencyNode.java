@@ -1,6 +1,5 @@
 package com.jfrog.ide.common.tree;
 
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -9,7 +8,7 @@ import java.util.List;
 /**
  * @author yahavi
  */
-public class DependencyNode extends DefaultMutableTreeNode implements Serializable, SubtitledTreeNode {
+public class DependencyNode extends ComparableSeverityTreeNode implements Serializable, SubtitledTreeNode {
 
     private static final long serialVersionUID = 1L;
 
@@ -47,15 +46,16 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
         licenses.add(license);
     }
 
-    public Severity getTopSeverity() {
-        Severity topSeverity = Severity.Normal;
+    @Override
+    public Severity getSeverity() {
+        Severity severity = Severity.Normal;
         for (TreeNode child : children) {
             Severity childSeverity = ((VulnerabilityOrViolationNode) child).getSeverity();
-            if (childSeverity.isHigherThan(topSeverity)) {
-                topSeverity = childSeverity;
+            if (childSeverity.isHigherThan(severity)) {
+                severity = childSeverity;
             }
         }
-        return topSeverity;
+        return severity;
     }
 
     public ImpactTreeNode getImpactPaths() {
@@ -86,7 +86,7 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
 
     @Override
     public String getIcon() {
-        return getTopSeverity().getIconName();
+        return getSeverity().getIconName();
     }
 
     @Override
@@ -104,4 +104,5 @@ public class DependencyNode extends DefaultMutableTreeNode implements Serializab
     public String toString() {
         return getTitle();
     }
+
 }

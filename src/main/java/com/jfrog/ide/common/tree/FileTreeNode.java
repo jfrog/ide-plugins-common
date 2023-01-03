@@ -2,10 +2,10 @@ package com.jfrog.ide.common.tree;
 
 import org.apache.commons.collections.CollectionUtils;
 
-import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
+import java.util.Comparator;
 
-public class FileTreeNode extends DefaultMutableTreeNode implements SubtitledTreeNode {
+public class FileTreeNode extends ComparableSeverityTreeNode implements SubtitledTreeNode {
     protected String fileName;
     protected String filePath;
     protected Severity topSeverity = Severity.Normal;
@@ -16,7 +16,7 @@ public class FileTreeNode extends DefaultMutableTreeNode implements SubtitledTre
         fileName = f.getName();
     }
 
-    public Severity getTopSeverity() {
+    public Severity getSeverity() {
         return topSeverity;
     }
 
@@ -49,7 +49,7 @@ public class FileTreeNode extends DefaultMutableTreeNode implements SubtitledTre
 
     public void sortChildren() {
         if (CollectionUtils.isNotEmpty(children)) {
-            children.sort((treeNode1, treeNode2) -> ((DependencyNode) treeNode2).getTopSeverity().ordinal() - ((DependencyNode) treeNode1).getTopSeverity().ordinal());
+            children.sort(Comparator.comparing(treeNode -> ((ComparableSeverityTreeNode) treeNode)));
         }
     }
 }
