@@ -5,6 +5,7 @@ package com.jfrog.ide.common.tree;
  */
 public enum Severity {
     Normal("Scanned - No Issues", "normal"),
+    NotApplicable("Not Applicable", "notapplicable"),
     Pending("Pending Scan", "pending"),
     Unknown("Unknown", "unknown"),
     Information("Information", "information"),

@@ -24,8 +24,6 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     private ResearchInfo researchInfo;
     private List<ApplicableIssueNode> applicableIssues;
 
-    private Boolean isApplicable;
-
     public IssueNode() {
     }
 
@@ -49,7 +47,14 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     }
 
     public Severity getSeverity() {
-        return this.severity;
+        return isApplicable() != null && !isApplicable() ? Severity.NotApplicable : this.severity;
+    }
+
+    public Severity getSeverity(boolean masked) {
+        if (!masked) {
+            return this.severity;
+        }
+        return getSeverity();
     }
 
     @SuppressWarnings("unused")
@@ -141,16 +146,21 @@ public class IssueNode extends VulnerabilityOrViolationNode {
         return applicableIssues;
     }
 
+    public void setApplicableIssues(List<ApplicableIssueNode> applicableIssues) {
+        this.applicableIssues = applicableIssues;
+    }
+
     public void AddApplicableIssues(ApplicableIssueNode issue) {
         this.applicableIssues = this.applicableIssues == null ? new ArrayList<>() : this.applicableIssues;
         this.applicableIssues.add(issue);
     }
 
+    /**
+     * Returns true if the issue is applicable, false if not.
+     * If the applicability status is unknown, null will be returned.
+     */
     public Boolean isApplicable() {
-        return isApplicable;
+        return this.applicableIssues != null ? this.applicableIssues.size() > 0 : null;
     }
 
-    public void setApplicable(boolean applicable) {
-        isApplicable = applicable;
-    }
 }
