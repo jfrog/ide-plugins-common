@@ -2,23 +2,27 @@ package com.jfrog.ide.common.tree;
 
 public class ApplicableIssueNode extends VulnerabilityOrViolationNode implements SubtitledTreeNode {
 
-    protected String name;
-    protected String reason;
-    protected String lineSnippet;
+    private final String name;
+    private final String reason;
+    private final String lineSnippet;
 
-    protected int row;
-    protected int col;
-    protected String filePath;
-    protected IssueNode issue;
+    private final String scannerSearchTarget;
 
-    public ApplicableIssueNode(String name, int row, int col, String filePath, String reason, String lineSnippet, IssueNode issue) {
+    private final int row;
+    private final int col;
+    private final String filePath;
+    private final IssueNode issue;
+
+    public ApplicableIssueNode(String name, int row, int col, String filePath, String reason, String lineSnippet, String scannerSearchTarget, IssueNode issue) {
         this.name = name;
         this.row = row;
         this.col = col;
-        this.issue = issue;
         this.filePath = filePath;
         this.reason = reason;
         this.lineSnippet = lineSnippet;
+        this.scannerSearchTarget = scannerSearchTarget;
+        this.issue = issue;
+
     }
 
     @Override
@@ -66,6 +70,10 @@ public class ApplicableIssueNode extends VulnerabilityOrViolationNode implements
 
     public String getLineSnippet() {
         return lineSnippet;
+    }
+
+    public String getScannerSearchTarget() {
+        return scannerSearchTarget;
     }
 
 }
