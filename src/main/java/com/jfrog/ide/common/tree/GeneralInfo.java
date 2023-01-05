@@ -87,7 +87,7 @@ public class GeneralInfo implements Serializable {
         return this;
     }
 
-    protected String getComponentIdWithoutPrefix() {
+    public String getComponentIdWithoutPrefix() {
         final String prefixSeparator = "://";
         int prefixIndex = componentId.indexOf(prefixSeparator);
         return componentId.substring(prefixIndex + prefixSeparator.length());
