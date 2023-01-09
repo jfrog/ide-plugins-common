@@ -53,15 +53,14 @@ public class GraphScanLogic implements ScanLogic {
      *
      * @param server    - JFrog platform server configuration.
      * @param indicator - Progress bar.
-     * @param quickScan - Quick or full scan.
      * @return true if the scan completed successfully, false otherwise.
      */
     @Override
-    public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
+    public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
         scanResults.setPrefix(prefix.toString());
-        DependencyTree nodesToScan = createScanTree(scanResults, quickScan);
+        DependencyTree nodesToScan = createScanTree(scanResults);
         if (nodesToScan.isLeaf()) {
             log.debug("No components found to scan.");
             // No components found to scan
@@ -93,14 +92,13 @@ public class GraphScanLogic implements ScanLogic {
      * Create a flat tree of all components required to scan.
      * Add all direct dependencies to cache to make sure that dependencies will not be scanned again in the next quick scan.
      *
-     * @param root      - The root dependency tree node
-     * @param quickScan - Quick or full scan
+     * @param root - The root dependency tree node
      * @return a graph of non cached component for Xray scan.
      */
-    DependencyTree createScanTree(DependencyTree root, boolean quickScan) {
+    DependencyTree createScanTree(DependencyTree root) {
         DependencyTree scanTree = new DependencyTree(root.getUserObject());
         Set<String> componentsAdded = new HashSet<>();
-        populateScanTree(root, scanTree, quickScan, componentsAdded);
+        populateScanTree(root, scanTree, componentsAdded);
         return scanTree;
     }
 
@@ -110,21 +108,19 @@ public class GraphScanLogic implements ScanLogic {
      *
      * @param root            - The root dependency tree node
      * @param scanTree        - The result
-     * @param quickScan       - Quick or full scan
      * @param componentsAdded - Set of added components used to remove duplications
      */
-    private void populateScanTree(DependencyTree root, DependencyTree scanTree, boolean quickScan, Set<String> componentsAdded) {
+    private void populateScanTree(DependencyTree root, DependencyTree scanTree, Set<String> componentsAdded) {
         for (DependencyTree child : root.getChildren()) {
             // Don't add metadata nodes to the scan tree
             if (child.isMetadata()) {
-                populateScanTree(child, scanTree, quickScan, componentsAdded);
+                populateScanTree(child, scanTree, componentsAdded);
                 continue;
             }
 
-            // If dependency not in cache or this is a full scan - add the dependency subtree to the scan tree.
-            // If dependency is in cache and this is a quick scan - skip subtree.
+            // If dependency is in cache - skip subtree.
             String childFullId = child.toString();
-            if (!quickScan || !scanCache.contains(childFullId)) {
+            if (!scanCache.contains(childFullId)) {
                 if (((DependencyTree) child.getParent()).isMetadata()) {
                     // All direct dependencies should be in the cache. This line make sure that dependencies that
                     // wouldn't return from Xray will not be scanned again during the next quick scan.
@@ -135,7 +131,7 @@ public class GraphScanLogic implements ScanLogic {
                 if (componentsAdded.add(child.getComponentId())) {
                     scanTree.add(new DependencyTree(child.getComponentId()));
                 }
-                populateScanTree(child, scanTree, quickScan, componentsAdded);
+                populateScanTree(child, scanTree, componentsAdded);
             }
         }
     }

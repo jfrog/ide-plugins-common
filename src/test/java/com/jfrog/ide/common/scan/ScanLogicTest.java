@@ -73,7 +73,7 @@ public class ScanLogicTest {
     public void setUp() throws IOException {
         mocks = MockitoAnnotations.openMocks(this);
         baseDir = Files.createTempDirectory("ScanLogicTest");
-        scanCache = new XrayScanCache("ScanLogicTest", baseDir, new NullLog());
+        scanCache = new XrayScanCache("ScanLogicTest", baseDir, false, new NullLog());
         scanResults.setMetadata(true);
         scanResults.add(new DependencyTree("gav://io.netty:netty-codec-http:4.1.31.Final"));
         scanResults.add(new DependencyTree("gav://org.apache.commons:commons-lang3:3.12.0"));
@@ -114,7 +114,7 @@ public class ScanLogicTest {
             utilities.when(() -> XrayConnectionUtils.createXrayClientBuilder(serverConfig, log)).thenReturn(new DummyXrayClientBuilder(xrayClient));
             when(xrayClient.system()).thenReturn(new SystemMock(xrayClient));
             scanLogic.setScanResults(scanResults);
-            scanLogic.scanAndCacheArtifacts(serverConfig, progressIndicator, false, ComponentPrefix.GAV, checkCanceled);
+            scanLogic.scanAndCacheArtifacts(serverConfig, progressIndicator, ComponentPrefix.GAV, checkCanceled);
             checkNettyCodec(violations);
             checkCommonsLang(violations);
         }
