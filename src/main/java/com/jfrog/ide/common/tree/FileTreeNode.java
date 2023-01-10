@@ -40,6 +40,10 @@ public class FileTreeNode extends ComparableSeverityTreeNode implements Subtitle
         return topSeverity.getIconName();
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
     public void addDependency(ApplicableIssueNode issue) {
         add(issue);
         if (issue.getSeverity().isHigherThan(topSeverity)) {

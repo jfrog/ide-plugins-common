@@ -1,7 +1,5 @@
 package com.jfrog.ide.common.tree;
 
-import org.apache.commons.lang3.StringUtils;
-
 import javax.swing.tree.TreeNode;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -61,12 +59,6 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
 
     public ImpactTreeNode getImpactPaths() {
         return impactPaths;
-    }
-
-    public String getImpactPathsString() {
-        StringBuilder impactPathsBuilder = new StringBuilder();
-        impactPaths.getChildren().stream().map(path -> StringUtils.substringAfter(path.name, "://")).forEach(impactPathsBuilder::append);
-        return impactPathsBuilder.toString();
     }
 
     public void setImpactPaths(ImpactTreeNode impactPaths) {
