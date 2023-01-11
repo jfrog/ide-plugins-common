@@ -4,6 +4,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 
+import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
+
 /**
  * @author yahavi
  */
@@ -88,8 +90,6 @@ public class GeneralInfo implements Serializable {
     }
 
     public String getComponentIdWithoutPrefix() {
-        final String prefixSeparator = "://";
-        int prefixIndex = componentId.indexOf(prefixSeparator);
-        return componentId.substring(prefixIndex + prefixSeparator.length());
+        return removeComponentIdPrefix(this.componentId);
     }
 }

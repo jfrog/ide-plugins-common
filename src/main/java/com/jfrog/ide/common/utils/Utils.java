@@ -131,4 +131,8 @@ public class Utils {
         );
         return finalPaths;
     }
+
+    public static String removeComponentIdPrefix(String compId) {
+        return StringUtils.substringAfter(compId, "://");
+    }
 }

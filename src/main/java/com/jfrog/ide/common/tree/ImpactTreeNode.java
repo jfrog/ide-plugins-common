@@ -1,9 +1,9 @@
 package com.jfrog.ide.common.tree;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 
 public class ImpactTreeNode {
     String name;
@@ -35,9 +35,5 @@ public class ImpactTreeNode {
             }
         }
         return false;
-    }
-
-    private static String removeComponentIdPrefix(String compId) {
-        return StringUtils.substringAfter(compId, "://");
     }
 }
