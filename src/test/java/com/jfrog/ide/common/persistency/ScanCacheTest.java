@@ -44,7 +44,7 @@ public class ScanCacheTest {
     public void testGetScanCacheEmpty() {
         String projectName = "not_exits";
         try {
-            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, true, new NullLog());
             assertNotNull(scanCache);
             assertNull(scanCache.get("not_exits"));
         } catch (IOException e) {
@@ -57,7 +57,7 @@ public class ScanCacheTest {
         String projectName = "Goliath";
         String artifactId = "ant:tony:1.2.3";
         try {
-            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, true, new NullLog());
             assertNotNull(scanCache);
 
             Artifact artifact = createArtifact(artifactId);
@@ -73,13 +73,13 @@ public class ScanCacheTest {
         String projectName = "Pegasus";
         String artifactId = "red:skull:3.3.3";
         try {
-            ScanCache scanCache1 = new XrayScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache1 = new XrayScanCache(projectName, tempDir, true, new NullLog());
             Artifact artifact = createArtifact(artifactId);
 
             scanCache1.add(artifact);
             scanCache1.write();
 
-            ScanCache scanCache2 = new XrayScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache2 = new XrayScanCache(projectName, tempDir, true, new NullLog());
             assertEquals(scanCache2.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
         } catch (IOException e) {
             Assert.fail(e.getMessage());
@@ -91,7 +91,7 @@ public class ScanCacheTest {
         String projectName = "Exodus";
         String artifactId = "tony:stark:3.3.3";
         try {
-            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, true, new NullLog());
             Artifact artifact = createArtifact(artifactId);
 
             scanCache.add(artifact);
@@ -100,7 +100,7 @@ public class ScanCacheTest {
             assertEquals(scanCache.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
 
             // Read again
-            scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            scanCache = new XrayScanCache(projectName, tempDir, true, new NullLog());
             assertEquals(scanCache.get(artifactId).getGeneralInfo().getComponentId(), artifactId);
         } catch (IOException e) {
             Assert.fail(e.getMessage());
@@ -128,20 +128,20 @@ public class ScanCacheTest {
             scanCacheMap.setArtifactsMap(artifactsMap);
 
             // Create ScanCache and flush
-            ScanCache scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            ScanCache scanCache = new XrayScanCache(projectName, tempDir, true, new NullLog());
             scanCache.setScanCacheMap(scanCacheMap);
             scanCache.write();
             assertEquals(scanCache.getScanCacheMap().getVersion(), -1);
             assertEquals(scanCache.getScanCacheMap().getArtifactsMap().get(artifactId), scanCacheObject);
 
             // Read from disk and expect no errors - But empty cache
-            scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            scanCache = new XrayScanCache(projectName, tempDir, true, new NullLog());
             assertEquals(scanCache.getScanCacheMap().getVersion(), CACHE_VERSION);
             assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
 
             // Write and check again
             scanCache.write();
-            scanCache = new XrayScanCache(projectName, tempDir, new NullLog());
+            scanCache = new XrayScanCache(projectName, tempDir, true, new NullLog());
             assertEquals(scanCache.getScanCacheMap().getVersion(), CACHE_VERSION);
             assertTrue(scanCache.getScanCacheMap().getArtifactsMap().isEmpty());
         } catch (IOException e) {

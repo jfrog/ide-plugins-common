@@ -13,10 +13,9 @@ import com.jfrog.xray.client.services.summary.SummaryResponse;
 import com.jfrog.xray.client.services.system.Version;
 import lombok.Getter;
 import lombok.Setter;
+import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.api.util.Log;
-
 
 import java.io.IOException;
 import java.util.List;
@@ -30,6 +29,7 @@ import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBui
  * This class includes the implementation of the Component Summary Scan Logic, which is used with older Xray versions.
  * The logic uses the component/summary REST API of Xray,
  * which doesn't take into consideration the policy configured in Xray.
+ *
  * @author tala
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
@@ -52,30 +52,30 @@ public class ComponentSummaryScanLogic implements ScanLogic {
      *
      * @param node       - In - The DependencyTree root node.
      * @param components - Out - Components for Xray scan.
-     * @param quickScan  - True if this is a quick scan. In slow scans we'll scan all components.
      */
-    public void extractComponents(DependencyTree node, Components components, ComponentPrefix prefix, boolean quickScan) {
+    public void extractComponents(DependencyTree node, Components components, ComponentPrefix prefix) {
         for (DependencyTree child : node.getChildren()) {
             String componentId = child.toString();
-            if (!quickScan || !scanCache.contains(componentId)) {
+            if (!scanCache.contains(componentId)) {
                 components.addComponent(prefix.getPrefix() + componentId, "");
             }
-            extractComponents(child, components, prefix, quickScan);
+            extractComponents(child, components, prefix);
         }
     }
 
     /**
      * Scan and cache components.
      *
-     * @param server    - JFrog platform server configuration.
-     * @param indicator - Progress bar.
-     * @param quickScan - Quick or full scan.
+     * @param server        - JFrog platform server configuration.
+     * @param indicator     - Progress bar.
+     * @param prefix        - Components prefix for xray scan, e.g. gav:// or npm://.
+     * @param checkCanceled - Callback that throws an exception if scan was cancelled by user.
      * @return true if the scan completed successfully, false otherwise.
      */
-    public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException {
+    public boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException {
         // Collect components to scan
         Components componentsToScan = ComponentsFactory.create();
-        extractComponents(scanResults, componentsToScan, prefix, quickScan);
+        extractComponents(scanResults, componentsToScan, prefix);
         if (componentsToScan.getComponentDetails().isEmpty()) {
             log.debug("No components found to scan.");
             // No components found to scan

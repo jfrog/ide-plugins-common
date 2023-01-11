@@ -2,7 +2,6 @@ package com.jfrog.ide.common.scan;
 
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
-import com.jfrog.ide.common.persistency.ScanCache;
 import org.jfrog.build.extractor.scan.Artifact;
 import org.jfrog.build.extractor.scan.DependencyTree;
 
@@ -12,12 +11,13 @@ public interface ScanLogic {
     /**
      * Scan and cache components.
      *
-     * @param server    - JFrog platform server configuration.
-     * @param indicator - Progress bar.
-     * @param quickScan - Quick or full scan.
+     * @param server        - JFrog platform server configuration.
+     * @param indicator     - Progress bar.
+     * @param prefix        - Components prefix for xray scan, e.g. gav:// or npm://
+     * @param checkCanceled - Callback that throws an exception if scan was cancelled by user
      * @return true if the scan completed successfully, false otherwise.
      */
-    boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, boolean quickScan, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException;
+    boolean scanAndCacheArtifacts(ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException;
 
     /**
      * @param componentId artifact component ID.
@@ -31,7 +31,5 @@ public interface ScanLogic {
     DependencyTree getScanResults();
 
     void setScanResults(DependencyTree results);
-
-    void setScanCache(ScanCache cache);
 }
 

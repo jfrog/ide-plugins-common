@@ -105,11 +105,10 @@ public abstract class ScanManagerBase {
      * Scan and cache components.
      *
      * @param indicator - Progress bar.
-     * @param quickScan - Quick or full scan.
      */
-    public void scanAndCacheArtifacts(ProgressIndicator indicator, boolean quickScan) throws IOException, InterruptedException {
+    public void scanAndCacheArtifacts(ProgressIndicator indicator) throws IOException, InterruptedException {
         log.debug("Start scan for '" + projectName + "'.");
-        if (scanLogic.scanAndCacheArtifacts(serverConfig, indicator, quickScan, prefix, this::checkCanceled)) {
+        if (scanLogic.scanAndCacheArtifacts(serverConfig, indicator, prefix, this::checkCanceled)) {
             log.debug("Scan for '" + projectName + "' finished successfully.");
         } else {
             log.debug("Wasn't able to scan '" + projectName + "'.");

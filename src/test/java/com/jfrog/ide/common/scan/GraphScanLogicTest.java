@@ -23,16 +23,14 @@ import static org.testng.Assert.*;
  * @author yahavi
  **/
 public class GraphScanLogicTest {
-    private GraphScanLogic graphScanLogic;
     private DependencyTree root;
-    private ScanCache scanCache;
     private Path baseDir;
 
     @BeforeMethod
     public void setUp() throws IOException {
         baseDir = Files.createTempDirectory("GraphScanLogicTest");
-        scanCache = new XrayScanCache("GraphScanLogicTest", baseDir, new NullLog());
-        graphScanLogic = new GraphScanLogic(scanCache, new NullLog());
+
+        // Create the dependency tree and add a module
         root = new DependencyTree("root");
         root.setMetadata(true);
         DependencyTree module = new DependencyTree("module");
@@ -44,8 +42,6 @@ public class GraphScanLogicTest {
         module.add(directDep);
         DependencyTree transitiveDep = new DependencyTree("transitiveDep");
         directDep.add(transitiveDep);
-        scanCache.add(new Artifact(new GeneralInfo().componentId("directDep"), Sets.newHashSet(), Sets.newHashSet()));
-        scanCache.add(new Artifact(new GeneralInfo().componentId("transitiveDep"), Sets.newHashSet(), Sets.newHashSet()));
 
         // Add ad direct and a transitive dependencies that doesn't exist in cache
         DependencyTree directNewDep = new DependencyTree("directNewDep");
@@ -62,8 +58,14 @@ public class GraphScanLogicTest {
     }
 
     @Test
-    public void createScanTreeQuickTest() {
-        DependencyTree nodesToScan = graphScanLogic.createScanTree(root, true);
+    public void createScanTreeQuickTest() throws IOException {
+        // Create and populate a scan cache
+        ScanCache scanCache = new XrayScanCache("GraphScanLogicTest", baseDir, true, new NullLog());
+        scanCache.add(new Artifact(new GeneralInfo().componentId("directDep"), Sets.newHashSet(), Sets.newHashSet()));
+        scanCache.add(new Artifact(new GeneralInfo().componentId("transitiveDep"), Sets.newHashSet(), Sets.newHashSet()));
+
+        // Create and assert the scan tree
+        DependencyTree nodesToScan = new GraphScanLogic(scanCache, new NullLog()).createScanTree(root);
         assertEquals(nodesToScan.getChildCount(), 2);
         assertLeaf(nodesToScan, "directNewDep");
         assertLeaf(nodesToScan, "transitiveNewDep");
@@ -74,8 +76,12 @@ public class GraphScanLogicTest {
     }
 
     @Test
-    public void createScanTreeFullTest() {
-        DependencyTree nodesToScan = graphScanLogic.createScanTree(root, false);
+    public void createScanTreeFullTest() throws IOException {
+        // Create a new empty scan cache
+        ScanCache scanCache = new XrayScanCache("GraphScanLogicTest", baseDir, false, new NullLog());
+
+        // Create and assert the scan tree
+        DependencyTree nodesToScan = new GraphScanLogic(scanCache, new NullLog()).createScanTree(root);
         assertEquals(nodesToScan.getChildCount(), 4);
         assertLeaf(nodesToScan, "directDep");
         assertLeaf(nodesToScan, "transitiveDep");
