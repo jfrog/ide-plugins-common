@@ -19,11 +19,11 @@ public class XrayScanCache extends ScanCache {
      *
      * @param projectName - The IDE project name. If this is an npm project, it is a full path to the directory containing the package.json.
      * @param basePath    - The directory for the cache.
-     * @param quickScan   - Set to true to read cache from the file-system, if exist.
+     * @param loadFromFs  - Set to true to read cache from the file-system, if exist.
      * @param logger      - The logger.
      * @throws IOException in case of I/O problem in the paths.
      */
-    public XrayScanCache(String projectName, Path basePath, boolean quickScan, Log logger) throws IOException {
+    public XrayScanCache(String projectName, Path basePath, boolean loadFromFs, Log logger) throws IOException {
         scanCacheMap = new XrayScanCacheMap();
         file = basePath.resolve(Base64.getEncoder().encodeToString(projectName.getBytes(StandardCharsets.UTF_8)) + "XrayScanCache.json").toFile();
         logger.debug("Project cache path: " + file.getAbsolutePath());
@@ -31,7 +31,7 @@ public class XrayScanCache extends ScanCache {
             Files.createDirectories(basePath);
             return;
         }
-        if (quickScan) {
+        if (loadFromFs) {
             scanCacheMap.read(file, logger);
         }
     }
