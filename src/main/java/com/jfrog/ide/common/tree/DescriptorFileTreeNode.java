@@ -2,6 +2,8 @@ package com.jfrog.ide.common.tree;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class DescriptorFileTreeNode extends FileTreeNode {
@@ -33,5 +35,12 @@ public class DescriptorFileTreeNode extends FileTreeNode {
             }
         }
         sortChildren();
+    }
+
+    public Collection<DependencyNode> getDependencies() {
+        if (children == null) {
+            return List.of();
+        }
+        return children.stream().filter(child -> child instanceof DependencyNode).map(child -> (DependencyNode) child).collect(Collectors.toList());
     }
 }

@@ -14,15 +14,17 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
 
     private GeneralInfo generalInfo;
     private ImpactTreeNode impactPaths;
-    private List<License> licenses;
+    private final List<License> licenses;
 
     // Empty constructor for serialization
     public DependencyNode() {
         generalInfo = new GeneralInfo();
+        licenses = new ArrayList<>();
     }
 
     public DependencyNode(GeneralInfo generalInfo) {
         this.generalInfo = generalInfo;
+        licenses = new ArrayList<>();
     }
 
     @SuppressWarnings("unused")
@@ -40,9 +42,6 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     }
 
     public void addLicense(License license) {
-        if (licenses == null) {
-            licenses = new ArrayList<>();
-        }
         licenses.add(license);
     }
 
