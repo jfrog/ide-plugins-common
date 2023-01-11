@@ -1,5 +1,4 @@
-# Ide Plugins Common [![Build status](https://github.com/jfrog/ide-plugins-common/actions/workflows/test.yml/badge.svg)](https://github.com/jfrog/ide-plugins-common/actions/workflows/test.yml)
-
+# Ide Plugins Common [![Test](https://github.com/jfrog/ide-plugins-common/actions/workflows/test.yml/badge.svg?branch=v1)](https://github.com/jfrog/ide-plugins-common/actions/workflows/test.yml?query=branch%3Av1)
 This project includes the common code used by the [JFrog Idea Plugin](https://github.com/jfrog/jfrog-idea-plugin) and the [JFrog Eclipse plugin](https://github.com/jfrog/jfrog-eclipse-plugin).
 
 # Building and Testing the Sources
