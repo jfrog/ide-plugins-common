@@ -5,24 +5,26 @@ public class ApplicableIssueNode extends VulnerabilityOrViolationNode implements
     private final String name;
     private final String reason;
     private final String lineSnippet;
-
     private final String scannerSearchTarget;
+    private final int rowStart;
+    private final int colStart;
 
-    private final int row;
-    private final int col;
+    private final int rowEnd;
+    private final int colEnd;
     private final String filePath;
     private final IssueNode issue;
 
-    public ApplicableIssueNode(String name, int row, int col, String filePath, String reason, String lineSnippet, String scannerSearchTarget, IssueNode issue) {
+    public ApplicableIssueNode(String name, int rowStart, int colStart, int rowEnd, int colEnd, String filePath, String reason, String lineSnippet, String scannerSearchTarget, IssueNode issue) {
         this.name = name;
-        this.row = row;
-        this.col = col;
+        this.rowStart = rowStart;
+        this.colStart = colStart;
+        this.rowEnd = rowEnd;
+        this.colEnd = colEnd;
         this.filePath = filePath;
         this.reason = reason;
         this.lineSnippet = lineSnippet;
         this.scannerSearchTarget = scannerSearchTarget;
         this.issue = issue;
-
     }
 
     @Override
@@ -37,7 +39,7 @@ public class ApplicableIssueNode extends VulnerabilityOrViolationNode implements
 
     @Override
     public String getSubtitle() {
-        return "row: " + (row + 1) + " col: " + col;
+        return "row: " + (rowStart + 1) + " col: " + colStart;
     }
 
     @Override
@@ -55,13 +57,23 @@ public class ApplicableIssueNode extends VulnerabilityOrViolationNode implements
     }
 
     @SuppressWarnings("unused")
-    public int getRow() {
-        return row;
+    public int getRowStart() {
+        return rowStart;
     }
 
     @SuppressWarnings("unused")
-    public int getCol() {
-        return col;
+    public int getColStart() {
+        return colStart;
+    }
+
+    @SuppressWarnings("unused")
+    public int getRowEnd() {
+        return rowEnd;
+    }
+
+    @SuppressWarnings("unused")
+    public int getColEnd() {
+        return colEnd;
     }
 
     public String getReason() {

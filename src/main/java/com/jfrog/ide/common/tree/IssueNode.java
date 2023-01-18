@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static com.jfrog.ide.common.tree.Severity.getNotApplicableSeverity;
+
 /**
  * @author yahavi
  */
@@ -47,7 +49,7 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     }
 
     public Severity getSeverity() {
-        return isApplicable() != null && !isApplicable() ? Severity.NotApplicable : this.severity;
+        return isApplicable() != null && !isApplicable() ? getNotApplicableSeverity(severity): severity;
     }
 
     public Severity getSeverity(boolean masked) {
