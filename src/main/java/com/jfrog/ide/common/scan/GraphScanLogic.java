@@ -78,7 +78,7 @@ public class GraphScanLogic implements ScanLogic {
      * Create a flat tree of all components required to scan.
      * Add all direct dependencies to cache to make sure that dependencies will not be scanned again in the next quick scan.
      *
-     * @param root      - The root dependency tree node
+     * @param root - The root dependency tree node
      * @return a graph of non cached component for Xray scan.
      */
     DependencyTree createScanTree(DependencyTree root) {
@@ -202,30 +202,30 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     private void addSecurityViolationResult(Map<String, DependencyNode> results, Violation violation) {
-        addVulnerabilityResult(results, violation, violation.getWatchName());
+        addVulnerabilityResult(results, violation, violation.getWatchName(), violation.getIgnoreRuleUrl());
     }
 
     private void addVulnerabilityResult(Map<String, DependencyNode> results, Vulnerability vulnerability) {
-        addVulnerabilityResult(results, vulnerability, null);
+        addVulnerabilityResult(results, vulnerability, null, null);
     }
 
-    private void addVulnerabilityResult(Map<String, DependencyNode> results, Vulnerability vulnerability, String watchName) {
+    private void addVulnerabilityResult(Map<String, DependencyNode> results, Vulnerability vulnerability, String watchName, String ignoreRuleUrl) {
         for (Map.Entry<String, ? extends Component> entry : vulnerability.getComponents().entrySet()) {
             DependencyNode dependencyNode = getDependency(results, entry);
 
             if (vulnerability.getCves() == null || vulnerability.getCves().size() == 0) {
-                IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), null, watchName);
+                IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), null, watchName, ignoreRuleUrl);
                 dependencyNode.addVulnerabilityOrViolation(issueNode);
             } else {
                 for (Cve cve : vulnerability.getCves()) {
-                    IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), cve, watchName);
+                    IssueNode issueNode = convertToIssue(vulnerability, entry.getValue(), cve, watchName, ignoreRuleUrl);
                     dependencyNode.addVulnerabilityOrViolation(issueNode);
                 }
             }
         }
     }
 
-    private IssueNode convertToIssue(Vulnerability vulnerability, Component component, Cve cve, String watchName) {
+    private IssueNode convertToIssue(Vulnerability vulnerability, Component component, Cve cve, String watchName, String ignoreRuleUrl) {
         ResearchInfo researchInfo = null;
         if (vulnerability.getExtendedInformation() != null) {
             ExtendedInformation extInfo = vulnerability.getExtendedInformation();
@@ -247,7 +247,7 @@ public class GraphScanLogic implements ScanLogic {
                 StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(),
                 component.getInfectedVersions(),
                 new com.jfrog.ide.common.tree.Cve(cveId, cvssV2Score, cvssV2Vector, cvssV3Score, cvssV3Vector),
-                vulnerability.getEdited(), watchNames, vulnerability.getReferences(), researchInfo);
+                vulnerability.getEdited(), watchNames, vulnerability.getReferences(), researchInfo, ignoreRuleUrl);
     }
 
     private void addLicenseViolationResult(Map<String, DependencyNode> results, Violation licenseViolation) {
