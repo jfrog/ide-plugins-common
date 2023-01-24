@@ -18,23 +18,10 @@ public class DescriptorFileTreeNode extends FileTreeNode {
      * @param dependency
      */
     public void addDependency(DependencyNode dependency) {
-        addDependencies(Collections.singletonList(dependency));
-    }
-
-    /**
-     * Adds dependencies as children of the descriptor file.
-     * Each dependency can have only one parent.
-     *
-     * @param dependencies
-     */
-    public void addDependencies(Collection<DependencyNode> dependencies) {
-        for (DependencyNode dependency : dependencies) {
-            add(dependency);
-            if (dependency.getSeverity().isHigherThan(topSeverity)) {
-                topSeverity = dependency.getSeverity();
-            }
+        add(dependency);
+        if (dependency.getSeverity().isHigherThan(topSeverity)) {
+            topSeverity = dependency.getSeverity();
         }
-        sortChildren();
     }
 
     public Collection<DependencyNode> getDependencies() {
