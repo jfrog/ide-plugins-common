@@ -70,6 +70,7 @@ task uberJar(type: Jar) {
 }
 
 jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes 'Implementation-Version': archiveVersion
     }
