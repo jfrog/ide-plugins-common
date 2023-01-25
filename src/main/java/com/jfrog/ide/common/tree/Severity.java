@@ -26,7 +26,6 @@ public enum Severity {
         this.iconName = iconName;
     }
 
-
     public String getSeverityName() {
         return this.severityName;
     }
@@ -61,8 +60,6 @@ public enum Severity {
             case Unknown:
             default:
                 return UnknownNotApplic;
-
         }
     }
-
 }
