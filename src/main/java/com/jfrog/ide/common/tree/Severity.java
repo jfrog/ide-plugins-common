@@ -5,13 +5,17 @@ package com.jfrog.ide.common.tree;
  */
 public enum Severity {
     Normal("Scanned - No Issues", "normal"),
-    NotApplicable("Not Applicable", "notapplicable"),
     Pending("Pending Scan", "pending"),
+    UnknownNotApplic("Unknown Not Applicable", "unknownnotapplic"),
     Unknown("Unknown", "unknown"),
     Information("Information", "information"),
+    LowNotApplic("Low Not Applicable", "lownotapplic"),
     Low("Low", "low"),
+    MediumNotApplic("Medium Not Applicable", "mediumnotapplic"),
     Medium("Medium", "medium"),
+    HighNotApplic("High Not Applicable", "highnotapplic"),
     High("High", "high"),
+    CriticalNotApplic("Critical Not Applicable", "criticalnotapplic"),
     Critical("Critical", "critical");
 
     private final String severityName;
@@ -43,4 +47,19 @@ public enum Severity {
         throw new IllegalArgumentException("Severity " + inputSeverity + " doesn't exist");
     }
 
+    public static Severity getNotApplicableSeverity(Severity severity) {
+        switch (severity) {
+            case Low:
+                return LowNotApplic;
+            case Medium:
+                return MediumNotApplic;
+            case High:
+                return HighNotApplic;
+            case Critical:
+                return CriticalNotApplic;
+            case Unknown:
+            default:
+                return UnknownNotApplic;
+        }
+    }
 }
