@@ -166,6 +166,7 @@ public class IssueNode extends VulnerabilityOrViolationNode {
         return this.applicableIssues != null ? this.applicableIssues.size() > 0 : null;
     }
 
+    @SuppressWarnings("unused")
     public String getIgnoreRuleUrl() {
         return ignoreRuleUrl;
     }
