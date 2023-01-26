@@ -5,9 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
-import com.jfrog.ide.common.tree.GeneralInfo;
 import com.jfrog.xray.client.services.common.Cve;
-import com.jfrog.xray.client.services.summary.General;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -58,12 +56,6 @@ public class Utils {
             return license.getName();
         }
         return license.getFullName() + " (" + license.getName() + ")";
-    }
-
-    public static GeneralInfo getGeneralInfo(General other) {
-        return new GeneralInfo().componentId(other.getComponentId())
-                .path(other.getPath())
-                .pkgType(other.getPkgType());
     }
 
     public static License toLicense(com.jfrog.xray.client.services.summary.License other) {

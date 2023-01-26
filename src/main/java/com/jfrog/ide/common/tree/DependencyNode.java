@@ -1,40 +1,49 @@
 package com.jfrog.ide.common.tree;
 
+import org.apache.commons.lang3.StringUtils;
+
 import javax.swing.tree.TreeNode;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
+
 /**
  * @author yahavi
  */
 public class DependencyNode extends ComparableSeverityTreeNode implements Serializable, SubtitledTreeNode {
-
     private static final long serialVersionUID = 1L;
 
-    private GeneralInfo generalInfo;
+    private String componentId = "";
+    private String pkgType = "";
     private ImpactTreeNode impactPaths;
     private final List<License> licenses;
 
-    // Empty constructor for serialization
     public DependencyNode() {
-        generalInfo = new GeneralInfo();
-        licenses = new ArrayList<>();
-    }
-
-    public DependencyNode(GeneralInfo generalInfo) {
-        this.generalInfo = generalInfo;
         licenses = new ArrayList<>();
     }
 
     @SuppressWarnings("unused")
-    public GeneralInfo getGeneralInfo() {
-        return generalInfo;
+    public String getComponentId() {
+        return componentId;
     }
 
     @SuppressWarnings("unused")
-    public void setGeneralInfo(GeneralInfo generalInfo) {
-        this.generalInfo = generalInfo;
+    public DependencyNode componentId(String componentId) {
+        this.componentId = componentId;
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    public String getPkgType() {
+        return pkgType;
+    }
+
+    @SuppressWarnings("unused")
+    public DependencyNode pkgType(String pkgType) {
+        this.pkgType = pkgType;
+        return this;
     }
 
     public List<License> getLicenses() {
@@ -49,7 +58,7 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     public Severity getSeverity() {
         Severity severity = Severity.Normal;
         for (TreeNode child : children) {
-            Severity childSeverity = ((VulnerabilityOrViolationNode) child).getSeverity();
+            Severity childSeverity = ((IssueNode) child).getSeverity();
             if (childSeverity.isHigherThan(severity)) {
                 severity = childSeverity;
             }
@@ -65,17 +74,43 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
         this.impactPaths = impactPaths;
     }
 
-    public void addVulnerabilityOrViolation(VulnerabilityOrViolationNode vulnerabilityOrViolation) {
+    public void addVulnerabilityOrViolation(IssueNode vulnerabilityOrViolation) {
         add(vulnerabilityOrViolation);
     }
 
     public void sortChildren() {
-        children.sort((treeNode1, treeNode2) -> ((VulnerabilityOrViolationNode) treeNode2).getSeverity().ordinal() - ((VulnerabilityOrViolationNode) treeNode1).getSeverity().ordinal());
+        children.sort((treeNode1, treeNode2) -> ((IssueNode) treeNode2).getSeverity().ordinal() - ((IssueNode) treeNode1).getSeverity().ordinal());
+    }
+
+    public String getArtifactId() {
+        String compIdWithoutPrefix = getComponentIdWithoutPrefix();
+        int colonMatches = StringUtils.countMatches(compIdWithoutPrefix, ":");
+        if (colonMatches < 1 || colonMatches > 2) {
+            return "";
+        }
+        int indexOfColon = compIdWithoutPrefix.indexOf(":");
+        if (colonMatches == 1) {
+            return compIdWithoutPrefix.substring(0, indexOfColon);
+        }
+        return compIdWithoutPrefix.substring(indexOfColon + 1, compIdWithoutPrefix.lastIndexOf(":"));
+    }
+
+    public String getVersion() {
+        String compIdWithoutPrefix = getComponentIdWithoutPrefix();
+        int colonMatches = StringUtils.countMatches(compIdWithoutPrefix, ":");
+        if (colonMatches < 1 || colonMatches > 2) {
+            return "";
+        }
+        return compIdWithoutPrefix.substring(compIdWithoutPrefix.lastIndexOf(":") + 1);
+    }
+
+    public String getComponentIdWithoutPrefix() {
+        return removeComponentIdPrefix(this.componentId);
     }
 
     @Override
     public String getTitle() {
-        return generalInfo.getComponentIdWithoutPrefix();
+        return getComponentIdWithoutPrefix();
     }
 
     @Override
@@ -92,8 +127,8 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     public Object clone() {
         DependencyNode newNode = (DependencyNode) super.clone();
         for (TreeNode child : children) {
-            VulnerabilityOrViolationNode issue = (VulnerabilityOrViolationNode) child;
-            VulnerabilityOrViolationNode clonedIssue = (VulnerabilityOrViolationNode) issue.clone();
+            IssueNode issue = (IssueNode) child;
+            IssueNode clonedIssue = (IssueNode) issue.clone();
             newNode.addVulnerabilityOrViolation(clonedIssue);
         }
         return newNode;

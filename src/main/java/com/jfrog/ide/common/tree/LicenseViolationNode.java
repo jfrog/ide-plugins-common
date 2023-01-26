@@ -10,7 +10,7 @@ import java.util.Objects;
 /**
  * @author yahavi
  */
-public class LicenseViolationNode extends VulnerabilityOrViolationNode {
+public class LicenseViolationNode extends IssueNode {
     private static final String UNKNOWN_LICENCE_FULL_NAME = "Unknown license";
     @SuppressWarnings("FieldCanBeLocal")
     private static final String UNKNOWN_LICENCE_NAME = "Unknown";
@@ -21,6 +21,7 @@ public class LicenseViolationNode extends VulnerabilityOrViolationNode {
     private String lastUpdated;
     private List<String> watchNames;
 
+    @SuppressWarnings("unused")
     public LicenseViolationNode() {
         this.fullName = UNKNOWN_LICENCE_FULL_NAME;
         this.name = UNKNOWN_LICENCE_NAME;

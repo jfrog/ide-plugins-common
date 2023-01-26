@@ -8,5 +8,4 @@ public abstract class ComparableSeverityTreeNode extends DefaultMutableTreeNode 
     public int compareTo(ComparableSeverityTreeNode other) {
         return other.getSeverity().ordinal() - this.getSeverity().ordinal();
     }
-
 }
