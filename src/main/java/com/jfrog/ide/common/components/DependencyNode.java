@@ -1,5 +1,7 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.components;
 
+import com.jfrog.ide.common.components.subentities.License;
+import com.jfrog.ide.common.components.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.tree.TreeNode;
@@ -16,7 +18,6 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     private static final long serialVersionUID = 1L;
 
     private String componentId = "";
-    private String pkgType = "";
     private ImpactTreeNode impactPaths;
     private final List<License> licenses;
 
@@ -32,17 +33,6 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     @SuppressWarnings("unused")
     public DependencyNode componentId(String componentId) {
         this.componentId = componentId;
-        return this;
-    }
-
-    @SuppressWarnings("unused")
-    public String getPkgType() {
-        return pkgType;
-    }
-
-    @SuppressWarnings("unused")
-    public DependencyNode pkgType(String pkgType) {
-        this.pkgType = pkgType;
         return this;
     }
 

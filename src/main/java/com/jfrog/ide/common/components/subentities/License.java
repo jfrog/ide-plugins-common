@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.components.subentities;
 
 public class License {
     private final String name;

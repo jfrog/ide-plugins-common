@@ -1,8 +1,8 @@
 package com.jfrog.ide.common.scan;
 
+import com.jfrog.ide.common.components.DependencyNode;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
-import com.jfrog.ide.common.tree.DependencyNode;
 import org.jfrog.build.extractor.scan.DependencyTree;
 
 import java.io.IOException;

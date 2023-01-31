@@ -1,5 +1,6 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.components;
 
+import com.jfrog.ide.common.components.subentities.Severity;
 import org.apache.commons.collections.CollectionUtils;
 
 import java.io.File;

@@ -1,6 +1,7 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.components;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jfrog.ide.common.components.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;

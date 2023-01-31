@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.components;
 
 import javax.swing.tree.TreeNode;
 

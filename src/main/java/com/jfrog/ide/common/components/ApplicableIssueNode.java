@@ -1,4 +1,6 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.components;
+
+import com.jfrog.ide.common.components.subentities.Severity;
 
 public class ApplicableIssueNode extends IssueNode implements SubtitledTreeNode {
 
