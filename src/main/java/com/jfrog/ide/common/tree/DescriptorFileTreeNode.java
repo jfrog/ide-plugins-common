@@ -1,7 +1,6 @@
 package com.jfrog.ide.common.tree;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,7 +14,7 @@ public class DescriptorFileTreeNode extends FileTreeNode {
      * Adds a dependency as a child of the descriptor file.
      * Each dependency can have only one parent.
      *
-     * @param dependency
+     * @param dependency dependency to add to the descriptor file
      */
     public void addDependency(DependencyNode dependency) {
         add(dependency);

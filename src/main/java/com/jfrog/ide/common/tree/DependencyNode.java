@@ -12,7 +12,7 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     private static final long serialVersionUID = 1L;
 
     private GeneralInfo generalInfo;
-    private boolean indirect = false;
+    private boolean indirect;
     private ImpactTreeNode impactPaths;
     private final List<License> licenses;
 
