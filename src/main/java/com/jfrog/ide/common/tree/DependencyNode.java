@@ -9,10 +9,10 @@ import java.util.List;
  * @author yahavi
  */
 public class DependencyNode extends ComparableSeverityTreeNode implements Serializable, SubtitledTreeNode {
-
     private static final long serialVersionUID = 1L;
 
     private GeneralInfo generalInfo;
+    private boolean indirect;
     private ImpactTreeNode impactPaths;
     private final List<License> licenses;
 
@@ -37,6 +37,10 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
         this.generalInfo = generalInfo;
     }
 
+    public void setIndirect(boolean indirect) {
+        this.indirect = indirect;
+    }
+
     public List<License> getLicenses() {
         return licenses;
     }
@@ -57,10 +61,12 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
         return severity;
     }
 
+    @SuppressWarnings("unused")
     public ImpactTreeNode getImpactPaths() {
         return impactPaths;
     }
 
+    @SuppressWarnings("unused")
     public void setImpactPaths(ImpactTreeNode impactPaths) {
         this.impactPaths = impactPaths;
     }
@@ -80,7 +86,7 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
 
     @Override
     public String getSubtitle() {
-        return null;
+        return indirect ? "(indirect)" : null;
     }
 
     @Override
