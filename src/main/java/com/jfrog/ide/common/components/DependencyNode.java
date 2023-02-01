@@ -18,6 +18,7 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     private static final long serialVersionUID = 1L;
 
     private String componentId = "";
+    private boolean indirect;
     private ImpactTreeNode impactPaths;
     private final List<License> licenses;
 
@@ -34,6 +35,10 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     public DependencyNode componentId(String componentId) {
         this.componentId = componentId;
         return this;
+    }
+
+    public void setIndirect(boolean indirect) {
+        this.indirect = indirect;
     }
 
     public List<License> getLicenses() {
@@ -56,10 +61,12 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
         return severity;
     }
 
+    @SuppressWarnings("unused")
     public ImpactTreeNode getImpactPaths() {
         return impactPaths;
     }
 
+    @SuppressWarnings("unused")
     public void setImpactPaths(ImpactTreeNode impactPaths) {
         this.impactPaths = impactPaths;
     }
@@ -105,7 +112,7 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
 
     @Override
     public String getSubtitle() {
-        return null;
+        return indirect ? "(indirect)" : null;
     }
 
     @Override
