@@ -1,9 +1,8 @@
-package com.jfrog.ide.common.components;
+package com.jfrog.ide.common.nodes;
 
-import com.jfrog.ide.common.components.subentities.Severity;
+import com.jfrog.ide.common.nodes.subentities.Severity;
 
 public class ApplicableIssueNode extends IssueNode implements SubtitledTreeNode {
-
     private final String name;
     private final String reason;
     private final String lineSnippet;
@@ -28,7 +27,6 @@ public class ApplicableIssueNode extends IssueNode implements SubtitledTreeNode 
         this.issue = issue;
     }
 
-    @Override
     public Severity getSeverity() {
         return issue.getSeverity();
     }
@@ -88,5 +86,4 @@ public class ApplicableIssueNode extends IssueNode implements SubtitledTreeNode 
     public String getScannerSearchTarget() {
         return scannerSearchTarget;
     }
-
 }

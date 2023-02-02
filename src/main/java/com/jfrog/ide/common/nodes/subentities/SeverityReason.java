@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.components.subentities;
+package com.jfrog.ide.common.nodes.subentities;
 
 public class SeverityReason {
     private final String name;

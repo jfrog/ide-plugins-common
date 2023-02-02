@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.components;
+package com.jfrog.ide.common.nodes;
 
 import java.util.ArrayList;
 import java.util.List;

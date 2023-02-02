@@ -1,22 +1,16 @@
-package com.jfrog.ide.common.components;
+package com.jfrog.ide.common.nodes;
 
-import com.jfrog.ide.common.components.subentities.License;
-import com.jfrog.ide.common.components.subentities.Severity;
+import com.jfrog.ide.common.nodes.subentities.License;
+import com.jfrog.ide.common.nodes.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.tree.TreeNode;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 
-/**
- * @author yahavi
- */
-public class DependencyNode extends ComparableSeverityTreeNode implements Serializable, SubtitledTreeNode {
-    private static final long serialVersionUID = 1L;
-
+public class DependencyNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<DependencyNode> {
     private String componentId = "";
     private boolean indirect;
     private ImpactTreeNode impactPaths;
@@ -49,7 +43,6 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
         licenses.add(license);
     }
 
-    @Override
     public Severity getSeverity() {
         Severity severity = Severity.Normal;
         for (TreeNode child : children) {
@@ -71,12 +64,8 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
         this.impactPaths = impactPaths;
     }
 
-    public void addVulnerabilityOrViolation(IssueNode vulnerabilityOrViolation) {
-        add(vulnerabilityOrViolation);
-    }
-
-    public void sortChildren() {
-        children.sort((treeNode1, treeNode2) -> ((IssueNode) treeNode2).getSeverity().ordinal() - ((IssueNode) treeNode1).getSeverity().ordinal());
+    public void addIssue(IssueNode issue) {
+        add(issue);
     }
 
     public String getArtifactId() {
@@ -121,12 +110,17 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     }
 
     @Override
+    public int compareTo(DependencyNode other) {
+        return other.getSeverity().ordinal() - this.getSeverity().ordinal();
+    }
+
+    @Override
     public Object clone() {
         DependencyNode newNode = (DependencyNode) super.clone();
         for (TreeNode child : children) {
             IssueNode issue = (IssueNode) child;
             IssueNode clonedIssue = (IssueNode) issue.clone();
-            newNode.addVulnerabilityOrViolation(clonedIssue);
+            newNode.addIssue(clonedIssue);
         }
         return newNode;
     }
@@ -135,5 +129,4 @@ public class DependencyNode extends ComparableSeverityTreeNode implements Serial
     public String toString() {
         return getTitle();
     }
-
 }

@@ -1,14 +1,14 @@
 package com.jfrog.ide.common.scan;
 
-import com.jfrog.ide.common.components.DependencyNode;
-import com.jfrog.ide.common.components.LicenseViolationNode;
-import com.jfrog.ide.common.components.VulnerabilityNode;
-import com.jfrog.ide.common.components.subentities.License;
-import com.jfrog.ide.common.components.subentities.ResearchInfo;
-import com.jfrog.ide.common.components.subentities.Severity;
-import com.jfrog.ide.common.components.subentities.SeverityReason;
 import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.ide.common.log.ProgressIndicator;
+import com.jfrog.ide.common.nodes.DependencyNode;
+import com.jfrog.ide.common.nodes.LicenseViolationNode;
+import com.jfrog.ide.common.nodes.VulnerabilityNode;
+import com.jfrog.ide.common.nodes.subentities.License;
+import com.jfrog.ide.common.nodes.subentities.ResearchInfo;
+import com.jfrog.ide.common.nodes.subentities.Severity;
+import com.jfrog.ide.common.nodes.subentities.SeverityReason;
 import com.jfrog.xray.client.Xray;
 import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.scan.*;
@@ -190,9 +190,6 @@ public class GraphScanLogic implements ScanLogic {
                         )
                 );
 
-        // Sort issues and licenses inside all artifacts
-        results.values().forEach(DependencyNode::sortChildren);
-
         return results;
     }
 
@@ -218,11 +215,11 @@ public class GraphScanLogic implements ScanLogic {
 
             if (vulnerability.getCves() == null || vulnerability.getCves().size() == 0) {
                 VulnerabilityNode vulnerabilityNode = convertToIssue(vulnerability, entry.getValue(), null, watchName);
-                dependencyNode.addVulnerabilityOrViolation(vulnerabilityNode);
+                dependencyNode.addIssue(vulnerabilityNode);
             } else {
                 for (Cve cve : vulnerability.getCves()) {
                     VulnerabilityNode vulnerabilityNode = convertToIssue(vulnerability, entry.getValue(), cve, watchName);
-                    dependencyNode.addVulnerabilityOrViolation(vulnerabilityNode);
+                    dependencyNode.addIssue(vulnerabilityNode);
                 }
             }
         }
@@ -249,7 +246,7 @@ public class GraphScanLogic implements ScanLogic {
         return new VulnerabilityNode(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
                 StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(),
                 component.getInfectedVersions(),
-                new com.jfrog.ide.common.components.subentities.Cve(cveId, cvssV2Score, cvssV2Vector, cvssV3Score, cvssV3Vector),
+                new com.jfrog.ide.common.nodes.subentities.Cve(cveId, cvssV2Score, cvssV2Vector, cvssV3Score, cvssV3Vector),
                 vulnerability.getEdited(), watchNames, vulnerability.getReferences(), researchInfo);
     }
 
@@ -263,7 +260,7 @@ public class GraphScanLogic implements ScanLogic {
             LicenseViolationNode licenseResult = new LicenseViolationNode(
                     licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
                     Severity.valueOf(licenseViolation.getSeverity()), licenseViolation.getUpdated(), watchNames);
-            dependencyNode.addVulnerabilityOrViolation(licenseResult);
+            dependencyNode.addIssue(licenseResult);
         }
     }
 
