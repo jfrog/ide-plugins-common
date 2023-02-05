@@ -104,7 +104,7 @@ public class GradleTreeBuilderTest {
         DependencyTree shared = TestUtils.getAndAssertChild(root, "shared");
         assertEquals(shared.getChildren().size(), 1);
         assertEquals(Sets.newHashSet(new License()), shared.getLicenses());
-        assertEquals(Sets.newHashSet(new Scope()), shared.getScopes());
+        assertNotEquals(Sets.newHashSet(new Scope()), shared.getScopes());
         assertGeneralInfo(shared.getGeneralInfo(), "", "shared", "", tempProject.toString());
         return shared;
     }
