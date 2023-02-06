@@ -6,6 +6,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.Comparator;
 
 public class SortableChildrenTreeNode extends DefaultMutableTreeNode {
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void sortChildren() {
         if (CollectionUtils.isNotEmpty(children)) {
             children.sort(Comparator.comparing(treeNode -> ((Comparable) treeNode)));
