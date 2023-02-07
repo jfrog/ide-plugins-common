@@ -43,7 +43,7 @@ public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledT
         return filePath;
     }
 
-    public void addDependency(ApplicableIssueNode issue) {
+    public void addIssue(IssueNode issue) {
         add(issue);
         if (issue.getSeverity().isHigherThan(topSeverity)) {
             topSeverity = issue.getSeverity();
