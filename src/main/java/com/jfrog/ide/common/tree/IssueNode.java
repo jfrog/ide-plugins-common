@@ -14,6 +14,7 @@ import static com.jfrog.ide.common.tree.Severity.getNotApplicableSeverity;
  */
 public class IssueNode extends VulnerabilityOrViolationNode {
 
+    private String ignoreRuleUrl;
     private Severity severity = Severity.Normal;
     private List<String> fixedVersions;
     private List<String> infectedVersions;
@@ -26,12 +27,13 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     private ResearchInfo researchInfo;
     private List<ApplicableIssueNode> applicableIssues;
 
+    @SuppressWarnings("unused")
     public IssueNode() {
     }
 
     @SuppressWarnings("unused")
     public IssueNode(String issueId, Severity severity, String summary, List<String> fixedVersions, List<String> infectedVersions,
-                     Cve cve, String lastUpdated, List<String> watchNames, List<String> references, ResearchInfo researchInfo) {
+                     Cve cve, String lastUpdated, List<String> watchNames, List<String> references, ResearchInfo researchInfo, String ignoreRuleUrl) {
         this.issueId = issueId;
         this.severity = severity;
         this.summary = summary;
@@ -42,6 +44,7 @@ public class IssueNode extends VulnerabilityOrViolationNode {
         this.watchNames = watchNames;
         this.references = references;
         this.researchInfo = researchInfo;
+        this.ignoreRuleUrl = ignoreRuleUrl;
     }
 
     public String getIssueId() {
@@ -102,7 +105,7 @@ public class IssueNode extends VulnerabilityOrViolationNode {
     }
 
     @JsonIgnore
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings("unused")
     public boolean isTopSeverity() {
         return getSeverity() == Severity.Critical;
     }
@@ -163,6 +166,11 @@ public class IssueNode extends VulnerabilityOrViolationNode {
      */
     public Boolean isApplicable() {
         return this.applicableIssues != null ? this.applicableIssues.size() > 0 : null;
+    }
+
+    @SuppressWarnings("unused")
+    public String getIgnoreRuleUrl() {
+        return ignoreRuleUrl;
     }
 
 }
