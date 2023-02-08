@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.nodes.subentities;
 
 public class ResearchInfo {
     private final Severity severity;

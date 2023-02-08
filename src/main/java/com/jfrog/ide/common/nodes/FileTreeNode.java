@@ -1,11 +1,10 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.nodes;
 
-import org.apache.commons.collections.CollectionUtils;
+import com.jfrog.ide.common.nodes.subentities.Severity;
 
 import java.io.File;
-import java.util.Comparator;
 
-public class FileTreeNode extends ComparableSeverityTreeNode implements SubtitledTreeNode {
+public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<FileTreeNode> {
     protected String fileName;
     protected String filePath;
     protected Severity topSeverity = Severity.Normal;
@@ -44,16 +43,15 @@ public class FileTreeNode extends ComparableSeverityTreeNode implements Subtitle
         return filePath;
     }
 
-    public void addDependency(ApplicableIssueNode issue) {
+    public void addIssue(IssueNode issue) {
         add(issue);
         if (issue.getSeverity().isHigherThan(topSeverity)) {
             topSeverity = issue.getSeverity();
         }
     }
 
-    public void sortChildren() {
-        if (CollectionUtils.isNotEmpty(children)) {
-            children.sort(Comparator.comparing(treeNode -> ((ComparableSeverityTreeNode) treeNode)));
-        }
+    @Override
+    public int compareTo(FileTreeNode other) {
+        return other.getSeverity().ordinal() - this.getSeverity().ordinal();
     }
 }

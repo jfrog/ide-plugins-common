@@ -1,6 +1,7 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.nodes;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jfrog.ide.common.nodes.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -10,7 +11,7 @@ import java.util.Objects;
 /**
  * @author yahavi
  */
-public class LicenseViolationNode extends VulnerabilityOrViolationNode {
+public class LicenseViolationNode extends IssueNode {
     private static final String UNKNOWN_LICENCE_FULL_NAME = "Unknown license";
     @SuppressWarnings("FieldCanBeLocal")
     private static final String UNKNOWN_LICENCE_NAME = "Unknown";
@@ -21,6 +22,7 @@ public class LicenseViolationNode extends VulnerabilityOrViolationNode {
     private String lastUpdated;
     private List<String> watchNames;
 
+    @SuppressWarnings("unused")
     public LicenseViolationNode() {
         this.fullName = UNKNOWN_LICENCE_FULL_NAME;
         this.name = UNKNOWN_LICENCE_NAME;

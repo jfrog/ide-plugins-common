@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.tree;
+package com.jfrog.ide.common.nodes.subentities;
 
 /**
  * @author yahavi
