@@ -7,15 +7,15 @@ public enum Severity {
     Normal("Scanned - No Issues", "normal"),
     Pending("Pending Scan", "pending"),
     UnknownNotApplic("Unknown Not Applicable", "unknownnotapplic"),
+    LowNotApplic("Low Not Applicable", "lownotapplic"),
+    MediumNotApplic("Medium Not Applicable", "mediumnotapplic"),
+    HighNotApplic("High Not Applicable", "highnotapplic"),
+    CriticalNotApplic("Critical Not Applicable", "criticalnotapplic"),
     Unknown("Unknown", "unknown"),
     Information("Information", "information"),
-    LowNotApplic("Low Not Applicable", "lownotapplic"),
     Low("Low", "low"),
-    MediumNotApplic("Medium Not Applicable", "mediumnotapplic"),
     Medium("Medium", "medium"),
-    HighNotApplic("High Not Applicable", "highnotapplic"),
     High("High", "high"),
-    CriticalNotApplic("Critical Not Applicable", "criticalnotapplic"),
     Critical("Critical", "critical");
 
     private final String severityName;
