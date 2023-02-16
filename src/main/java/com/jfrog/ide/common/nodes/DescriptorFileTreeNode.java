@@ -6,6 +6,11 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class DescriptorFileTreeNode extends FileTreeNode {
+    // Empty constructor for deserialization
+    @SuppressWarnings("unused")
+    private DescriptorFileTreeNode() {
+    }
+
     public DescriptorFileTreeNode(String filePath) {
         super(filePath);
     }

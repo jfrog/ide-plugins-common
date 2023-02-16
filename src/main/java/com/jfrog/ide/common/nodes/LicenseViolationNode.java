@@ -1,6 +1,5 @@
 package com.jfrog.ide.common.nodes;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
 
@@ -22,8 +21,9 @@ public class LicenseViolationNode extends IssueNode {
     private String lastUpdated;
     private List<String> watchNames;
 
+    // Empty constructor for deserialization
     @SuppressWarnings("unused")
-    public LicenseViolationNode() {
+    private LicenseViolationNode() {
         this.fullName = UNKNOWN_LICENCE_FULL_NAME;
         this.name = UNKNOWN_LICENCE_NAME;
     }
@@ -59,7 +59,6 @@ public class LicenseViolationNode extends IssueNode {
         return watchNames;
     }
 
-    @JsonIgnore
     @SuppressWarnings("unused")
     public boolean isFullNameEmpty() {
         return StringUtils.isBlank(fullName) || fullName.equals(LicenseViolationNode.UNKNOWN_LICENCE_FULL_NAME);

@@ -1,8 +1,13 @@
 package com.jfrog.ide.common.nodes.subentities;
 
 public class License {
-    private final String name;
-    private final String moreInfoUrl;
+    private String name;
+    private String moreInfoUrl;
+
+    // Empty constructor for deserialization
+    @SuppressWarnings("unused")
+    private License() {
+    }
 
     public License(String name, String moreInfoUrl) {
         this.name = name;

@@ -23,6 +23,7 @@ import org.jfrog.build.extractor.scan.DependencyTree;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
+import java.util.stream.Collectors;
 
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.apache.commons.collections4.ListUtils.emptyIfNull;
@@ -269,14 +270,14 @@ public class GraphScanLogic implements ScanLogic {
         return results.get(componentId);
     }
 
-    private SeverityReason[] convertSeverityReasons(com.jfrog.xray.client.services.scan.SeverityReasons[] xraySeverityReasons) {
+    private List<SeverityReason> convertSeverityReasons(com.jfrog.xray.client.services.scan.SeverityReasons[] xraySeverityReasons) {
         if (xraySeverityReasons == null) {
             return null;
         }
         return Arrays.stream(xraySeverityReasons)
                 .map(xrSeverityReason ->
                         new SeverityReason(xrSeverityReason.getName(), xrSeverityReason.getDescription(), xrSeverityReason.isPositive())
-                ).toArray(SeverityReason[]::new);
+                ).collect(Collectors.toList());
     }
 
     /**

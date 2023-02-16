@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.nodes;
 
+import com.jfrog.ide.common.nodes.subentities.ImpactTreeNode;
 import com.jfrog.ide.common.nodes.subentities.License;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
