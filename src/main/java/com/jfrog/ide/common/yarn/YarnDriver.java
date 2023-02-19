@@ -70,6 +70,14 @@ public class YarnDriver implements Serializable {
         return runCommand(workingDirectory, new String[]{"--version"}).getRes();
     }
 
+    // Yarn upgrade command (supported by Yarn1 only)
+    public void upgrade(File workingDirectory, String componentFullName) throws IOException {
+        try {
+            runCommand(workingDirectory, new String[]{"upgrade", componentFullName});
+        } catch (IOException | InterruptedException e) {
+            throw new IOException("yarn upgrade command failed", e);
+        }
+    }
 
     private CommandResults runCommand(File workingDirectory, String[] args) throws IOException, InterruptedException {
         return runCommand(workingDirectory, args, Collections.emptyList());

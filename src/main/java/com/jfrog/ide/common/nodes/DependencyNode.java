@@ -35,6 +35,10 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
         this.indirect = indirect;
     }
 
+    public boolean isIndirect() {
+        return indirect;
+    }
+
     public List<License> getLicenses() {
         return licenses;
     }
