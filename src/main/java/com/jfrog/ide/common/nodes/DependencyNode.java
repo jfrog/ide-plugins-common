@@ -32,8 +32,14 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
         return this;
     }
 
+    @SuppressWarnings("unused")
     public void setIndirect(boolean indirect) {
         this.indirect = indirect;
+    }
+
+    @SuppressWarnings("unused")
+    public boolean isIndirect() {
+        return indirect;
     }
 
     public List<License> getLicenses() {
@@ -69,6 +75,7 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
         add(issue);
     }
 
+    @SuppressWarnings("unused")
     public String getArtifactId() {
         String compIdWithoutPrefix = getComponentIdWithoutPrefix();
         int colonMatches = StringUtils.countMatches(compIdWithoutPrefix, ":");
