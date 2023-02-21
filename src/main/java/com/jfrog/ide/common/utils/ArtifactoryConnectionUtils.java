@@ -4,6 +4,7 @@ import com.jfrog.ide.common.configuration.ServerConfig;
 import org.apache.http.conn.ssl.TrustAllStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.client.ProxyConfiguration;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 
 import javax.net.ssl.SSLContext;
@@ -22,13 +23,17 @@ public class ArtifactoryConnectionUtils {
         SSLContext sslContext = serverConfig.isInsecureTls() ?
                 SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
                 serverConfig.getSslContext();
-        return new ArtifactoryManagerBuilder()
-                .setServerUrl(serverConfig.getArtifactoryUrl())
+        return createAnonymousAccessArtifactoryManagerBuilder(serverConfig.getArtifactoryUrl(), serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()), logger)
                 .setUsername(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())
                 .setAccessToken(serverConfig.getAccessToken())
-                .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()))
-                .setSslContext(sslContext)
+                .setSslContext(sslContext);
+    }
+
+    public static ArtifactoryManagerBuilder createAnonymousAccessArtifactoryManagerBuilder(String url, ProxyConfiguration proxyConfiguration, Log logger) {
+        return new ArtifactoryManagerBuilder()
+                .setServerUrl(url)
+                .setProxyConfiguration(proxyConfiguration)
                 .setLog(logger);
     }
 }
