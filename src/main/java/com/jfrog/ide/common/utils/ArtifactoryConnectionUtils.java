@@ -23,14 +23,11 @@ public class ArtifactoryConnectionUtils {
         SSLContext sslContext = serverConfig.isInsecureTls() ?
                 SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
                 serverConfig.getSslContext();
-        return new ArtifactoryManagerBuilder()
-                .setServerUrl(serverConfig.getArtifactoryUrl())
+        return createAnonymousAccessArtifactoryManagerBuilder(serverConfig.getArtifactoryUrl(), serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()), logger)
                 .setUsername(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())
                 .setAccessToken(serverConfig.getAccessToken())
-                .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()))
-                .setSslContext(sslContext)
-                .setLog(logger);
+                .setSslContext(sslContext);
     }
 
     public static ArtifactoryManagerBuilder createAnonymousAccessArtifactoryManagerBuilder(String url, ProxyConfiguration proxyConfiguration, Log logger) {
