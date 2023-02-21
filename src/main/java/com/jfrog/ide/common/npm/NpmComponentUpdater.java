@@ -32,6 +32,7 @@ public class NpmComponentUpdater extends ComponentUpdater {
      * @param componentVersion - The component's version.
      * @throws IOException in case of I/O error.
      */
+    @Override
     public void run(String componentName, String componentVersion) throws IOException {
         super.run(componentName, componentVersion);
         npmDriver.install(projectDir.toFile(), Collections.singletonList(this.componentFullName), this.logger);
@@ -45,5 +46,10 @@ public class NpmComponentUpdater extends ComponentUpdater {
     @Override
     public boolean isDriverInstalled() {
         return npmDriver.isNpmInstalled();
+    }
+
+    @Override
+    public String buildTool() {
+        return "npm";
     }
 }

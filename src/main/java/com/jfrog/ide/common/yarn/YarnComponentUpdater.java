@@ -24,6 +24,7 @@ public class YarnComponentUpdater extends ComponentUpdater {
      * @param componentVersion - The component's version.
      * @throws IOException in case of I/O error.
      */
+    @Override
     public void run(String componentName, String componentVersion) throws IOException {
         super.run(componentName, componentVersion);
         yarnDriver.upgrade(projectDir.toFile(), componentFullName);
@@ -37,5 +38,10 @@ public class YarnComponentUpdater extends ComponentUpdater {
     @Override
     public boolean isDriverInstalled() {
         return yarnDriver.isYarnInstalled();
+    }
+
+    @Override
+    public String buildTool() {
+        return "yarn";
     }
 }

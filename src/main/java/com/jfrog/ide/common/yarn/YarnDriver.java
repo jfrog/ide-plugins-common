@@ -70,7 +70,12 @@ public class YarnDriver implements Serializable {
         return runCommand(workingDirectory, new String[]{"--version"}).getRes();
     }
 
-    // Yarn upgrade command (supported by Yarn1 only)
+    /**
+     * Yarn upgrade command (supported by Yarn1 only)
+     *
+     * @param workingDirectory  - Working directory
+     * @param componentFullName - Component full name
+     */
     public void upgrade(File workingDirectory, String componentFullName) throws IOException {
         try {
             runCommand(workingDirectory, new String[]{"upgrade", componentFullName});

@@ -29,6 +29,7 @@ public class GoComponentUpdater extends ComponentUpdater {
      * @param componentVersion - The component's version.
      * @throws IOException in case of I/O error.
      */
+    @Override
     public void run(String componentName, String componentVersion) throws IOException {
         super.run(componentName, componentVersion);
         goDriver.get(this.componentFullName, false);
@@ -42,5 +43,10 @@ public class GoComponentUpdater extends ComponentUpdater {
     @Override
     protected String getVersionDelimiter() {
         return GO_VERSION_DELIMITER;
+    }
+
+    @Override
+    public String buildTool() {
+        return "go";
     }
 }

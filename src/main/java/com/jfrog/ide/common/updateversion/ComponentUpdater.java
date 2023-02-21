@@ -18,7 +18,7 @@ public abstract class ComponentUpdater {
 
     protected void run(String componentName, String componentVersion) throws IOException {
         if (!isDriverInstalled()) {
-            throw new IOException("Could not scan npm project dependencies, because driver is not in the PATH.");
+            throw new IOException("Could not scan project dependencies, because " + buildTool() + " CLI is not in the PATH.");
         }
         this.componentFullName = componentName + getVersionDelimiter() + componentVersion;
     }
@@ -27,4 +27,5 @@ public abstract class ComponentUpdater {
 
     protected abstract String getVersionDelimiter();
 
+    protected abstract String buildTool();
 }
