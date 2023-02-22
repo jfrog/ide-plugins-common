@@ -19,16 +19,16 @@ public class ScanCacheObject {
 
     @JsonProperty("fileTreeNodes")
     List<FileTreeNode> fileTreeNodes;
-    @JsonProperty("scanTime")
-    long scanTime;
+    @JsonProperty("scanTimestamp")
+    long scanTimestamp;
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
     public ScanCacheObject() {
     }
 
-    public ScanCacheObject(List<FileTreeNode> fileTreeNodes, long scanTime) {
+    public ScanCacheObject(List<FileTreeNode> fileTreeNodes, long scanTimestamp) {
         this.fileTreeNodes = fileTreeNodes;
-        this.scanTime = scanTime;
+        this.scanTimestamp = scanTimestamp;
     }
 }

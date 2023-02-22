@@ -26,7 +26,7 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
  */
 public class ScanCache {
     private final File file;
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
     private ScanCacheObject scanCacheObject;
 
     /**

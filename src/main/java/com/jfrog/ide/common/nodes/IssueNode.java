@@ -16,7 +16,7 @@ import java.util.UUID;
 public abstract class IssueNode extends DefaultMutableTreeNode implements SubtitledTreeNode, Comparable<IssueNode> {
     // For deserialization
     @SuppressWarnings("unused")
-    private String uuid = UUID.randomUUID().toString();
+    private final String uuid = UUID.randomUUID().toString();
 
     public abstract Severity getSeverity();
 
