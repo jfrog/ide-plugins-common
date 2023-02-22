@@ -5,9 +5,13 @@ import com.jfrog.ide.common.nodes.subentities.Severity;
 import java.io.File;
 
 public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<FileTreeNode> {
-    protected String fileName;
-    protected String filePath;
+    protected String fileName = "";
+    protected String filePath = "";
     protected Severity topSeverity = Severity.Normal;
+
+    // Empty constructor for deserialization
+    protected FileTreeNode() {
+    }
 
     public FileTreeNode(String filePath) {
         this.filePath = filePath;

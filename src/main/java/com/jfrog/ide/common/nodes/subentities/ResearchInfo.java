@@ -1,13 +1,20 @@
 package com.jfrog.ide.common.nodes.subentities;
 
-public class ResearchInfo {
-    private final Severity severity;
-    private final String shortDescription;
-    private final String fullDescription;
-    private final String remediation;
-    private final SeverityReason[] severityReasons;
+import java.util.List;
 
-    public ResearchInfo(Severity severity, String shortDescription, String fullDescription, String remediation, SeverityReason[] severityReasons) {
+public class ResearchInfo {
+    private Severity severity;
+    private String shortDescription;
+    private String fullDescription;
+    private String remediation;
+    private List<SeverityReason> severityReasons;
+
+    // Empty constructor for deserialization
+    @SuppressWarnings("unused")
+    private ResearchInfo() {
+    }
+
+    public ResearchInfo(Severity severity, String shortDescription, String fullDescription, String remediation, List<SeverityReason> severityReasons) {
         this.severity = severity;
         this.shortDescription = shortDescription;
         this.fullDescription = fullDescription;
@@ -36,7 +43,7 @@ public class ResearchInfo {
     }
 
     @SuppressWarnings("unused")
-    public SeverityReason[] getSeverityReasons() {
+    public List<SeverityReason> getSeverityReasons() {
         return severityReasons;
     }
 }

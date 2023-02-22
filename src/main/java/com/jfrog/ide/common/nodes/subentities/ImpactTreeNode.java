@@ -1,4 +1,4 @@
-package com.jfrog.ide.common.nodes;
+package com.jfrog.ide.common.nodes.subentities;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +8,11 @@ import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 public class ImpactTreeNode {
     String name;
     List<ImpactTreeNode> children = new ArrayList<>();
+
+    // Empty constructor for deserialization
+    @SuppressWarnings("unused")
+    private ImpactTreeNode() {
+    }
 
     public ImpactTreeNode(String name) {
         this.name = name;

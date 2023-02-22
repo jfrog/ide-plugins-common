@@ -3,16 +3,21 @@ package com.jfrog.ide.common.nodes;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 
 public class ApplicableIssueNode extends IssueNode implements SubtitledTreeNode {
-    private final String name;
-    private final String reason;
-    private final String lineSnippet;
-    private final String scannerSearchTarget;
-    private final int rowStart;
-    private final int colStart;
-    private final int rowEnd;
-    private final int colEnd;
-    private final String filePath;
-    private final VulnerabilityNode issue;
+    private String name;
+    private String reason;
+    private String lineSnippet;
+    private String scannerSearchTarget;
+    private int rowStart;
+    private int colStart;
+    private int rowEnd;
+    private int colEnd;
+    private String filePath;
+    private VulnerabilityNode issue;
+
+    // Empty constructor for deserialization
+    @SuppressWarnings("unused")
+    private ApplicableIssueNode() {
+    }
 
     public ApplicableIssueNode(String name, int rowStart, int colStart, int rowEnd, int colEnd, String filePath, String reason, String lineSnippet, String scannerSearchTarget, VulnerabilityNode issue) {
         this.name = name;
