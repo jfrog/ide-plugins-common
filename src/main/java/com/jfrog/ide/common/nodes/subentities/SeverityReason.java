@@ -1,8 +1,13 @@
 package com.jfrog.ide.common.nodes.subentities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class SeverityReason {
+    @JsonProperty()
     private String name;
+    @JsonProperty()
     private String description;
+    @JsonProperty()
     private boolean isPositive;
 
     // Empty constructor for deserialization

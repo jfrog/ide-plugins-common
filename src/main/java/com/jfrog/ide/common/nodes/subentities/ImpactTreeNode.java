@@ -1,13 +1,17 @@
 package com.jfrog.ide.common.nodes.subentities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 
 public class ImpactTreeNode {
-    String name;
-    List<ImpactTreeNode> children = new ArrayList<>();
+    @JsonProperty()
+    private String name;
+    @JsonProperty()
+    private List<ImpactTreeNode> children = new ArrayList<>();
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")

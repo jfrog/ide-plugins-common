@@ -1,12 +1,16 @@
 package com.jfrog.ide.common.nodes;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 
 import java.io.File;
 
 public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<FileTreeNode> {
+    @JsonProperty()
     protected String fileName = "";
+    @JsonProperty()
     protected String filePath = "";
+    @JsonProperty()
     protected Severity topSeverity = Severity.Normal;
 
     // Empty constructor for deserialization

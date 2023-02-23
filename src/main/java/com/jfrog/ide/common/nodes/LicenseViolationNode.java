@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.nodes;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
 
@@ -14,11 +15,17 @@ public class LicenseViolationNode extends IssueNode {
     private static final String UNKNOWN_LICENCE_FULL_NAME = "Unknown license";
     @SuppressWarnings("FieldCanBeLocal")
     private static final String UNKNOWN_LICENCE_NAME = "Unknown";
+    @JsonProperty()
     private final String fullName;
+    @JsonProperty()
     private final String name;
+    @JsonProperty()
     private List<String> references = new ArrayList<>();
+    @JsonProperty()
     private Severity severity;
+    @JsonProperty()
     private String lastUpdated;
+    @JsonProperty()
     private List<String> watchNames;
 
     // Empty constructor for deserialization

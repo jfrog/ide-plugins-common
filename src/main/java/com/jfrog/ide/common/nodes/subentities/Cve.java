@@ -1,13 +1,20 @@
 package com.jfrog.ide.common.nodes.subentities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * @author yahavi
  **/
 public class Cve {
+    @JsonProperty()
     private String cveId;
+    @JsonProperty()
     private String cvssV2Score;
+    @JsonProperty()
     private String cvssV2Vector;
+    @JsonProperty()
     private String cvssV3Score;
+    @JsonProperty()
     private String cvssV3Vector;
 
     @SuppressWarnings("unused")

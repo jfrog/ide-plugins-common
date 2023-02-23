@@ -1,5 +1,7 @@
 package com.jfrog.ide.common.nodes;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jfrog.ide.common.nodes.subentities.ImpactTreeNode;
 import com.jfrog.ide.common.nodes.subentities.License;
 import com.jfrog.ide.common.nodes.subentities.Severity;
@@ -12,10 +14,14 @@ import java.util.List;
 import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 
 public class DependencyNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<DependencyNode> {
+    @JsonProperty()
     private String componentId = "";
+    @JsonProperty()
     private boolean indirect;
+    @JsonProperty()
     private ImpactTreeNode impactPaths;
-    private final List<License> licenses;
+    @JsonProperty()
+    private List<License> licenses;
 
     public DependencyNode() {
         licenses = new ArrayList<>();
@@ -37,11 +43,13 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
         this.indirect = indirect;
     }
 
+    @JsonGetter()
     @SuppressWarnings("unused")
     public boolean isIndirect() {
         return indirect;
     }
 
+    @JsonGetter()
     public List<License> getLicenses() {
         return licenses;
     }
@@ -61,6 +69,7 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
         return severity;
     }
 
+    @JsonGetter()
     @SuppressWarnings("unused")
     public ImpactTreeNode getImpactPaths() {
         return impactPaths;

@@ -1,24 +1,23 @@
 package com.jfrog.ide.common.nodes;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.*;
 import org.apache.commons.collections.CollectionUtils;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import java.util.Comparator;
 import java.util.UUID;
 import java.util.Vector;
 
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
-        setterVisibility = JsonAutoDetect.Visibility.NONE)
+        setterVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY)
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "uuid")
 public class SortableChildrenTreeNode extends DefaultMutableTreeNode {
     // For deserialization
     @SuppressWarnings("unused")
-    private String uuid = UUID.randomUUID().toString();
+    @JsonProperty()
+    private final String uuid = UUID.randomUUID().toString();
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void sortChildren() {
@@ -30,8 +29,18 @@ public class SortableChildrenTreeNode extends DefaultMutableTreeNode {
         }
     }
 
-    @JsonSetter("children")
-    private void setChildren(Vector<DefaultMutableTreeNode> children) {
+    @JsonGetter()
+    public Vector<TreeNode> getChildren() {
+        return children;
+    }
+
+    @JsonGetter()
+    public boolean getAllowsChildren() {
+        return super.getAllowsChildren();
+    }
+
+    @JsonSetter()
+    public void setChildren(Vector<DefaultMutableTreeNode> children) {
         if (children == null) {
             return;
         }
