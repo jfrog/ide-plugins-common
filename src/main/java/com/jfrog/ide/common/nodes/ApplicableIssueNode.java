@@ -1,17 +1,28 @@
 package com.jfrog.ide.common.nodes;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 
 public class ApplicableIssueNode extends IssueNode implements SubtitledTreeNode {
+    @JsonProperty()
     private String name;
+    @JsonProperty()
     private String reason;
+    @JsonProperty()
     private String lineSnippet;
+    @JsonProperty()
     private String scannerSearchTarget;
+    @JsonProperty()
     private int rowStart;
+    @JsonProperty()
     private int colStart;
+    @JsonProperty()
     private int rowEnd;
+    @JsonProperty()
     private int colEnd;
+    @JsonProperty()
     private String filePath;
+    @JsonProperty()
     private VulnerabilityNode issue;
 
     // Empty constructor for deserialization

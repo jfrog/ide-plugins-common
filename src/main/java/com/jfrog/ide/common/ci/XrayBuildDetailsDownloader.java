@@ -101,7 +101,7 @@ public class XrayBuildDetailsDownloader extends ConsumerRunnableBase {
 
     private void downloadBuildDetails(ObjectMapper mapper, XrayClient xrayClient, String buildName, String buildNumber) throws IOException {
         DetailsResponse response = xrayClient.details().build(buildName, buildNumber, project);
-        if (!response.getScanCompleted() || response.getError() != null || isEmpty(response.getComponents())) {
+        if (!response.isScanCompleted() || response.getError() != null || isEmpty(response.getComponents())) {
             if (response.getError() != null) {
                 Error error = response.getError();
                 log.debug(String.format(BUILD_RET_ERR_FMT, buildName, buildNumber) + " " +

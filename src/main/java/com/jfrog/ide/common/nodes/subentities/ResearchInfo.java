@@ -1,12 +1,19 @@
 package com.jfrog.ide.common.nodes.subentities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 public class ResearchInfo {
+    @JsonProperty()
     private Severity severity;
+    @JsonProperty()
     private String shortDescription;
+    @JsonProperty()
     private String fullDescription;
+    @JsonProperty()
     private String remediation;
+    @JsonProperty()
     private List<SeverityReason> severityReasons;
 
     // Empty constructor for deserialization
