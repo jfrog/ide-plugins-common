@@ -30,6 +30,7 @@ public class GoTreeBuilder {
     private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final Version MIN_GO_VERSION_FOR_BUILD_VCS_FLAG = new Version("1.18");
     public static final String GO_VERSION_PATTERN = "^go(\\d*.\\d*.*\\d*)";
+    private static final String GO_SOURCE_CODE_PREFIX = "github.com/golang/go:";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     static final Version MIN_GO_VERSION = new Version("1.16");
     private final Map<String, String> env;
@@ -58,10 +59,17 @@ public class GoTreeBuilder {
             DependencyTree rootNode = GoDependencyTree.createDependencyTree(goDriver, logger, false, goVersion.isAtLeast(MIN_GO_VERSION_FOR_BUILD_VCS_FLAG));
             setGeneralInfo(rootNode);
             setNoneScope(rootNode);
+            addGoVersionNode(rootNode, goVersion);
             return rootNode;
         } finally {
             FileUtils.deleteDirectory(tmpDir);
         }
+    }
+
+    private void addGoVersionNode(DependencyTree rootNode, Version goVersion) {
+        DependencyTree goVersionNode = new DependencyTree(GO_SOURCE_CODE_PREFIX + goVersion);
+        goVersionNode.setParent(rootNode);
+        rootNode.getChildren().add(goVersionNode);
     }
 
     /**
