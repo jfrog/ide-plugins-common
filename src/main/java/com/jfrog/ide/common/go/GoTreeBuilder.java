@@ -57,9 +57,9 @@ public class GoTreeBuilder {
             Version goVersion = parseGoVersion(versionRes, logger);
             goDriver.modTidy(false, goVersion.isAtLeast(MIN_GO_VERSION));
             DependencyTree rootNode = GoDependencyTree.createDependencyTree(goDriver, logger, false, goVersion.isAtLeast(MIN_GO_VERSION_FOR_BUILD_VCS_FLAG));
+            addGoVersionNode(rootNode, goVersion);
             setGeneralInfo(rootNode);
             setNoneScope(rootNode);
-            addGoVersionNode(rootNode, goVersion);
             return rootNode;
         } finally {
             FileUtils.deleteDirectory(tmpDir);

@@ -3,7 +3,9 @@ package com.jfrog.ide.common.go;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
+import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
+import org.jfrog.build.extractor.go.GoDriver;
 import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.DataProvider;
@@ -27,9 +29,10 @@ public class GoTreeBuilderTest {
     private static final Path GO_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "go"));
     private static final Scope NONE_SCOPE = new Scope();
     private static final Log log = new NullLog();
+    private static final GoDriver goDriver = new GoDriver(null, null, null, log);
 
     /**
-     * The project is with dependencies, but without go.sum
+     * The project is with dependencies, but without a "go.sum"
      */
     @Test
     public void testCreateDependencyTree1() {
@@ -48,7 +51,7 @@ public class GoTreeBuilderTest {
     }
 
     /**
-     * The project is with dependencies and go.sum, but with checksum mismatch on github.com/dsnet/compress
+     * The project is with dependencies and with "go.sum", but with checksum mismatch on github.com/dsnet/compress
      */
     @Test
     public void testCreateDependencyTree2() {
@@ -65,7 +68,7 @@ public class GoTreeBuilderTest {
     }
 
     /**
-     * The project is with dependencies and go.sum, but contains a relative path in go.mod
+     * The project is with dependencies and with "go.sum", but contains a relative path in the "go.mod".
      * The submodule is a subdirectory of the project directory.
      */
     @Test
@@ -83,7 +86,7 @@ public class GoTreeBuilderTest {
     }
 
     /**
-     * The project is with dependencies and go.sum, but contains a relative path in go.mod.
+     * The project is with dependencies and with "go.sum", but contains a relative path in go.mod.
      * The submodule is a sibling of the project directory.
      */
     @Test
@@ -100,7 +103,8 @@ public class GoTreeBuilderTest {
         }
     }
 
-    private void validateDependencyTreeResults(Map<String, Integer> expected, DependencyTree actual) {
+    private void validateDependencyTreeResults(Map<String, Integer> expected, DependencyTree actual) throws IOException {
+        addExpectedVersionNode(expected);
         Vector<DependencyTree> children = actual.getChildren();
         assertEquals(children.size(), expected.size());
         for (DependencyTree current : children) {
@@ -130,6 +134,12 @@ public class GoTreeBuilderTest {
     public void testParseGoVersion(String versionOutput, String expectedVersion) {
         CommandResults commandResults = new CommandResults();
         commandResults.setRes(versionOutput);
-        assertEquals(expectedVersion, parseGoVersion(commandResults, new NullLog()).toString());
+        assertEquals(expectedVersion, parseGoVersion(commandResults, log).toString());
+    }
+
+    private void addExpectedVersionNode(Map<String, Integer> expected) throws IOException {
+        CommandResults versionRes = goDriver.version(false);
+        Version goVersion = parseGoVersion(versionRes, log);
+        expected.put("github.com/golang/go:" + goVersion, 0);
     }
 }
