@@ -68,8 +68,7 @@ public class GoTreeBuilder {
 
     private void addGoVersionNode(DependencyTree rootNode, Version goVersion) {
         DependencyTree goVersionNode = new DependencyTree(GO_SOURCE_CODE_PREFIX + goVersion);
-        goVersionNode.setParent(rootNode);
-        rootNode.getChildren().add(goVersionNode);
+        rootNode.add(goVersionNode);
     }
 
     /**
