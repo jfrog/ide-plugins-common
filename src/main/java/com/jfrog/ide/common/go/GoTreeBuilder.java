@@ -1,6 +1,5 @@
 package com.jfrog.ide.common.go;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -30,7 +29,7 @@ public class GoTreeBuilder {
     private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final Version MIN_GO_VERSION_FOR_BUILD_VCS_FLAG = new Version("1.18");
     public static final String GO_VERSION_PATTERN = "^go(\\d*.\\d*.*\\d*)";
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String GO_SOURCE_CODE_PREFIX = "github.com/golang/go:";
     static final Version MIN_GO_VERSION = new Version("1.16");
     private final Map<String, String> env;
     private final String executablePath;
@@ -56,12 +55,18 @@ public class GoTreeBuilder {
             Version goVersion = parseGoVersion(versionRes, logger);
             goDriver.modTidy(false, goVersion.isAtLeast(MIN_GO_VERSION));
             DependencyTree rootNode = GoDependencyTree.createDependencyTree(goDriver, logger, false, goVersion.isAtLeast(MIN_GO_VERSION_FOR_BUILD_VCS_FLAG));
+            addGoVersionNode(rootNode, goVersion);
             setGeneralInfo(rootNode);
             setNoneScope(rootNode);
             return rootNode;
         } finally {
             FileUtils.deleteDirectory(tmpDir);
         }
+    }
+
+    private void addGoVersionNode(DependencyTree rootNode, Version goVersion) {
+        DependencyTree goVersionNode = new DependencyTree(GO_SOURCE_CODE_PREFIX + goVersion);
+        rootNode.add(goVersionNode);
     }
 
     /**
