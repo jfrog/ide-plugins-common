@@ -57,8 +57,8 @@ pipelines:
             - jf rt bp
 
             # Distribute release bundle
-            - jf ds rbc ide-plugins-common-snapshot $run_number --spec=./release/specs/dev-rbc-filespec.json --sign
-            - jf ds rbd ide-plugins-common-snapshot $run_number --site="releases.jfrog.io" --sync
+            - jf ds rbc ecosystem-ide-plugins-common-snapshot $run_number --spec=./release/specs/dev-rbc-filespec.json --sign
+            - jf ds rbd ecosystem-ide-plugins-common-snapshot $run_number --site="releases.jfrog.io" --sync
 
           onComplete:
             # Show tests in the *Tests* tab
