@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.jfrog.ide.common.log.Utils;
 import com.jfrog.ide.common.nodes.FileTreeNode;
+import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.util.Log;
 
 import java.io.File;
@@ -70,6 +71,12 @@ public class ScanCache {
 
     public ScanCacheObject getScanCacheObject() {
         return scanCacheObject;
+    }
+
+    public void deleteScanCacheObject() throws IOException {
+        if (file.exists()) {
+            FileUtils.forceDelete(file);
+        }
     }
 
     private void readCachedNodes(Log logger) throws IOException {
