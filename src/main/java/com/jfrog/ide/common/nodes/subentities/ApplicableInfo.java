@@ -11,11 +11,11 @@ public class ApplicableInfo {
     @JsonProperty()
     private String searchTarget;
     @JsonProperty()
-    private final List<String> reasons = new ArrayList<>();
+    private List<String> reasons = new ArrayList<>();
     @JsonProperty()
-    private final List<String> filePathEvidences = new ArrayList<>();
+    private List<String> filePathEvidences = new ArrayList<>();
     @JsonProperty()
-    private final List<String> codeEvidences = new ArrayList<>();
+    private List<String> codeEvidences = new ArrayList<>();
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
@@ -43,16 +43,16 @@ public class ApplicableInfo {
         return isApplicable;
     }
 
-    public String[] getReasons() {
-        return reasons.toArray(new String[]{});
+    public List<String> getReasons() {
+        return reasons;
     }
 
-    public String[] getFilePathEvidences() {
-        return filePathEvidences.toArray(new String[]{});
+    public List<String> getFilePathEvidences() {
+        return filePathEvidences;
     }
 
-    public String[] getCodeEvidences() {
-        return codeEvidences.toArray(new String[]{});
+    public List<String> getCodeEvidences() {
+        return codeEvidences;
     }
 
     public void addInfo(String reason, String filePath, String codeEvidence) {
@@ -61,5 +61,17 @@ public class ApplicableInfo {
         this.filePathEvidences.add(filePath);
         this.codeEvidences.add(codeEvidence);
 
+    }
+
+    public void setReasons(List<String> reasons) {
+        this.reasons = reasons;
+    }
+
+    public void setFilePathEvidences(List<String> filePathEvidences) {
+        this.filePathEvidences = filePathEvidences;
+    }
+
+    public void setCodeEvidences(List<String> codeEvidences) {
+        this.codeEvidences = codeEvidences;
     }
 }
