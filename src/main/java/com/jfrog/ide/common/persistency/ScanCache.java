@@ -72,6 +72,14 @@ public class ScanCache {
         return scanCacheObject;
     }
 
+    public void deleteScanCacheObject() throws IOException {
+        if (file.exists()) {
+            if (!file.delete()) {
+                throw new IOException("Wasn't able to delete the cache file: " + file.getAbsolutePath());
+            }
+        }
+    }
+
     private void readCachedNodes(Log logger) throws IOException {
         try {
             scanCacheObject = objectMapper.readValue(file, ScanCacheObject.class);

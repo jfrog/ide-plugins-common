@@ -21,6 +21,7 @@ import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.DependencyTree;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
@@ -59,22 +60,16 @@ public class GraphScanLogic implements ScanLogic {
             // No components found to scan
             return null;
         }
-        try {
-            // Create Xray client and check version
-            Xray xrayClient = createXrayClientBuilder(server, log).build();
-            if (!isSupportedInXrayVersion(xrayClient)) {
-                return null;
-            }
+        try (Xray xrayClient = createXrayClientBuilder(server, log).build()) {
+            validateXraySupport(xrayClient.system().version());
             // Start scan
             log.debug("Starting to scan, sending a dependency graph to Xray");
             checkCanceled.run();
             Map<String, DependencyNode> response = scan(xrayClient, nodesToScan, server, checkCanceled, indicator);
             indicator.setFraction(1);
-
             return response;
         } catch (CancellationException e) {
-            log.info("Xray scan was canceled.");
-            return null;
+            throw new InterruptedIOException("Xray scan was canceled.");
         }
     }
 
@@ -124,20 +119,11 @@ public class GraphScanLogic implements ScanLogic {
         }
     }
 
-    public static boolean isSupportedInXrayVersion(Version xrayVersion) {
-        return xrayVersion.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN);
-    }
-
-    private boolean isSupportedInXrayVersion(Xray xrayClient) {
-        try {
-            if (isSupportedInXrayVersion(xrayClient.system().version())) {
-                return true;
-            }
-            log.error("Unsupported JFrog Xray version: Required JFrog Xray version " + MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN + " and above.");
-        } catch (IOException e) {
-            log.error("JFrog Xray Scan failed. Please check your credentials.", e);
+    public static void validateXraySupport(Version xrayVersion) {
+        if (xrayVersion.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN)) {
+            return;
         }
-        return false;
+        throw new UnsupportedOperationException("JFrog Xray version " + xrayVersion.getVersion() + " is unsupported. Required JFrog Xray version " + MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN + " and above.");
     }
 
     /**
