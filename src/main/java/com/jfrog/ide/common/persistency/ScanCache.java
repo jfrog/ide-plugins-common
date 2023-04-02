@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.jfrog.ide.common.log.Utils;
 import com.jfrog.ide.common.nodes.FileTreeNode;
-import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.util.Log;
 
 import java.io.File;
@@ -75,7 +74,9 @@ public class ScanCache {
 
     public void deleteScanCacheObject() throws IOException {
         if (file.exists()) {
-            FileUtils.forceDelete(file);
+            if (!file.delete()) {
+                throw new IOException("Wasn't able to delete the cache file: " + file.getAbsolutePath());
+            }
         }
     }
 

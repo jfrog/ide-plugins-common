@@ -123,7 +123,7 @@ public class GraphScanLogic implements ScanLogic {
         if (xrayVersion.isAtLeast(MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN)) {
             return;
         }
-        throw new UnsupportedOperationException("Unsupported JFrog Xray version: Required JFrog Xray version " + MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN + " and above.");
+        throw new UnsupportedOperationException("JFrog Xray version " + xrayVersion.getVersion() + " is unsupported. Required JFrog Xray version " + MINIMAL_XRAY_VERSION_SUPPORTED_FOR_GRAPH_SCAN + " and above.");
     }
 
     /**
