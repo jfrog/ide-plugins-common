@@ -60,7 +60,6 @@ public class ApplicableInfo {
         this.reasons.add(reason);
         this.filePathEvidences.add(filePath);
         this.codeEvidences.add(codeEvidence);
-
     }
 
     public void setReasons(List<String> reasons) {
