@@ -11,11 +11,7 @@ public class ApplicableInfo {
     @JsonProperty()
     private String searchTarget;
     @JsonProperty()
-    private List<String> reasons = new ArrayList<>();
-    @JsonProperty()
-    private List<String> filePathEvidences = new ArrayList<>();
-    @JsonProperty()
-    private List<String> codeEvidences = new ArrayList<>();
+    private List<Evidence> evidences = new ArrayList<>();
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
@@ -30,9 +26,7 @@ public class ApplicableInfo {
     public ApplicableInfo(boolean isApplicable, String searchTarget, String reason, String filePathEvidence, String codeEvidence) {
         this(isApplicable);
         this.searchTarget = searchTarget;
-        this.reasons.add(reason);
-        this.filePathEvidences.add(filePathEvidence);
-        this.codeEvidences.add(codeEvidence);
+        this.evidences.add(new Evidence(reason, filePathEvidence, codeEvidence));
     }
 
     public String getSearchTarget() {
@@ -43,34 +37,17 @@ public class ApplicableInfo {
         return isApplicable;
     }
 
-    public List<String> getReasons() {
-        return reasons;
-    }
-
-    public List<String> getFilePathEvidences() {
-        return filePathEvidences;
-    }
-
-    public List<String> getCodeEvidences() {
-        return codeEvidences;
-    }
-
     public void addInfo(String reason, String filePath, String codeEvidence) {
         this.isApplicable = true;
-        this.reasons.add(reason);
-        this.filePathEvidences.add(filePath);
-        this.codeEvidences.add(codeEvidence);
+        evidences.add(new Evidence(reason, filePath, codeEvidence));
     }
 
-    public void setReasons(List<String> reasons) {
-        this.reasons = reasons;
+    public List<Evidence> getEvidences() {
+        return evidences;
     }
 
-    public void setFilePathEvidences(List<String> filePathEvidences) {
-        this.filePathEvidences = filePathEvidences;
+    public void setEvidences(List<Evidence> evidences) {
+        this.evidences = evidences;
     }
 
-    public void setCodeEvidences(List<String> codeEvidences) {
-        this.codeEvidences = codeEvidences;
-    }
 }
