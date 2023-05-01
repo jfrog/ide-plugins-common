@@ -228,7 +228,9 @@ public class GraphScanLogic implements ScanLogic {
         }
         List<String> watchNames = null;
         if (watchName != null) {
-            watchNames = Collections.singletonList(watchName);
+            // Since singleton lists and unmodifiable lists cannot be read from the cache, an ArrayList is used instead
+            watchNames = new ArrayList<>();
+            watchNames.add(watchName);
         }
         return new VulnerabilityNode(vulnerability.getIssueId(), Severity.valueOf(vulnerability.getSeverity()),
                 StringUtils.defaultIfBlank(vulnerability.getSummary(), "N/A"), component.getFixedVersions(),
@@ -242,7 +244,9 @@ public class GraphScanLogic implements ScanLogic {
             DependencyNode dependencyNode = getDependency(results, entry.getKey());
             List<String> watchNames = null;
             if (licenseViolation.getWatchName() != null) {
-                watchNames = Collections.singletonList(licenseViolation.getWatchName());
+                // Since singleton lists and unmodifiable lists cannot be read from the cache, an ArrayList is used instead
+                watchNames = new ArrayList<>();
+                watchNames.add(licenseViolation.getWatchName());
             }
             LicenseViolationNode licenseResult = new LicenseViolationNode(
                     licenseViolation.getLicenseName(), licenseViolation.getLicenseKey(), licenseViolation.getReferences(),
