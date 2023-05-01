@@ -14,6 +14,7 @@ import org.jfrog.build.api.util.Log;
 import java.io.IOException;
 
 import static com.jfrog.ide.common.utils.Constants.MINIMAL_XRAY_VERSION_SUPPORTED;
+import static com.jfrog.ide.common.utils.Utils.resolveXrayUrl;
 
 /**
  * @author yahavi
@@ -61,14 +62,15 @@ public class XrayConnectionUtils {
     }
 
     public static XrayClientBuilder createXrayClientBuilder(ServerConfig serverConfig, Log logger) {
+        String xrayUrl = resolveXrayUrl(serverConfig.getXrayUrl(), serverConfig.getUrl());
         return (XrayClientBuilder) new XrayClientBuilder()
-                .setUrl(serverConfig.getXrayUrl())
+                .setUrl(xrayUrl)
                 .setUserName(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())
                 .setAccessToken(serverConfig.getAccessToken())
                 .setInsecureTls(serverConfig.isInsecureTls())
                 .setSslContext(serverConfig.getSslContext())
-                .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(serverConfig.getXrayUrl()))
+                .setProxyConfiguration(serverConfig.getProxyConfForTargetUrl(xrayUrl))
                 .setConnectionRetries(serverConfig.getConnectionRetries())
                 .setTimeout(serverConfig.getConnectionTimeout())
                 .setLog(logger);

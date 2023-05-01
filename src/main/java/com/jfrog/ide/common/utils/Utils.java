@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+import static org.apache.commons.lang3.StringUtils.*;
 
 /**
  * @author yahavi
@@ -126,5 +127,43 @@ public class Utils {
 
     public static String removeComponentIdPrefix(String compId) {
         return StringUtils.substringAfter(compId, "://");
+    }
+
+    /**
+     * Resolve Xray URL from the input Xray URL (may be blank) or from the input platform URL.
+     *
+     * @param xrayUrl     - Customize Xray URL or blank
+     * @param platformUrl - JFrog platform URL
+     * @return the resolved Xray URL
+     */
+    public static String resolveXrayUrl(String xrayUrl, String platformUrl) {
+        String url = trimToEmpty(xrayUrl);
+        if (isNotBlank(url)) {
+            return url;
+        }
+        url = trimToEmpty(platformUrl);
+        if (isBlank(url)) {
+            return "";
+        }
+        return removeEnd(url, "/") + "/xray";
+    }
+
+    /**
+     * Resolve Artifactory URL from the input Artifactory URL (may be blank) or from the input platform URL.
+     *
+     * @param artifactoryUrl - Customize Artifactory URL or blank
+     * @param platformUrl    - JFrog platform URL
+     * @return the resolved Xray URL
+     */
+    public static String resolveArtifactoryUrl(String artifactoryUrl, String platformUrl) {
+        String url = trimToEmpty(artifactoryUrl);
+        if (isNotBlank(url)) {
+            return url;
+        }
+        url = trimToEmpty(platformUrl);
+        if (isBlank(url)) {
+            return "";
+        }
+        return removeEnd(url, "/") + "/artifactory";
     }
 }

@@ -12,6 +12,8 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 
+import static com.jfrog.ide.common.utils.Utils.resolveArtifactoryUrl;
+
 /**
  * Represents connection utils for Artifactory.
  *
@@ -20,10 +22,11 @@ import java.security.NoSuchAlgorithmException;
 public class ArtifactoryConnectionUtils {
 
     public static ArtifactoryManagerBuilder createArtifactoryManagerBuilder(ServerConfig serverConfig, Log logger) throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+        String artifactoryUrl = resolveArtifactoryUrl(serverConfig.getArtifactoryUrl(), serverConfig.getUrl());
         SSLContext sslContext = serverConfig.isInsecureTls() ?
                 SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
                 serverConfig.getSslContext();
-        return createAnonymousAccessArtifactoryManagerBuilder(serverConfig.getArtifactoryUrl(), serverConfig.getProxyConfForTargetUrl(serverConfig.getArtifactoryUrl()), logger)
+        return createAnonymousAccessArtifactoryManagerBuilder(artifactoryUrl, serverConfig.getProxyConfForTargetUrl(artifactoryUrl), logger)
                 .setUsername(serverConfig.getUsername())
                 .setPassword(serverConfig.getPassword())
                 .setAccessToken(serverConfig.getAccessToken())
