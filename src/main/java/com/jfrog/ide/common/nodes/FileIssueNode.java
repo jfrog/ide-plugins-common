@@ -28,7 +28,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     protected FileIssueNode() {
     }
 
-    public FileIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet) {
+    public FileIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, String reportType) {
         this.name = name;
         this.filePath = filePath;
         this.rowStart = rowStart;
@@ -37,6 +37,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         this.colEnd = colEnd;
         this.reason = reason;
         this.lineSnippet = lineSnippet;
+        this.reporterType = reportType;
     }
 
     @SuppressWarnings("unused")
@@ -70,6 +71,10 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
 
     public String getLineSnippet() {
         return lineSnippet;
+    }
+
+    public String getReporterType() {
+        return reporterType;
     }
 
     @Override
