@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.nodes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jfrog.ide.common.nodes.subentities.ScanType;
 
 public class ApplicableIssueNode extends FileIssueNode {
     @JsonProperty()
@@ -14,7 +15,7 @@ public class ApplicableIssueNode extends FileIssueNode {
     }
 
     public ApplicableIssueNode(String name, int rowStart, int colStart, int rowEnd, int colEnd, String filePath, String reason, String lineSnippet, String scannerSearchTarget, VulnerabilityNode issue) {
-        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, "DEPENDENCY");
+        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, ScanType.CONTEXTUAL, issue.getSeverity());
         this.scannerSearchTarget = scannerSearchTarget;
         this.issue = issue;
     }

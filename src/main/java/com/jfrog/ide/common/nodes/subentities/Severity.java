@@ -1,5 +1,8 @@
 package com.jfrog.ide.common.nodes.subentities;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * @author yahavi
  */
@@ -30,6 +33,7 @@ public enum Severity {
         return this.severityName;
     }
 
+    @JsonValue
     public String getIconName() {
         return iconName;
     }
@@ -38,13 +42,25 @@ public enum Severity {
         return this.ordinal() > other.ordinal();
     }
 
+    @JsonCreator
     public static Severity fromString(String inputSeverity) {
         for (Severity severity : Severity.values()) {
-            if (severity.getSeverityName().equals(inputSeverity)) {
+            if (severity.getSeverityName().equalsIgnoreCase(inputSeverity)) {
                 return severity;
             }
         }
         throw new IllegalArgumentException("Severity " + inputSeverity + " doesn't exist");
+    }
+
+    public static Severity fromSarif(String level) {
+        switch (level) {
+            case "error":
+                return Severity.High;
+            case "note":
+                return Severity.Low;
+            default:
+                return Severity.Medium;
+        }
     }
 
     public static Severity getNotApplicableSeverity(Severity severity) {

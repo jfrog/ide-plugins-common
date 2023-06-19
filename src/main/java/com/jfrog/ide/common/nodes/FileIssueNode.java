@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.nodes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jfrog.ide.common.nodes.subentities.ScanType;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 
 public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
@@ -22,13 +23,15 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     private String filePath;
     @JsonProperty()
     private Severity severity;
+    @JsonProperty()
+    private ScanType reporterType;
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
     protected FileIssueNode() {
     }
 
-    public FileIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, String reportType) {
+    public FileIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, ScanType reportType, Severity severity) {
         this.name = name;
         this.filePath = filePath;
         this.rowStart = rowStart;
@@ -38,6 +41,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         this.reason = reason;
         this.lineSnippet = lineSnippet;
         this.reporterType = reportType;
+        this.severity = severity;
     }
 
     @SuppressWarnings("unused")
@@ -73,7 +77,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         return lineSnippet;
     }
 
-    public String getReporterType() {
+    public ScanType getReporterType() {
         return reporterType;
     }
 
