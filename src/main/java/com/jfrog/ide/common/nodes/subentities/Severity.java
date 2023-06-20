@@ -58,6 +58,8 @@ public enum Severity {
                 return Severity.High;
             case "note":
                 return Severity.Low;
+            case "none":
+                return Severity.Unknown;
             default:
                 return Severity.Medium;
         }
