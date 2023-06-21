@@ -63,14 +63,14 @@ public class NpmTreeBuilderTest {
     @DataProvider
     private Object[][] npm6TreeBuilderProvider() {
         return new Object[][]{
-                {Project.EMPTY, 0},
-                {Project.EMPTY, 0},
-                {Project.DEPENDENCY, 0},
-                {Project.DEPENDENCY, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
-                {Project.DEV_AND_PROD, 0},
-                {Project.DEV_AND_PROD, 1},
+                {Project.EMPTY, false, 0},
+                {Project.EMPTY, true, 0},
+                {Project.DEPENDENCY, false, 0},
+                {Project.DEPENDENCY, true, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, false, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, true, 2},
+                {Project.DEV_AND_PROD, false, 0},
+                {Project.DEV_AND_PROD, true, 1},
         };
     }
 
@@ -79,8 +79,9 @@ public class NpmTreeBuilderTest {
         FileUtils.deleteQuietly(tempProject);
     }
 
+    @SuppressWarnings("unused")
     @Test(dataProvider = "npm6TreeBuilderProvider")
-    public void npm6TreeBuilderTest(Project project, int expectedChildren) {
+    public void npm6TreeBuilderTest(Project project, boolean install, int expectedChildren) {
         if (isNpm7()) {
             throw new SkipException("Skip test on npm >= 7");
         }
@@ -92,19 +93,19 @@ public class NpmTreeBuilderTest {
     @DataProvider
     private Object[][] npm7TreeBuilderProvider() {
         return new Object[][]{
-                {Project.EMPTY, 0},
-                {Project.DEPENDENCY, 0},
-                {Project.DEPENDENCY, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
-                {Project.DEV_AND_PROD, 0},
-                {Project.DEV_AND_PROD, 1},
+                {Project.EMPTY, true, 0},
+                {Project.DEPENDENCY, false, 0},
+                {Project.DEPENDENCY, true, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, false, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, true, 2},
+                {Project.DEV_AND_PROD, false, 0},
+                {Project.DEV_AND_PROD, true, 1},
         };
     }
 
     @SuppressWarnings("unused")
     @Test(dataProvider = "npm7TreeBuilderProvider")
-    public void npm7TreeBuilderTest(Project project, int expectedChildren) {
+    public void npm7TreeBuilderTest(Project project, boolean install, int expectedChildren) {
         if (!isNpm7()) {
             throw new SkipException("Skip test on npm < 7");
         }
