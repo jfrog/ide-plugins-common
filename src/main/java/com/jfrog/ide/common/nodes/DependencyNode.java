@@ -14,6 +14,9 @@ import java.util.List;
 import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 
 public class DependencyNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<DependencyNode> {
+    /**
+     * Xray component ID, including a package manager prefix (like npm://)
+     */
     @JsonProperty()
     private String componentId = "";
     @JsonProperty()

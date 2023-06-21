@@ -1,13 +1,12 @@
 package com.jfrog.ide.common.npm;
 
 import com.google.common.collect.Sets;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.npm.NpmDriver;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.Scope;
 import org.testng.SkipException;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -33,26 +32,11 @@ import static org.testng.Assert.*;
 public class NpmTreeBuilderTest {
     private static final Path NPM_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "npm"));
 
-    enum Project {
-        EMPTY("package-name1", "empty", false),
-        DEPENDENCY("package-name2", "dependency", true),
-        DEPENDENCY_PACKAGE_LOCK("package-name3", "dependencyPackageLock", true),
-        DEV_AND_PROD("package-name4", "devAndProd", true);
-
-        private final boolean hasChildren;
-        private final String name;
-        private final Path path;
-
-        Project(String name, String path, boolean hasChildren) {
-            this.name = name;
-            this.path = NPM_ROOT.resolve(path);
-            this.hasChildren = hasChildren;
-        }
-    }
+    private DepTree depTree;
 
     private final NpmDriver npmDriver = new NpmDriver(null);
     private final boolean isNpm7 = isNpm7();
-    private DependencyTree dependencyTree;
+    private String descriptorFilePath;
     private File tempProject;
 
     @BeforeMethod
@@ -66,12 +50,28 @@ public class NpmTreeBuilderTest {
             if ((Boolean) testArgs[1]) {
                 npmDriver.install(tempProject, Lists.newArrayList(), null);
             }
-            NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(tempProject.toPath(), null);
-            dependencyTree = npmTreeBuilder.buildTree(new NullLog());
-            assertNotNull(dependencyTree);
+            Path projectDir = tempProject.toPath();
+            descriptorFilePath = projectDir.resolve("package.json").toString();
+            NpmTreeBuilder npmTreeBuilder = new NpmTreeBuilder(projectDir, descriptorFilePath, null);
+            depTree = npmTreeBuilder.buildTree(new NullLog());
+            assertNotNull(depTree);
         } catch (IOException e) {
             fail(e.getMessage(), e);
         }
+    }
+
+    @DataProvider
+    private Object[][] npm6TreeBuilderProvider() {
+        return new Object[][]{
+                {Project.EMPTY, 0},
+                {Project.EMPTY, 0},
+                {Project.DEPENDENCY, 0},
+                {Project.DEPENDENCY, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
+                {Project.DEV_AND_PROD, 0},
+                {Project.DEV_AND_PROD, 1},
+        };
     }
 
     @AfterMethod
@@ -79,113 +79,99 @@ public class NpmTreeBuilderTest {
         FileUtils.deleteQuietly(tempProject);
     }
 
-    @DataProvider
-    private Object[][] npm6TreeBuilderProvider() {
-        return new Object[][]{
-                {Project.EMPTY, false, 0},
-                {Project.EMPTY, true, 0},
-                {Project.DEPENDENCY, false, 0},
-                {Project.DEPENDENCY, true, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, false, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, true, 2},
-                {Project.DEV_AND_PROD, false, 0},
-                {Project.DEV_AND_PROD, true, 1},
-        };
-    }
-
     @Test(dataProvider = "npm6TreeBuilderProvider")
-    public void npm6TreeBuilderTest(Project project, boolean install, int expectedChildren) {
+    public void npm6TreeBuilderTest(Project project, int expectedChildren) {
         if (isNpm7()) {
             throw new SkipException("Skip test on npm >= 7");
         }
 
-        String expectedProjectName = project.name;
-        if (!install && project.hasChildren) {
-            expectedProjectName += " (Not installed)";
-        }
-        checkDependencyTree(expectedProjectName, expectedChildren);
+        String expectedProjectId = project.packageId;
+        checkDependencyTree(expectedProjectId, expectedChildren);
     }
 
     @DataProvider
     private Object[][] npm7TreeBuilderProvider() {
         return new Object[][]{
-                {Project.EMPTY, true, 0},
-                {Project.DEPENDENCY, false, 0},
-                {Project.DEPENDENCY, true, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, false, 2},
-                {Project.DEPENDENCY_PACKAGE_LOCK, true, 2},
-                {Project.DEV_AND_PROD, false, 0},
-                {Project.DEV_AND_PROD, true, 1},
+                {Project.EMPTY, 0},
+                {Project.DEPENDENCY, 0},
+                {Project.DEPENDENCY, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
+                {Project.DEPENDENCY_PACKAGE_LOCK, 2},
+                {Project.DEV_AND_PROD, 0},
+                {Project.DEV_AND_PROD, 1},
         };
     }
 
     @SuppressWarnings("unused")
     @Test(dataProvider = "npm7TreeBuilderProvider")
-    public void npm7TreeBuilderTest(Project project, boolean install, int expectedChildren) {
+    public void npm7TreeBuilderTest(Project project, int expectedChildren) {
         if (!isNpm7()) {
             throw new SkipException("Skip test on npm < 7");
         }
-        String expectedProjectName = project.name;
+        String expectedProjectId = project.packageId;
         boolean packageLockExist = Files.exists(tempProject.toPath().resolve("package-lock.json"));
-        if (!packageLockExist) {
-            expectedProjectName += " (Not installed)";
-        }
-        checkDependencyTree(expectedProjectName, expectedChildren);
+        checkDependencyTree(expectedProjectId, expectedChildren);
     }
 
-    private void checkDependencyTree(String expectedProjectName, int expectedChildren) {
-        checkGeneralInfo(dependencyTree.getGeneralInfo(), expectedProjectName, tempProject);
-        assertEquals(dependencyTree.getChildren().size(), expectedChildren);
+    private void checkDependencyTree(String expectedProjectId, int expectedChildren) {
+        assertNotNull(depTree);
+        assertEquals(depTree.getRootId(), expectedProjectId);
+        DepTreeNode rootNode = depTree.getRootNode();
+        assertNotNull(rootNode);
+        assertEquals(rootNode.getDescriptorFilePath(), descriptorFilePath);
+        assertEquals(rootNode.getChildren().size(), expectedChildren);
         switch (expectedChildren) {
-            case 0:
-                noChildrenScenario(dependencyTree);
-                break;
             case 1:
-                oneChildScenario(dependencyTree, expectedProjectName);
+                oneChildScenario();
                 break;
             case 2:
-                twoChildrenScenario(dependencyTree, expectedProjectName);
+                twoChildrenScenario();
         }
     }
 
-    private void checkGeneralInfo(GeneralInfo actual, String name, File path) {
-        assertNotNull(actual);
-        assertEquals(actual.getComponentId(), name + ":" + "0.0.1");
-        assertEquals(actual.getPath(), path.toString());
-        assertEquals(actual.getPkgType(), "npm");
-        assertEquals(actual.getArtifactId(), name);
-        assertEquals(actual.getVersion(), "0.0.1");
-    }
-
-    private void noChildrenScenario(DependencyTree dependencyTree) {
-        assertTrue(dependencyTree.isLeaf());
-    }
-
-    private void oneChildScenario(DependencyTree dependencyTree, String expectedProjectName) {
-        DependencyTree child = dependencyTree.getChildren().get(0);
-        assertEquals("progress:2.0.3", child.toString());
-        Set<Scope> expectedScopes = Sets.newHashSet(new Scope("dev"));
+    private void oneChildScenario() {
+        DepTreeNode rootNode = depTree.getRootNode();
+        String childId = rootNode.getChildren().stream().findFirst().orElse(null);
+        assertEquals("progress:2.0.3", childId);
+        DepTreeNode childNode = depTree.getNodes().get(childId);
+        assertNotNull(childNode);
+        Set<String> expectedScopes = Sets.newHashSet("dev");
         // If using npm 6, the dependency may be either in dev and prod scopes
         if (!isNpm7) {
-            expectedScopes.add(new Scope("prod"));
+            expectedScopes.add("prod");
         }
-        assertEquals(child.getScopes(), expectedScopes);
-        assertEquals(child.getParent().toString(), expectedProjectName);
+        assertEquals(childNode.getScopes(), expectedScopes);
     }
 
-    private void twoChildrenScenario(DependencyTree dependencyTree, String expectedProjectName) {
-        for (DependencyTree child : dependencyTree.getChildren()) {
-            switch (child.toString()) {
+    private void twoChildrenScenario() {
+        DepTreeNode rootNode = depTree.getRootNode();
+        for (String childId : rootNode.getChildren()) {
+            DepTreeNode childNode = depTree.getNodes().get(childId);
+            switch (childId) {
                 case "progress:2.0.3":
-                    assertTrue(child.getScopes().contains(new Scope("prod")));
+                    assertTrue(childNode.getScopes().contains("prod"));
                     break;
                 case "debug:4.1.1":
-                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("dev")));
+                    assertEquals(childNode.getScopes(), Sets.newHashSet("dev"));
                     break;
                 default:
-                    fail("Unexpected dependency " + child);
+                    fail("Unexpected dependency " + childId);
             }
-            assertEquals(child.getParent().toString(), expectedProjectName);
+        }
+    }
+
+    enum Project {
+        EMPTY("package-name1:0.0.1", "empty"),
+        DEPENDENCY("package-name2:0.0.1", "dependency"),
+        DEPENDENCY_PACKAGE_LOCK("package-name3:0.0.1", "dependencyPackageLock"),
+        DEV_AND_PROD("package-name4:0.0.1", "devAndProd");
+
+        private final String packageId;
+        private final Path path;
+
+        Project(String packageId, String path) {
+            this.packageId = packageId;
+            this.path = NPM_ROOT.resolve(path);
         }
     }
 

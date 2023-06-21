@@ -3,145 +3,120 @@ package com.jfrog.ide.common.npm;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
+import com.jfrog.ide.common.utils.Utils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.npm.NpmDriver;
-import org.jfrog.build.extractor.npm.extractor.NpmDependencyTree;
-import org.jfrog.build.extractor.npm.types.NpmScope;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
-
-import static com.jfrog.ide.common.utils.Utils.createComponentId;
 
 /**
  * Build npm dependency tree before the Xray scan.
  *
  * @author yahavi
  */
-@SuppressWarnings({"unused"})
 public class NpmTreeBuilder {
-
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final NpmDriver npmDriver;
     private final Path projectDir;
+    private final String descriptorFilePath;
 
-    public NpmTreeBuilder(Path projectDir, Map<String, String> env) {
+    public NpmTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env) {
         this.projectDir = projectDir;
+        this.descriptorFilePath = descriptorFilePath;
         this.npmDriver = new NpmDriver(env);
     }
 
     /**
-     * Build the npm dependency tree.
+     * Build the npm project dependency tree.
      *
-     * @param logger      - The logger.
+     * @param logger - the logger.
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
-    public DependencyTree buildTree(Log logger) throws IOException {
+    public DepTree buildTree(Log logger) throws IOException {
         if (!npmDriver.isNpmInstalled()) {
             throw new IOException("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
         }
-        JsonNode npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--prod", "--package-lock-only"));
-        DependencyTree rootNode = buildUnifiedDependencyTree(npmLsResults);
-        JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
-        JsonNode nameNode = packageJson.get("name");
-        String packageName = getPackageName(logger, packageJson, npmLsResults);
-        JsonNode versionNode = packageJson.get("version");
-        String packageVersion = versionNode != null ? versionNode.asText() : "N/A";
-        rootNode.setUserObject(packageName);
-        rootNode.setGeneralInfo(createGeneralInfo(packageName, packageVersion));
-        return rootNode;
+        JsonNode prodResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--prod", "--package-lock-only"));
+        if (prodResults.get("problems") != null) {
+            logger.warn("Errors occurred during building the Npm dependency tree. " +
+                    "The dependency tree may be incomplete:\n" + prodResults.get("problems").toString());
+        }
+        JsonNode devResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev", "--package-lock-only"));
+        Map<String, DepTreeNode> nodes = new HashMap<>();
+        String packageId = getPackageId(prodResults);
+        addDepTreeNodes(nodes, prodResults, packageId, "prod");
+        addDepTreeNodes(nodes, devResults, packageId, "dev");
+        DepTree tree = new DepTree(packageId, nodes);
+        tree.getRootNode().descriptorFilePath(descriptorFilePath);
+        return tree;
+    }
+
+    private void addDepTreeNodes(Map<String, DepTreeNode> nodes, JsonNode jsonDep, String depId, String scope) {
+        DepTreeNode depNode;
+        if (nodes.containsKey(depId)) {
+            depNode = nodes.get(depId);
+        } else {
+            depNode = new DepTreeNode();
+            nodes.put(depId, depNode);
+        }
+        depNode.getScopes().add(scope);
+
+        JsonNode dependenciesList = jsonDep.get("dependencies");
+        if (dependenciesList == null) {
+            return;
+        }
+        dependenciesList.fields().forEachRemaining(stringJsonNodeEntry -> {
+            JsonNode subDep = stringJsonNodeEntry.getValue();
+            JsonNode versionNode = subDep.get("version");
+            if (versionNode != null) {
+                String subDepId = Utils.createComponentId(stringJsonNodeEntry.getKey(), versionNode.asText());
+                depNode.getChildren().add(subDepId);
+                addDepTreeNodes(nodes, subDep, subDepId, scope);
+            }
+        });
     }
 
     /**
-     * Build dependency tree from development and production scopes.
-     * If a dependency appears when running "npm ls --prod", it will have a production scope.
-     * If a dependency appears when running "npm ls --dev", it will have a development scope.
-     * If a dependency appears in both scenarios, this method will add both production and development scopes to it.
+     * Get root package ID. Typically, "name:version".
      *
-     * @throws IOException - In case of failure in running "npm ls"
+     * @param results - results of 'npm ls' command.
+     * @return root package ID.
      */
-    private DependencyTree buildUnifiedDependencyTree(JsonNode npmLsResults) throws IOException {
-        // Parse "npm ls" results on the production scope
-        DependencyTree rootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.PRODUCTION, projectDir);
-        rootNode.setMetadata(true);
-
-        // Run "npm ls" on the development scope
-        npmLsResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev", "--package-lock-only"));
-        DependencyTree devRootNode = NpmDependencyTree.createDependencyTree(npmLsResults, NpmScope.DEVELOPMENT, projectDir);
-
-        // Merge trees. We'll convert to ArrayList to avoid ConcurrentModificationException on the vector.
-        Lists.newArrayList(devRootNode.getChildren()).forEach(devChild -> mergeDevNode(devChild, rootNode));
-
-        return rootNode;
-    }
-
-    /**
-     * Merge the child node of the dev dependency tree to the prod dependency tree.
-     *
-     * @param devChild - Direct dependency of the dev dependency tree
-     * @param rootNode - Root node of the prod dependency tree
-     */
-    private void mergeDevNode(DependencyTree devChild, DependencyTree rootNode) {
-        // duplicatedProdChild - a direct dependency on the prod tree, that appear also on the dev tree as a direct dependency.
-        DependencyTree duplicatedProdChild = rootNode.getChildren().stream()
-                .filter(child -> StringUtils.equals(child.toString(), devChild.toString()))
-                .findAny().orElse(null);
-        if (duplicatedProdChild != null) {
-            // Add 'development' scope to all of the prod node's child
-            Enumeration<?> enumeration = duplicatedProdChild.breadthFirstEnumeration();
-            while (enumeration.hasMoreElements()) {
-                DependencyTree child = (DependencyTree) enumeration.nextElement();
-                child.getScopes().add(new Scope(NpmScope.DEVELOPMENT.toString()));
+    private String getPackageId(JsonNode results) throws IOException {
+        String packageName;
+        String packageVersion = null;
+        JsonNode packageNameNode = results.get("name");
+        if (packageNameNode != null) {
+            packageName = packageNameNode.asText();
+            JsonNode packageVersionNode = results.get("version");
+            if (packageVersionNode != null) {
+                packageVersion = packageVersionNode.asText();
             }
         } else {
-            rootNode.add(devChild);
+            JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
+            JsonNode nameNode = packageJson.get("name");
+            if (nameNode != null) {
+                packageName = nameNode.asText();
+            } else if (projectDir.getFileName() != null) {
+                packageName = projectDir.getFileName().toString();
+            } else {
+                return "N/A";
+            }
+            JsonNode versionNode = packageJson.get("version");
+            if (versionNode != null) {
+                packageVersion = versionNode.asText();
+            }
         }
-    }
 
-    /**
-     * Get root package name. Typically "name:version".
-     *
-     * @param logger       - The logger.
-     * @param packageJson  - The package.json.
-     * @param npmLsResults - Npm ls results.
-     * @return root package name.
-     */
-    private String getPackageName(Log logger, JsonNode packageJson, JsonNode npmLsResults) {
-        JsonNode nameNode = packageJson.get("name");
-        if (nameNode != null) {
-            return nameNode.asText() + getPostfix(logger, npmLsResults);
+        if (packageVersion != null) {
+            return Utils.createComponentId(packageName, packageVersion);
         }
-        if (projectDir.getFileName() != null) {
-            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, npmLsResults);
-        }
-        return "N/A";
-    }
-
-    /**
-     * Append "(Not installed)" postfix if needed.
-     *
-     * @param logger       - The logger.
-     * @param npmLsResults - Npm ls results.
-     * @return (Not installed) or empty.
-     */
-    private String getPostfix(Log logger, JsonNode npmLsResults) {
-        String postfix = "";
-        if (npmLsResults.get("problems") != null) {
-            postfix += " (Not installed)";
-            logger.warn("Errors occurred during building the Npm dependency tree. " +
-                    "The dependency tree may be incomplete:\n" + npmLsResults.get("problems").toString());
-        }
-        return postfix;
-    }
-
-    private GeneralInfo createGeneralInfo(String packageName, String packageVersion) {
-        return new GeneralInfo().path(projectDir.toString()).componentId(createComponentId(packageName, packageVersion)).pkgType("npm");
+        return packageName;
     }
 }

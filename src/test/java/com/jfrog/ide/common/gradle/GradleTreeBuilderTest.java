@@ -1,13 +1,11 @@
 package com.jfrog.ide.common.gradle;
 
-import com.jfrog.GradleDependencyTree;
+import com.jfrog.GradleDependencyNode;
 import com.jfrog.ide.common.TestUtils;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.NullLog;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -55,13 +53,11 @@ public class GradleTreeBuilderTest {
     @SuppressWarnings("unused")
     @Test(dataProvider = "gradleTreeBuilderProvider")
     public void gradleTreeBuilderTest(String projectPath) throws IOException {
-        DependencyTree dependencyTree = buildGradleDependencyTree();
-        DependencyTree shared = getAndAssertSharedModule(dependencyTree);
+        DepTree depTree = buildGradleDependencyTree(projectPath);
+        DepTreeNode shared = getAndAssertSharedModule(depTree);
 
-        DependencyTree junit = TestUtils.getAndAssertChild(shared, "junit:junit:4.7");
-        assertEquals(junit.getLicenses(), Sets.newHashSet(new License()));
-        assertEquals(junit.getScopes(), Sets.newHashSet(new Scope("TestImplementation"), new Scope("TestRuntimeClasspath"), new Scope("TestCompileClasspath")));
-        assertGeneralInfo(junit.getGeneralInfo(), "junit", "junit", "4.7", "");
+        DepTreeNode junit = TestUtils.getAndAssertChild(depTree, shared, "junit:junit:4.7");
+        assertEquals(junit.getScopes(), Sets.newHashSet("testImplementation", "testRuntimeClasspath", "testCompileClasspath"));
     }
 
     /**
@@ -77,45 +73,41 @@ public class GradleTreeBuilderTest {
     @SuppressWarnings("unused")
     @Test(dataProvider = "gradleTreeBuilderUnresolvedProvider")
     public void gradleTreeBuilderUnresolvedTest(String projectPath) throws IOException {
-        DependencyTree dependencyTree = buildGradleDependencyTree();
-        DependencyTree shared = getAndAssertSharedModule(dependencyTree);
+        DepTree depTree = buildGradleDependencyTree(projectPath);
+        DepTreeNode shared = getAndAssertSharedModule(depTree);
 
-        DependencyTree missing = TestUtils.getAndAssertChild(shared, "missing:dependency:404");
-        assertEquals(missing.getLicenses(), Sets.newHashSet(new License()));
-        assertTrue(missing.getScopes().contains(new Scope("TestImplementation")));
-        assertGeneralInfo(missing.getGeneralInfo(), "missing", "dependency", "404", "");
+        DepTreeNode missing = TestUtils.getAndAssertChild(depTree, shared, "missing:dependency:404");
+        assertTrue(missing.getScopes().contains("testImplementation"));
     }
 
-    private DependencyTree buildGradleDependencyTree() throws IOException {
+    private DepTree buildGradleDependencyTree(String projectPath) throws IOException {
         // Add path to gradle-dep-tree JAR to "pluginLibDir" environment variable, to be read in gradle-dep-tree.gradle init script
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("pluginLibDir", GradleDependencyTree.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+        env.put("pluginLibDir", GradleDependencyNode.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 
-        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(tempProject.toPath(), env, "");
-        DependencyTree dependencyTree = gradleTreeBuilder.buildTree(new NullLog());
-        assertNotNull(dependencyTree);
-
-        assertEquals(dependencyTree.getUserObject(), tempProject.getName());
-        assertEquals(dependencyTree.getChildren().size(), 3);
-        return dependencyTree;
-    }
-
-    private DependencyTree getAndAssertSharedModule(DependencyTree root) {
-        DependencyTree shared = TestUtils.getAndAssertChild(root, "shared");
-        assertEquals(shared.getChildren().size(), 1);
-        assertEquals(Sets.newHashSet(new License()), shared.getLicenses());
-        assertNotEquals(Sets.newHashSet(new Scope()), shared.getScopes());
-        assertGeneralInfo(shared.getGeneralInfo(), "", "shared", "", tempProject.toString());
-        return shared;
-    }
-
-    private void assertGeneralInfo(GeneralInfo generalInfo, String groupId, String artifactId, String version, String path) {
-        if (StringUtils.isBlank(groupId)) {
-            assertEquals(generalInfo.getComponentId(), artifactId);
-        } else {
-            assertEquals(generalInfo.getComponentId(), groupId + ":" + artifactId + ":" + version);
+        Path projectDir = tempProject.toPath();
+        String descriptorFileName = "build.gradle";
+        if (projectPath.toLowerCase().contains("kotlin")) {
+            descriptorFileName += ".kts";
         }
-        assertEquals(generalInfo.getPath(), path);
-        assertEquals(generalInfo.getPkgType(), "gradle");
+        String descriptorFilePath = projectDir.resolve(descriptorFileName).toString();
+        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(projectDir, descriptorFilePath, env, "");
+        DepTree depTree = gradleTreeBuilder.buildTree(new NullLog());
+        assertNotNull(depTree);
+
+        assertEquals(depTree.getRootId(), tempProject.getName());
+        assertEquals(depTree.getRootNode().getDescriptorFilePath(), descriptorFilePath);
+        assertEquals(depTree.getRootNode().getChildren().size(), 3);
+        return depTree;
+    }
+
+    private DepTreeNode getAndAssertSharedModule(DepTree depTree) {
+        final String COMP_ID = "org.jfrog.test.gradle.publish:shared:1.0-SNAPSHOT";
+        assertTrue(depTree.getRootNode().getChildren().contains(COMP_ID));
+        DepTreeNode shared = depTree.getNodes().get(COMP_ID);
+        assertNotNull(shared, "Couldn't find node '" + COMP_ID + "'.");
+        assertEquals(shared.getChildren().size(), 1);
+        assertNotEquals(Sets.newHashSet(new Scope()), shared.getScopes());
+        return shared;
     }
 }

@@ -1,23 +1,24 @@
 package com.jfrog.ide.common.go;
 
-import com.google.common.collect.Sets;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
-import org.jfrog.build.extractor.go.extractor.GoDependencyTree;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Created by Bar Belity on 06/02/2020.
@@ -34,39 +35,63 @@ public class GoTreeBuilder {
     private final Map<String, String> env;
     private final String executablePath;
     private final Path projectDir;
+    private final String descriptorFilePath;
     private final Log logger;
 
-    public GoTreeBuilder(String executablePath, Path projectDir, Map<String, String> env, Log logger) {
+    public GoTreeBuilder(String executablePath, Path projectDir, String descriptorFilePath, Map<String, String> env, Log logger) {
         this.executablePath = executablePath;
         this.projectDir = projectDir;
+        this.descriptorFilePath = descriptorFilePath;
         this.logger = logger;
         this.env = env;
     }
 
-    public DependencyTree buildTree() throws IOException {
-        File tmpDir = createGoWorkspace().toFile();
-        try {
-            GoDriver goDriver = new GoDriver(executablePath, env, tmpDir, logger);
-            if (!goDriver.isInstalled()) {
-                throw new IOException("Could not scan go project dependencies, because go CLI is not in the PATH.");
-            }
+    /**
+     * Create Go dependency tree of actually used dependencies.
+     *
+     * @param goDriver     - Go driver
+     * @param logger       - The logger
+     * @param verbose      - verbose logging
+     * @param dontBuildVcs - Skip VCS stamping - can be used only on Go later than 1.18
+     * @return Go dependency tree
+     * @throws IOException in case of any I/O error.
+     */
+    public static DepTree createDependencyTree(GoDriver goDriver, Log logger, boolean verbose, boolean dontBuildVcs) throws IOException {
+        // Run go mod graph.
+        // Not all the dependencies returned are used.
+        CommandResults goGraphResult = goDriver.modGraph(verbose);
+        String[] dependenciesGraph = goGraphResult.getRes().split("\\r?\\n");
 
-            CommandResults versionRes = goDriver.version(false);
-            Version goVersion = parseGoVersion(versionRes, logger);
-            goDriver.modTidy(false, goVersion.isAtLeast(MIN_GO_VERSION));
-            DependencyTree rootNode = GoDependencyTree.createDependencyTree(goDriver, logger, false, goVersion.isAtLeast(MIN_GO_VERSION_FOR_BUILD_VCS_FLAG));
-            addGoVersionNode(rootNode, goVersion);
-            setGeneralInfo(rootNode);
-            setNoneScope(rootNode);
-            return rootNode;
-        } finally {
-            FileUtils.deleteDirectory(tmpDir);
+        // Run go list -f "{{with .Module}}{{.Path}} {{.Version}}{{end}}" all
+        // This command returns used dependencies only.
+        CommandResults usedModulesResults;
+        try {
+            usedModulesResults = goDriver.getUsedModules(false, false, dontBuildVcs);
+        } catch (IOException e) {
+            // Errors occurred during running "go list". Run again and this time ignore errors.
+            usedModulesResults = goDriver.getUsedModules(false, true, dontBuildVcs);
+            logger.warn("Errors occurred during building the Go dependency tree. The dependency tree may be incomplete:" +
+                    System.lineSeparator() + ExceptionUtils.getRootCauseMessage(e));
         }
+        Set<String> usedDependencies = Arrays.stream(usedModulesResults.getRes().split("\\r?\\n"))
+                .map(String::trim)
+                .map(usedModule -> usedModule.replace(" v", ":"))
+                .collect(Collectors.toSet());
+
+        String rootPackageName = goDriver.getModuleName();
+        Map<String, DepTreeNode> nodes = createNodes(usedDependencies);
+        DepTree depTree = new DepTree(rootPackageName, nodes);
+        populateChildren(depTree, dependenciesGraph);
+        return depTree;
     }
 
-    private void addGoVersionNode(DependencyTree rootNode, Version goVersion) {
-        DependencyTree goVersionNode = new DependencyTree(GO_SOURCE_CODE_PREFIX + goVersion);
-        rootNode.add(goVersionNode);
+    private static Map<String, DepTreeNode> createNodes(Set<String> usedDependencies) {
+        Map<String, DepTreeNode> nodes = new HashMap<>();
+        for (String dependencyId : usedDependencies) {
+            DepTreeNode node = new DepTreeNode();
+            nodes.put(dependencyId, node);
+        }
+        return nodes;
     }
 
     /**
@@ -130,20 +155,47 @@ public class GoTreeBuilder {
         return goModAbsDir;
     }
 
-    private void setGeneralInfo(DependencyTree rootNode) {
-        rootNode.setGeneralInfo(new GeneralInfo()
-                .componentId(rootNode.getUserObject().toString())
-                .pkgType("go")
-                .path(projectDir.toString()));
+    private static void populateChildren(DepTree depTree, String[] dependenciesGraph) {
+        Map<String, DepTreeNode> nodes = depTree.getNodes();
+        for (String entry : dependenciesGraph) {
+            if (StringUtils.isAllBlank(entry)) {
+                continue;
+            }
+            String[] parsedEntry = entry.replace("@v", ":").split("\\s");
+            String parentId = parsedEntry[0];
+            String childId = parsedEntry[1];
+            if (!nodes.containsKey(childId) || !nodes.containsKey(parentId)) {
+                // Parent or child is not in use
+                continue;
+            }
+            nodes.get(parentId).getChildren().add(childId);
+        }
     }
 
-    /**
-     * Since Go doesn't have scopes, populate the direct dependencies with 'None' scope
-     *
-     * @param rootNode - The dependency tree root
-     */
-    private static void setNoneScope(DependencyTree rootNode) {
-        Set<Scope> scopes = Sets.newHashSet(new Scope());
-        rootNode.getChildren().forEach(child -> child.setScopes(scopes));
+    public DepTree buildTree() throws IOException {
+        File tmpDir = createGoWorkspace().toFile();
+        try {
+            GoDriver goDriver = new GoDriver(executablePath, env, tmpDir, logger);
+            if (!goDriver.isInstalled()) {
+                throw new IOException("Could not scan the Go project dependencies, because the Go executable is not in the PATH.");
+            }
+
+            CommandResults versionRes = goDriver.version(false);
+            Version goVersion = parseGoVersion(versionRes, logger);
+            goDriver.modTidy(false, goVersion.isAtLeast(MIN_GO_VERSION));
+            DepTree depTree = createDependencyTree(goDriver, logger, false, goVersion.isAtLeast(MIN_GO_VERSION_FOR_BUILD_VCS_FLAG));
+            addGoVersionNode(depTree, goVersion);
+            depTree.getRootNode().descriptorFilePath(descriptorFilePath);
+            return depTree;
+        } finally {
+            FileUtils.deleteDirectory(tmpDir);
+        }
+    }
+
+    private void addGoVersionNode(DepTree depTree, Version goVersion) {
+        String goCompId = GO_SOURCE_CODE_PREFIX + goVersion;
+        DepTreeNode goVersionNode = new DepTreeNode();
+        depTree.getNodes().put(goCompId, goVersionNode);
+        depTree.getRootNode().getChildren().add(goCompId);
     }
 }

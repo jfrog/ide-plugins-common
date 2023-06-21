@@ -1,11 +1,10 @@
 package com.jfrog.ide.common.yarn;
 
 import com.google.common.collect.Sets;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.util.NullLog;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.Scope;
 import org.testng.SkipException;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -43,8 +42,9 @@ public class YarnTreeBuilderTest {
     }
 
     private final YarnDriver yarnDriver = new YarnDriver(null);
-    private DependencyTree dependencyTree;
+    private DepTree depTree;
     private File tempProject;
+    private String descriptorFilePath;
 
     @BeforeMethod
     public void setUp(Object[] testArgs) {
@@ -52,9 +52,11 @@ public class YarnTreeBuilderTest {
             tempProject = Files.createTempDirectory("ide-plugins-common-yarn").toFile();
             tempProject.deleteOnExit();
             FileUtils.copyDirectory(((Project) testArgs[0]).path.toFile(), tempProject);
-            YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(tempProject.toPath(), null);
-            dependencyTree = yarnTreeBuilder.buildTree(new NullLog());
-            assertNotNull(dependencyTree);
+            Path projectDir = tempProject.toPath();
+            descriptorFilePath = projectDir.resolve("package.json").toString();
+            YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(projectDir, descriptorFilePath, null);
+            depTree = yarnTreeBuilder.buildTree(new NullLog());
+            assertNotNull(depTree);
         } catch (IOException e) {
             fail(e.getMessage(), e);
         }
@@ -83,52 +85,37 @@ public class YarnTreeBuilderTest {
     }
 
     private void checkDependencyTree(String expectedProjectName, int expectedChildren) {
-        checkGeneralInfo(dependencyTree.getGeneralInfo(), expectedProjectName, tempProject);
-        assertEquals(dependencyTree.getChildren().size(), expectedChildren);
-        switch (expectedChildren) {
-            case 0:
-                noChildrenScenario(dependencyTree);
-                break;
-            case 4:
-                fourChildrenScenario(dependencyTree, expectedProjectName);
+        assertEquals(depTree.getRootId(), expectedProjectName + ":0.0.1");
+        DepTreeNode rootNode = depTree.getRootNode();
+        assertNotNull(rootNode);
+        assertEquals(rootNode.getDescriptorFilePath(), descriptorFilePath);
+        assertEquals(rootNode.getChildren().size(), expectedChildren);
+        if (expectedChildren == 4) {
+            fourChildrenScenario();
         }
     }
 
-    private void checkGeneralInfo(GeneralInfo actual, String name, File path) {
-        assertNotNull(actual);
-        assertEquals(actual.getComponentId(), name + ":" + "0.0.1");
-        assertEquals(actual.getPath(), path.toString());
-        assertEquals(actual.getPkgType(), "yarn");
-        assertEquals(actual.getArtifactId(), name);
-        assertEquals(actual.getVersion(), "0.0.1");
-    }
-
-    private void noChildrenScenario(DependencyTree dependencyTree) {
-        assertTrue(dependencyTree.isLeaf());
-    }
-
-    private void fourChildrenScenario(DependencyTree dependencyTree, String expectedProjectName) {
+    private void fourChildrenScenario() {
+        DepTreeNode rootNode = depTree.getRootNode();
         int count = 0;
-        for (DependencyTree child : dependencyTree.getChildren()) {
-            switch (child.toString()) {
+        for (String childId : rootNode.getChildren()) {
+            DepTreeNode childNode = depTree.getNodes().get(childId);
+            switch (childId) {
                 case "progress:2.0.3":
-                    count++;
-                    break;
                 case "has-flag:3.0.0":
                     count++;
                     break;
                 case "@ungap/promise-all-settled:1.1.2":
-                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("Ungap")));
+                    assertEquals(childNode.getScopes(), Sets.newHashSet("ungap"));
                     count++;
                     break;
                 case "@types/node:14.14.10":
-                    assertEquals(child.getScopes(), Sets.newHashSet(new Scope("types")));
+                    assertEquals(childNode.getScopes(), Sets.newHashSet("types"));
                     count++;
                     break;
                 default:
-                    fail("Unexpected dependency " + child);
+                    fail("Unexpected dependency " + childId);
             }
-            assertEquals(child.getParent().toString(), expectedProjectName);
         }
         assertEquals(count, 4);
     }

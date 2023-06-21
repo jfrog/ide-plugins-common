@@ -1,6 +1,8 @@
 package com.jfrog.ide.common.scan;
 
 import com.jfrog.ide.common.configuration.ServerConfig;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import com.jfrog.ide.common.log.ProgressIndicator;
 import com.jfrog.ide.common.nodes.DependencyNode;
 import com.jfrog.ide.common.nodes.LicenseViolationNode;
@@ -26,9 +28,10 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 
+import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 import static com.jfrog.ide.common.utils.XrayConnectionUtils.createXrayClientBuilder;
 import static org.apache.commons.collections4.ListUtils.emptyIfNull;
-import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.StringUtils.split;
 
 /**
  * This class includes the implementation of the Graph Scan Logic, which is used with Xray 3.29.0 and above.
@@ -49,11 +52,10 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     @Override
-    public Map<String, DependencyNode> scanArtifacts(DependencyTree dependencyTree, ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
+    public Map<String, DependencyNode> scanArtifacts(DepTree depTree, ServerConfig server, ProgressIndicator indicator, ComponentPrefix prefix, Runnable checkCanceled) throws IOException, InterruptedException {
         // Xray's graph scan API does not support progress indication currently.
         indicator.setIndeterminate(true);
-        dependencyTree.setPrefix(prefix.toString());
-        DependencyTree nodesToScan = createScanTree(dependencyTree);
+        DependencyTree nodesToScan = createScanTree(depTree, prefix);
 
         if (nodesToScan.isLeaf()) {
             log.debug("No components found to scan.");
@@ -80,7 +82,7 @@ public class GraphScanLogic implements ScanLogic {
      * @param root - The root dependency tree node
      * @return a graph of non cached component for Xray scan.
      */
-    DependencyTree createScanTree(DependencyTree root) {
+    private DependencyTree createScanTree(DependencyTree root) {
         DependencyTree scanTree = new DependencyTree(root.getUserObject());
         Set<String> componentsAdded = new HashSet<>();
         populateScanTree(root, scanTree, componentsAdded);
@@ -98,25 +100,35 @@ public class GraphScanLogic implements ScanLogic {
     private void populateScanTree(DependencyTree root, DependencyTree scanTree, Set<String> componentsAdded) {
         for (DependencyTree child : root.getChildren()) {
             // Don't add metadata nodes to the scan tree
-            if (child.isMetadata()) {
-                populateScanTree(child, scanTree, componentsAdded);
-                continue;
-            }
-
-            // Add the dependency subtree to the scan tree
-            String childFullId = child.toString();
-            if (((DependencyTree) child.getParent()).isMetadata()) {
-                // All direct dependencies should be in the cache. This line make sure that dependencies that
-                // wouldn't return from Xray will not be scanned again during the next quick scan.
-                String componentId = contains(childFullId, "://") ?
-                        substringAfter(childFullId, "://") : childFullId;
-            }
-            if (componentsAdded.add(child.getComponentId())) {
-                scanTree.add(new DependencyTree(child.getComponentId()));
+            if (!child.isMetadata()) {
+                // Add the dependency subtree to the scan tree
+                if (componentsAdded.add(child.getComponentId())) {
+                    scanTree.add(new DependencyTree(child.getComponentId()));
+                }
             }
             populateScanTree(child, scanTree, componentsAdded);
-
         }
+    }
+
+    /**
+     * Create a tree of all components required to scan.
+     *
+     * @param tree   - the dependency tree to scan.
+     * @param prefix - components prefix for xray scan, e.g. gav:// or npm://.
+     * @return a graph of components for Xray scan.
+     */
+    private DependencyTree createScanTree(DepTree tree, ComponentPrefix prefix) {
+        String rootFullId = prefix.getPrefix() + tree.getRootId();
+        DependencyTree scanTree = new DependencyTree(rootFullId);
+        Set<String> componentsAdded = new HashSet<>();
+        for (Map.Entry<String, DepTreeNode> nodeEntry : tree.getNodes().entrySet()) {
+            String compId = nodeEntry.getKey();
+            if (nodeEntry.getValue().getDescriptorFilePath() == null && componentsAdded.add(compId)) {
+                String nodeFullId = prefix.getPrefix() + compId;
+                scanTree.add(new DependencyTree(nodeFullId));
+            }
+        }
+        return scanTree;
     }
 
     public static void validateXraySupport(Version xrayVersion) {
@@ -256,8 +268,9 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     private DependencyNode getDependency(Map<String, DependencyNode> results, String componentId) {
-        results.putIfAbsent(componentId, new DependencyNode().componentId(componentId));
-        return results.get(componentId);
+        String depKey = removeComponentIdPrefix(componentId);
+        results.putIfAbsent(depKey, new DependencyNode().componentId(componentId));
+        return results.get(depKey);
     }
 
     private List<SeverityReason> convertSeverityReasons(com.jfrog.xray.client.services.scan.SeverityReasons[] xraySeverityReasons) {

@@ -1,14 +1,16 @@
 package com.jfrog.ide.common;
 
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.jfrog.build.extractor.scan.DependencyTree;
 
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
 /**
  * @author yahavi
  **/
 public class TestUtils {
-
     /**
      * Get the dependency tree child. Fail the test if it doesn't exist.
      *
@@ -22,6 +24,20 @@ public class TestUtils {
                 .findAny()
                 .orElse(null);
         assertNotNull(childNode, "Couldn't find node '" + childName + "' between " + node + ".");
+        return childNode;
+    }
+
+    /**
+     * Get the dependency tree child. Fail the test if it doesn't exist.
+     *
+     * @param depTree   - The dependency tree
+     * @param childName - The child name to search
+     * @return the dependency tree child.
+     */
+    public static DepTreeNode getAndAssertChild(DepTree depTree, DepTreeNode parent, String childName) {
+        assertTrue(parent.getChildren().contains(childName));
+        DepTreeNode childNode = depTree.getNodes().get(childName);
+        assertNotNull(childNode, "Couldn't find node '" + childName + "'.");
         return childNode;
     }
 }

@@ -2,19 +2,15 @@ package com.jfrog.ide.common.yarn;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.ArrayUtils;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.npm.types.NpmPackageInfo;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static com.jfrog.ide.common.utils.Utils.createComponentId;
 
@@ -25,13 +21,14 @@ import static com.jfrog.ide.common.utils.Utils.createComponentId;
  */
 @SuppressWarnings({"unused"})
 public class YarnTreeBuilder {
-
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final YarnDriver yarnDriver;
     private final Path projectDir;
+    private final String descriptorFilePath;
 
-    public YarnTreeBuilder(Path projectDir, Map<String, String> env) {
+    public YarnTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env) {
         this.projectDir = projectDir;
+        this.descriptorFilePath = descriptorFilePath;
         this.yarnDriver = new YarnDriver(env);
     }
 
@@ -42,115 +39,104 @@ public class YarnTreeBuilder {
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
-    public DependencyTree buildTree(Log logger) throws IOException {
+    public DepTree buildTree(Log logger) throws IOException {
         if (!yarnDriver.isYarnInstalled()) {
-            throw new IOException("Could not scan yarn project dependencies, because yarn CLI is not in the PATH.");
+            throw new IOException("Could not scan Yarn project dependencies, because Yarn is not in the PATH.");
         }
         JsonNode listResults = yarnDriver.list(projectDir.toFile());
-        JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
-        if (packageJson == null) {
-            throw new IOException("Could not scan yarn project dependencies, because package.json file is missing.");
+        if (listResults.get("problems") != null) {
+            logger.warn("Errors occurred during building the yarn dependency tree. " +
+                    "The dependency tree may be incomplete:\n" + listResults.get("problems").toString());
         }
-        JsonNode nameNode = packageJson.get("name");
-        String packageName = getPackageName(logger, packageJson, listResults);
-        JsonNode versionNode = packageJson.get("version");
-        String packageVersion = versionNode != null ? versionNode.asText() : "N/A";
-
-        DependencyTree rootNode = buildYarnDependencyTree(listResults, packageName);
-        rootNode.setUserObject(packageName);
-        rootNode.setGeneralInfo(createGeneralInfo(packageName, packageVersion));
-        return rootNode;
+        return buildYarnDependencyTree(listResults);
     }
 
     /**
      * Build yarn dependency tree.
      */
-    private DependencyTree buildYarnDependencyTree(JsonNode listResults, String projectName) {
+    private DepTree buildYarnDependencyTree(JsonNode listResults) throws IOException {
+        // The results of the "yarn list" command don't include the project's root, so we get the root package ID from the project's package.json.
+        String packageId = getPackageId();
+        Map<String, DepTreeNode> nodes = new HashMap<>();
+        DepTreeNode root = new DepTreeNode().descriptorFilePath(descriptorFilePath);
+        nodes.put(packageId, root);
         // Parse "yarn list" results
-        DependencyTree rootNode = new DependencyTree();
-        JsonNode dataNode = listResults.get("data");
-        if (dataNode == null) {
-            return rootNode;
-        }
-        populateDependenciesTree(rootNode, dataNode.get("trees"), new String[]{projectName});
-        for (DependencyTree child : rootNode.getChildren()) {
-            NpmPackageInfo packageInfo = (NpmPackageInfo) child.getUserObject();
-            child.setScopes(getScopes(packageInfo.getName()));
-        }
-        rootNode.setMetadata(true);
-        return rootNode;
+        JsonNode dataNode = getJsonField(listResults, "data");
+        JsonNode treesNode = getJsonField(dataNode, "trees");
+        treesNode.elements().forEachRemaining(subDep -> addDepTreeNodes(nodes, subDep, root));
+        return new DepTree(packageId, nodes);
     }
 
-    private static Set<Scope> getScopes(String name) {
-        Set<Scope> scopes = new HashSet<>();
-        String customScope = StringUtils.substringBetween(name, "@", "/");
-        if (customScope != null) {
-            scopes.add(new Scope(customScope));
+    private void addDepTreeNodes(Map<String, DepTreeNode> nodes, JsonNode jsonDep, DepTreeNode parent) {
+        JsonNode nameNode = jsonDep.get("name");
+        if (nameNode == null) {
+            throw new RuntimeException("The parsing of the 'yarn list' command output failed: the field 'name' could not be found.");
         }
-        return scopes;
-    }
+        String compId = convertPackageNameToCompId(nameNode.asText());
+        parent.getChildren().add(compId);
+        DepTreeNode depNode;
+        if (nodes.containsKey(compId)) {
+            depNode = nodes.get(compId);
+        } else {
+            depNode = new DepTreeNode();
+            String customScope = StringUtils.substringBetween(compId, "@", "/");
+            if (customScope != null) {
+                depNode.getScopes().add(customScope);
+            }
+            nodes.put(compId, depNode);
+        }
 
-    private static void populateDependenciesTree(DependencyTree scanTreeNode, JsonNode dependencies, String[] pathToRoot) {
-        if (dependencies == null || pathToRoot == null) {
+        JsonNode dependenciesList = jsonDep.get("children");
+        if (dependenciesList == null) {
             return;
         }
-
-        dependencies.elements().forEachRemaining(dependency -> {
-            String nameString = dependency.get("name").textValue();
-            int lastIndexOfAt = nameString.lastIndexOf('@');
-            String name = nameString.substring(0, lastIndexOfAt);
-            String version = nameString.substring(lastIndexOfAt + 1);
-            if (!version.isBlank() && (dependency.get("shadow") == null || !dependency.get("shadow").booleanValue())) {
-                addSubtree(dependency, scanTreeNode, name, version, pathToRoot); // Mutual recursive call
-            }
-        });
-    }
-
-    private static void addSubtree(JsonNode dependency, DependencyTree node, String name, String version, String[] pathToRoot) {
-        NpmPackageInfo npmPackageInfo = new NpmPackageInfo(name, version, "", pathToRoot);
-        JsonNode childDependencies = dependency.get("children");
-        DependencyTree childTreeNode = new DependencyTree(npmPackageInfo);
-        populateDependenciesTree(childTreeNode, childDependencies, ArrayUtils.insert(0, pathToRoot, npmPackageInfo.toString())); // Mutual recursive call
-        node.add(childTreeNode);
+        dependenciesList.elements().forEachRemaining(subDep -> addDepTreeNodes(nodes, subDep, depNode));
     }
 
     /**
-     * Get root package name. Typically, "name:version".
+     * Convert Yarn's package name (e.g. @scope/comp@1.0.0) to Xray's component ID (e.g. @scope/comp:1.0.0).
      *
-     * @param logger       - The logger.
-     * @param packageJson  - The package.json.
-     * @param npmLsResults - Npm ls results.
+     * @param packageName Yarn's package name
+     * @return Xray's component ID
+     */
+    private String convertPackageNameToCompId(String packageName) {
+        int lastIndexOfAt = packageName.lastIndexOf('@');
+        return packageName.substring(0, lastIndexOfAt) + ':' + packageName.substring(lastIndexOfAt + 1);
+    }
+
+    /**
+     * Get the root package ID. Typically, "name:version".
+     * The package name and version are read from the project's package.json.
+     *
      * @return root package name.
      */
-    private String getPackageName(Log logger, JsonNode packageJson, JsonNode npmLsResults) {
+    private String getPackageId() throws IOException {
+        JsonNode packageJson = objectMapper.readTree(projectDir.resolve("package.json").toFile());
+        if (packageJson == null) {
+            throw new IOException("Could not scan Yarn project dependencies, because the package.json file is missing.");
+        }
+        String packageName;
         JsonNode nameNode = packageJson.get("name");
         if (nameNode != null) {
-            return nameNode.asText() + getPostfix(logger, npmLsResults);
+            packageName = nameNode.asText();
+        } else if (projectDir.getFileName() != null) {
+            packageName = projectDir.getFileName().getFileName().toString();
+        } else {
+            return "N/A";
         }
-        if (projectDir.getFileName() != null) {
-            return projectDir.getFileName().getFileName().toString() + getPostfix(logger, npmLsResults);
+
+        JsonNode versionNode = packageJson.get("version");
+        if (versionNode == null) {
+            return packageName;
         }
-        return "N/A";
+        return createComponentId(packageName, versionNode.asText());
     }
 
-    /**
-     * Append "(Not installed)" postfix if needed.
-     *
-     * @param logger       - The logger.
-     * @param npmLsResults - Npm ls results.
-     * @return (Not installed) or empty.
-     */
-    private String getPostfix(Log logger, JsonNode npmLsResults) {
-        String postfix = "";
-        if (npmLsResults.get("problems") != null) {
-            postfix += " (Not installed)";
-            logger.warn("Errors occurred during building the yarn dependency tree. " +
-                    "The dependency tree may be incomplete:\n" + npmLsResults.get("problems").toString());
+    private JsonNode getJsonField(JsonNode jsonNode, String fieldName) throws IOException {
+        JsonNode fieldNode = jsonNode.get(fieldName);
+        if (fieldNode == null) {
+            throw new IOException(String.format("The parsing of the 'yarn list' command output failed: the field '%s' could not be found.", fieldName));
         }
-        return postfix;
-    }
-
-    private GeneralInfo createGeneralInfo(String packageName, String packageVersion) {
-        return new GeneralInfo().path(projectDir.toString()).componentId(createComponentId(packageName, packageVersion)).pkgType("yarn");
+        return fieldNode;
     }
 }
