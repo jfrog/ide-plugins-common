@@ -3,19 +3,20 @@ package com.jfrog.ide.common.nodes.subentities;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum ScanType {
+public enum SourceCodeScanType {
     CONTEXTUAL("analyze-applicability"),
     SECRETS("secrets-scan"),
     IAC("iac-scan-modules");
-    private final String name;
+
+    private final String param;
 
     @JsonCreator
-    ScanType(String name) {
-        this.name = name;
+    SourceCodeScanType(String param) {
+        this.param = param;
     }
 
     @JsonValue
-    public String toString() {
-        return this.name;
+    public String getParam() {
+        return param;
     }
 }

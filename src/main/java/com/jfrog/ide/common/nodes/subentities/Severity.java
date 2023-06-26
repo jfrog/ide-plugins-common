@@ -33,7 +33,6 @@ public enum Severity {
         return this.severityName;
     }
 
-    @JsonValue
     public String getIconName() {
         return iconName;
     }

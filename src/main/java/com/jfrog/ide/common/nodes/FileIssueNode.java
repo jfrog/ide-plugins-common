@@ -1,12 +1,12 @@
 package com.jfrog.ide.common.nodes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.jfrog.ide.common.nodes.subentities.ScanType;
+import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 
 public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
-    private String name;
+    private String title;
     @JsonProperty()
     private String reason;
     @JsonProperty()
@@ -24,15 +24,15 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
     private Severity severity;
     @JsonProperty()
-    private ScanType reporterType;
+    private SourceCodeScanType reporterType;
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
     protected FileIssueNode() {
     }
 
-    public FileIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, ScanType reportType, Severity severity) {
-        this.name = name;
+    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity) {
+        this.title = title;
         this.filePath = filePath;
         this.rowStart = rowStart;
         this.colStart = colStart;
@@ -77,13 +77,14 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         return lineSnippet;
     }
 
-    public ScanType getReporterType() {
+    @SuppressWarnings("unused")
+    public SourceCodeScanType getReporterType() {
         return reporterType;
     }
 
     @Override
-    // The indexes ranges start form 0, for user readability convert the range to start from 1.
     public String getSubtitle() {
+        // The indexes ranges start form 0, for user readability convert the range to start from 1.
         return "row: " + (rowStart + 1) + " col: " + (colStart + 1);
     }
 
@@ -94,7 +95,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
 
     @Override
     public String getTitle() {
-        return name;
+        return title;
     }
 
     @Override
