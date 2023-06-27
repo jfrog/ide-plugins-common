@@ -1,7 +1,1 @@
-sourceControl {
-    gitRepository("https://github.com/asafgabai/gradle-dep-tree.git") {
-        producesModule("com.jfrog:gradle-dep-tree")
-    }
-}
-
 rootProject.name = 'ide-plugins-common'
