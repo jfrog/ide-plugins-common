@@ -49,10 +49,10 @@ public class GoTreeBuilder {
     /**
      * Create Go dependency tree of actually used dependencies.
      *
-     * @param goDriver     - Go driver
-     * @param logger       - The logger
-     * @param verbose      - verbose logging
-     * @param dontBuildVcs - Skip VCS stamping - can be used only on Go later than 1.18
+     * @param goDriver     Go driver
+     * @param logger       the logger
+     * @param verbose      verbose logging
+     * @param dontBuildVcs skip VCS stamping - can be used only on Go later than 1.18
      * @return Go dependency tree
      * @throws IOException in case of any I/O error.
      */
@@ -62,8 +62,6 @@ public class GoTreeBuilder {
         CommandResults goGraphResult = goDriver.modGraph(verbose);
         String[] dependenciesGraph = goGraphResult.getRes().split("\\r?\\n");
 
-        // Run go list -f "{{with .Module}}{{.Path}} {{.Version}}{{end}}" all
-        // This command returns used dependencies only.
         CommandResults usedModulesResults;
         try {
             usedModulesResults = goDriver.getUsedModules(false, false, dontBuildVcs);

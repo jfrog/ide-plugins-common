@@ -30,8 +30,8 @@ public class TestUtils {
     /**
      * Get the dependency tree child. Fail the test if it doesn't exist.
      *
-     * @param depTree   - The dependency tree
-     * @param childName - The child name to search
+     * @param depTree   the dependency tree
+     * @param childName the child name to search
      * @return the dependency tree child.
      */
     public static DepTreeNode getAndAssertChild(DepTree depTree, DepTreeNode parent, String childName) {

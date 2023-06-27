@@ -120,7 +120,7 @@ public class YarnTreeBuilder {
         if (nameNode != null) {
             packageName = nameNode.asText();
         } else if (projectDir.getFileName() != null) {
-            packageName = projectDir.getFileName().getFileName().toString();
+            packageName = projectDir.getFileName().toString();
         } else {
             return "N/A";
         }

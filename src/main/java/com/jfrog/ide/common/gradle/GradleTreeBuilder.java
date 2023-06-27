@@ -60,16 +60,17 @@ public class GradleTreeBuilder {
         DepTreeNode rootNode = new DepTreeNode().descriptorFilePath(descriptorFilePath);
 
         Map<String, DepTreeNode> nodes = new HashMap<>();
-        for (File projectFile : gradleDependenciesFiles) {
-            GradleDepTreeResults results = objectMapper.readValue(projectFile, GradleDepTreeResults.class);
+        for (File moduleDepsFile : gradleDependenciesFiles) {
+            GradleDepTreeResults results = objectMapper.readValue(moduleDepsFile, GradleDepTreeResults.class);
             for (Map.Entry<String, GradleDependencyNode> nodeEntry : results.getNodes().entrySet()) {
                 String compId = nodeEntry.getKey();
                 GradleDependencyNode gradleDep = nodeEntry.getValue();
                 DepTreeNode node = new DepTreeNode().scopes(gradleDep.getConfigurations()).children(gradleDep.getChildren());
                 nodes.put(compId, node);
             }
-            nodes.get(results.getRoot()).descriptorFilePath(descriptorFilePath);
-            rootNode.getChildren().add(results.getRoot());
+            String moduleRootId = results.getRoot();
+            nodes.get(moduleRootId).descriptorFilePath(descriptorFilePath);
+            rootNode.getChildren().add(moduleRootId);
         }
         if (rootNode.getChildren().size() == 1) {
             return new DepTree(rootNode.getChildren().iterator().next(), nodes);

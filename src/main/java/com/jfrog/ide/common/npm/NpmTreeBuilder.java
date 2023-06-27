@@ -34,7 +34,7 @@ public class NpmTreeBuilder {
     /**
      * Build the npm project dependency tree.
      *
-     * @param logger - the logger.
+     * @param logger the logger.
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
@@ -85,7 +85,7 @@ public class NpmTreeBuilder {
     /**
      * Get root package ID. Typically, "name:version".
      *
-     * @param results - results of 'npm ls' command.
+     * @param results results of 'npm ls' command.
      * @return root package ID.
      */
     private String getPackageId(JsonNode results) throws IOException {

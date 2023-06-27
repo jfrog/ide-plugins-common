@@ -76,45 +76,11 @@ public class GraphScanLogic implements ScanLogic {
     }
 
     /**
-     * Create a flat tree of all components required to scan.
-     * Add all direct dependencies to cache to make sure that dependencies will not be scanned again in the next quick scan.
-     *
-     * @param root - The root dependency tree node
-     * @return a graph of non cached component for Xray scan.
-     */
-    private DependencyTree createScanTree(DependencyTree root) {
-        DependencyTree scanTree = new DependencyTree(root.getUserObject());
-        Set<String> componentsAdded = new HashSet<>();
-        populateScanTree(root, scanTree, componentsAdded);
-        return scanTree;
-    }
-
-    /**
-     * Recursively, populate scan tree with the project's dependencies.
-     * The result is a flat tree with only dependencies needed for the Xray scan.
-     *
-     * @param root            - The root dependency tree node
-     * @param scanTree        - The result
-     * @param componentsAdded - Set of added components used to remove duplications
-     */
-    private void populateScanTree(DependencyTree root, DependencyTree scanTree, Set<String> componentsAdded) {
-        for (DependencyTree child : root.getChildren()) {
-            // Don't add metadata nodes to the scan tree
-            if (!child.isMetadata()) {
-                // Add the dependency subtree to the scan tree
-                if (componentsAdded.add(child.getComponentId())) {
-                    scanTree.add(new DependencyTree(child.getComponentId()));
-                }
-            }
-            populateScanTree(child, scanTree, componentsAdded);
-        }
-    }
-
-    /**
      * Create a tree of all components required to scan.
+     * The returned tree is of type {@link DependencyTree} as expected by the Xray client library.
      *
-     * @param tree   - the dependency tree to scan.
-     * @param prefix - components prefix for xray scan, e.g. gav:// or npm://.
+     * @param tree   the dependency tree to scan.
+     * @param prefix components prefix for xray scan, e.g. gav:// or npm://.
      * @return a graph of components for Xray scan.
      */
     private DependencyTree createScanTree(DepTree tree, ComponentPrefix prefix) {
@@ -144,10 +110,10 @@ public class GraphScanLogic implements ScanLogic {
      * A scan without project key may produce a list of licenses and a list of vulnerabilities.
      * The response form Xray will include violations security and licenses (if found) or vulnerabilities according to those watches.
      *
-     * @param xrayClient      - The Xray client.
-     * @param artifactsToScan - The bulk of components to scan.
-     * @param server          - JFrog platform server configuration.
-     * @param checkCanceled   - Callback that throws an exception if scan was cancelled by user
+     * @param xrayClient      the Xray client.
+     * @param artifactsToScan the bulk of components to scan.
+     * @param server          JFrog platform server configuration.
+     * @param checkCanceled   a callback that throws an exception if scan was cancelled by user
      * @throws IOException          in case of connection issues.
      * @throws InterruptedException in case of scan canceled.
      */
