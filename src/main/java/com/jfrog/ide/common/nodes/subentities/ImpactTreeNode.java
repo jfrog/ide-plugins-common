@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
-
 public class ImpactTreeNode {
     @JsonProperty()
     private String name;
@@ -26,16 +24,12 @@ public class ImpactTreeNode {
         return name;
     }
 
-    public String getNameWithoutPrefix() {
-        return removeComponentIdPrefix(name);
-    }
-
     public List<ImpactTreeNode> getChildren() {
         return children;
     }
 
     public boolean contains(String name) {
-        if (getNameWithoutPrefix().contains(name)) {
+        if (this.name.contains(name)) {
             return true;
         }
         for (var child : children) {
