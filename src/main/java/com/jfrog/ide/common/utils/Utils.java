@@ -137,15 +137,7 @@ public class Utils {
      * @return the resolved Xray URL
      */
     public static String resolveXrayUrl(String xrayUrl, String platformUrl) {
-        String url = trimToEmpty(xrayUrl);
-        if (isNotBlank(url)) {
-            return url;
-        }
-        url = trimToEmpty(platformUrl);
-        if (isBlank(url)) {
-            return "";
-        }
-        return removeEnd(url, "/") + "/xray";
+        return resolveProductUrl(xrayUrl, platformUrl, "xray");
     }
 
     /**
@@ -156,14 +148,26 @@ public class Utils {
      * @return the resolved Xray URL
      */
     public static String resolveArtifactoryUrl(String artifactoryUrl, String platformUrl) {
-        String url = trimToEmpty(artifactoryUrl);
+        return resolveProductUrl(artifactoryUrl, platformUrl, "artifactory");
+    }
+
+    /**
+     * Resolve Artifactory or Xray URL from the input product URL (may be blank) or from the input platform URL.
+     *
+     * @param productUrl      - Customize Artifactory/Xray URL or blank
+     * @param platformUrl     - JFrog platform URL
+     * @param productEndpoint - "artifactory" or "xray"
+     * @return the resolved Artifactory or Xray URL
+     */
+    private static String resolveProductUrl(String productUrl, String platformUrl, String productEndpoint) {
+        String url = trimToEmpty(productUrl);
         if (isNotBlank(url)) {
-            return url;
+            return removeEnd(url, "/");
         }
         url = trimToEmpty(platformUrl);
         if (isBlank(url)) {
             return "";
         }
-        return removeEnd(url, "/") + "/artifactory";
+        return removeEnd(url, "/") + "/" + productEndpoint;
     }
 }
