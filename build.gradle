@@ -5,8 +5,8 @@ plugins {
 
 group 'com.jfrog.ide'
 
-sourceCompatibility = '1.11'
-targetCompatibility = '1.11'
+sourceCompatibility = '1.17'
+targetCompatibility = '1.17'
 
 repositories {
     mavenLocal()
@@ -21,12 +21,12 @@ repositories {
 
 def buildInfoVersion = '2.41.1'
 dependencies {
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.14.0'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.15.2'
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.4.2'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2'
     implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
         exclude group: 'commons-codec', module: 'commons-codec'
     }
@@ -45,8 +45,8 @@ dependencies {
         exclude group: 'org.apache.commons', module: 'commons-text'
     }
 
-    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     testImplementation group: 'org.testng', name: 'testng', version: '7.7.0'
