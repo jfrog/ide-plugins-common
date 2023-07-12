@@ -29,7 +29,7 @@ public class ImpactTreeNode {
     }
 
     public boolean contains(String name) {
-        if (this.name.contains(name)) {
+        if (this.name.equals(name)) {
             return true;
         }
         for (var child : children) {
