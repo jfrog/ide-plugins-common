@@ -95,6 +95,12 @@ public class Utils {
                 .collect(Collectors.toList());
     }
 
+    public static SSLContext createSSLContext(ServerConfig serverConfig) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        return serverConfig.isInsecureTls() ?
+                SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
+                serverConfig.getSslContext();
+    }
+
     /**
      * Returns the server configured sslContext or Strategy that trust all certificates if
      * InsecureTls was chosen by the user.
