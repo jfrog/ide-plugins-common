@@ -94,6 +94,14 @@ public class Utils {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns the server configured sslContext or Strategy that trust all certificates if
+     * InsecureTls was chosen by the user.
+     *
+     * @param serverConfig the user's configuration for a JFrog platform server.
+     * @return the server configured sslContext or Strategy that trust all certificates if
+     * InsecureTls was chosen by the user.
+     */
     public static SSLContext createSSLContext(ServerConfig serverConfig) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         return serverConfig.isInsecureTls() ?
                 SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
