@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.jfrog.ide.common.log.Utils;
 import com.jfrog.ide.common.nodes.FileTreeNode;
+import lombok.Getter;
 import org.jfrog.build.api.util.Log;
 
 import java.io.File;
@@ -27,6 +28,7 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
 public class ScanCache {
     private final File file;
     private final ObjectMapper objectMapper;
+    @Getter
     private ScanCacheObject scanCacheObject;
 
     /**
@@ -68,10 +70,6 @@ public class ScanCache {
         objectMapper.writeValue(file, scanCacheObject);
     }
 
-    public ScanCacheObject getScanCacheObject() {
-        return scanCacheObject;
-    }
-
     public void deleteScanCacheObject() throws IOException {
         if (file.exists()) {
             if (!file.delete()) {
@@ -84,7 +82,8 @@ public class ScanCache {
         try {
             scanCacheObject = objectMapper.readValue(file, ScanCacheObject.class);
             if (scanCacheObject.getVersion() != ScanCacheObject.CACHE_VERSION) {
-                logger.warn("Invalid cache version " + scanCacheObject.getVersion() + ". Ignoring the old cache and starting a new one.");
+                logger.info("Invalid cache version " + scanCacheObject.getVersion() + ". Ignoring the old cache and starting a new one.");
+                scanCacheObject = null;
             }
         } catch (JsonParseException | JsonMappingException e) {
             Utils.logError(logger, "Failed reading cache file. Ignoring the old cache and starting a new one.", e, false);
