@@ -5,16 +5,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
+import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Severity;
 
+import javax.net.ssl.SSLContext;
 import java.nio.file.Path;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -85,6 +92,20 @@ public class Utils {
         return ListUtils.emptyIfNull(cves).stream()
                 .map(clientCve -> new org.jfrog.build.extractor.scan.Cve(clientCve.getId(), clientCve.getCvssV2Score(), clientCve.getCvssV3Score()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns the server configured sslContext or Strategy that trust all certificates if
+     * InsecureTls was chosen by the user.
+     *
+     * @param serverConfig the user's configuration for a JFrog platform server.
+     * @return the server configured sslContext or Strategy that trust all certificates if
+     * InsecureTls was chosen by the user.
+     */
+    public static SSLContext createSSLContext(ServerConfig serverConfig) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        return serverConfig.isInsecureTls() ?
+                SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
+                serverConfig.getSslContext();
     }
 
     /**
