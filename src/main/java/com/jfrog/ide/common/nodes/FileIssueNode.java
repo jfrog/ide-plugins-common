@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.nodes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jfrog.ide.common.nodes.subentities.FindingInfo;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 
@@ -12,17 +13,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
     private String reason;
     @JsonProperty()
-    private String lineSnippet;
-    @JsonProperty()
-    private int rowStart;
-    @JsonProperty()
-    private int colStart;
-    @JsonProperty()
-    private int rowEnd;
-    @JsonProperty()
-    private int colEnd;
-    @JsonProperty()
-    private String filePath;
+    private FindingInfo findingInfo;
     @JsonProperty()
     private Severity severity;
     @JsonProperty()
@@ -35,48 +26,43 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
 
     public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity) {
         this.title = title;
-        this.filePath = filePath;
-        this.rowStart = rowStart;
-        this.colStart = colStart;
-        this.rowEnd = rowEnd;
-        this.colEnd = colEnd;
+        this.findingInfo = new FindingInfo(filePath, rowStart, colStart, rowEnd, colEnd, lineSnippet);
         this.reason = reason;
-        this.lineSnippet = lineSnippet;
         this.reporterType = reportType;
         this.severity = severity;
     }
 
     @SuppressWarnings("unused")
     public String getFilePath() {
-        return filePath;
+        return findingInfo.getFilePath();
     }
 
     @SuppressWarnings("unused")
     public int getRowStart() {
-        return rowStart;
+        return findingInfo.getRowStart();
     }
 
     @SuppressWarnings("unused")
     public int getColStart() {
-        return colStart;
+        return findingInfo.getColStart();
     }
 
     @SuppressWarnings("unused")
     public int getRowEnd() {
-        return rowEnd;
+        return findingInfo.getRowEnd();
     }
 
     @SuppressWarnings("unused")
     public int getColEnd() {
-        return colEnd;
+        return findingInfo.getColEnd();
+    }
+
+    public String getLineSnippet() {
+        return findingInfo.getLineSnippet();
     }
 
     public String getReason() {
         return reason;
-    }
-
-    public String getLineSnippet() {
-        return lineSnippet;
     }
 
     @SuppressWarnings("unused")
@@ -87,7 +73,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @Override
     public String getSubtitle() {
         // The indexes ranges start form 0, for user readability convert the range to start from 1.
-        return "row: " + (rowStart + 1) + " col: " + (colStart + 1);
+        return "row: " + (getRowStart() + 1) + " col: " + (getColStart() + 1);
     }
 
     @Override
