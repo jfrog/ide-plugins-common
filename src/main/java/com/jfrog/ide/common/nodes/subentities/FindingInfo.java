@@ -16,6 +16,9 @@ public class FindingInfo {
     @JsonProperty()
     private String filePath;
 
+    public FindingInfo() {
+    }
+
     public FindingInfo(String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String lineSnippet) {
         this.filePath = filePath;
         this.rowStart = rowStart;
