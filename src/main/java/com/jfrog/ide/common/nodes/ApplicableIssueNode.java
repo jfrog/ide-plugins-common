@@ -1,12 +1,15 @@
 package com.jfrog.ide.common.nodes;
 
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
+import lombok.Getter;
 
+@Getter
 public class ApplicableIssueNode extends FileIssueNode {
     @JsonProperty()
     private String scannerSearchTarget;
-    @JsonProperty()
+    @JsonIdentityReference(alwaysAsId = true)
     private VulnerabilityNode issue;
 
     // Empty constructor for deserialization
@@ -18,14 +21,5 @@ public class ApplicableIssueNode extends FileIssueNode {
         super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.CONTEXTUAL, issue.getSeverity());
         this.scannerSearchTarget = scannerSearchTarget;
         this.issue = issue;
-    }
-
-    public VulnerabilityNode getIssue() {
-        return issue;
-    }
-
-
-    public String getScannerSearchTarget() {
-        return scannerSearchTarget;
     }
 }
