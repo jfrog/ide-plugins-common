@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.jfrog.ide.common.log.Utils;
 import com.jfrog.ide.common.nodes.FileTreeNode;
+import lombok.Getter;
 import org.jfrog.build.api.util.Log;
 
 import java.io.File;
@@ -27,6 +28,7 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
 public class ScanCache {
     private final File file;
     private final ObjectMapper objectMapper;
+    @Getter
     private ScanCacheObject scanCacheObject;
 
     /**
@@ -66,10 +68,6 @@ public class ScanCache {
     public void cacheNodes(List<FileTreeNode> nodes) throws IOException {
         scanCacheObject = new ScanCacheObject(nodes, System.currentTimeMillis());
         objectMapper.writeValue(file, scanCacheObject);
-    }
-
-    public ScanCacheObject getScanCacheObject() {
-        return scanCacheObject;
     }
 
     public void deleteScanCacheObject() throws IOException {
