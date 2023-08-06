@@ -20,8 +20,8 @@ public class ApplicableIssueNode extends FileIssueNode {
     private ApplicableIssueNode() {
     }
 
-    public ApplicableIssueNode(String name, int rowStart, int colStart, int rowEnd, int colEnd, String filePath, String reason, String lineSnippet, String scannerSearchTarget, VulnerabilityNode issue) {
-        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.CONTEXTUAL, issue.getSeverity());
+    public ApplicableIssueNode(String name, int rowStart, int colStart, int rowEnd, int colEnd, String filePath, String reason, String lineSnippet, String scannerSearchTarget, VulnerabilityNode issue, String ruleID) {
+        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.CONTEXTUAL, issue.getSeverity(), ruleID);
         this.scannerSearchTarget = scannerSearchTarget;
         this.issue = issue;
     }

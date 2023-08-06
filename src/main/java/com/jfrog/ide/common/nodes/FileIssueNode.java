@@ -4,9 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jfrog.ide.common.nodes.subentities.FindingInfo;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.nodes.subentities.Severity;
-
+import lombok.Getter;
 import java.util.Objects;
 
+@Getter
 public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
     private String title;
@@ -18,56 +19,45 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     private Severity severity;
     @JsonProperty()
     private SourceCodeScanType reporterType;
+    @JsonProperty()
+    private String ruleID;
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
     protected FileIssueNode() {
     }
 
-    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity) {
+    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity, String ruleID) {
         this.title = title;
         this.findingInfo = new FindingInfo(filePath, rowStart, colStart, rowEnd, colEnd, lineSnippet);
         this.reason = reason;
         this.reporterType = reportType;
         this.severity = severity;
+        this.ruleID = ruleID;
     }
 
-    @SuppressWarnings("unused")
     public String getFilePath() {
         return findingInfo.getFilePath();
     }
 
-    @SuppressWarnings("unused")
     public int getRowStart() {
         return findingInfo.getRowStart();
     }
 
-    @SuppressWarnings("unused")
     public int getColStart() {
         return findingInfo.getColStart();
     }
 
-    @SuppressWarnings("unused")
     public int getRowEnd() {
         return findingInfo.getRowEnd();
     }
 
-    @SuppressWarnings("unused")
     public int getColEnd() {
         return findingInfo.getColEnd();
     }
 
     public String getLineSnippet() {
         return findingInfo.getLineSnippet();
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    @SuppressWarnings("unused")
-    public SourceCodeScanType getReporterType() {
-        return reporterType;
     }
 
     @Override

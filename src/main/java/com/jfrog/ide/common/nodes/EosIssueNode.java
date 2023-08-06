@@ -16,8 +16,8 @@ public class EosIssueNode extends FileIssueNode {
     private EosIssueNode() {
     }
 
-    public EosIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, FindingInfo[][] codeFlows, Severity severity) {
-        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.EOS, severity);
+    public EosIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, FindingInfo[][] codeFlows, Severity severity, String ruleID) {
+        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.EOS, severity, ruleID);
         this.codeFlows = codeFlows;
     }
 }
