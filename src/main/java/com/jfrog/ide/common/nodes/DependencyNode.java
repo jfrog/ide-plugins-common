@@ -161,6 +161,6 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
 
     @Override
     public int hashCode() {
-        return Objects.hash(componentId, indirect, impactPaths, licenses);
+        return Objects.hash(componentId, indirect, impactPaths, licenses, children);
     }
 }
