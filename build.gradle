@@ -5,8 +5,8 @@ plugins {
 
 group 'com.jfrog.ide'
 
-sourceCompatibility = '1.11'
-targetCompatibility = '1.11'
+sourceCompatibility = '1.17'
+targetCompatibility = '1.17'
 
 repositories {
     mavenLocal()
@@ -19,34 +19,34 @@ repositories {
     }
 }
 
-def buildInfoVersion = '2.39.9'
+def buildInfoVersion = '2.41.4'
 dependencies {
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.14.0'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.15.2'
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.4.2'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2'
     implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
         exclude group: 'commons-codec', module: 'commons-codec'
     }
-    implementation group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.14.0'
+    implementation group: 'com.jfrog.xray.client', name: 'xray-client-java', version: '0.14.1'
     implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     implementation group: 'org.jfrog.filespecs', name: 'file-specs-java', version: '1.1.0'
     implementation group: 'org.apache.httpcomponents', name: 'httpcore', version: '4.4.14'
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
-    implementation group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
+    implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.13'
-    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '2.1.0'
+    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '3.0.0'
     implementation group: 'commons-io', name: 'commons-io', version: '2.9.0'
     implementation(group: 'com.opencsv', name: 'opencsv', version: '5.7.0') {
         exclude group: 'common-collections', module: 'commons-collections'
         exclude group: 'org.apache.commons', module: 'commons-text'
     }
 
-    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     testImplementation group: 'org.testng', name: 'testng', version: '7.7.0'

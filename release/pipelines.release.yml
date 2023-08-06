@@ -7,7 +7,7 @@ pipelines:
           auto:
             language: java
             versions:
-              - "11"
+              - "17"
       environmentVariables:
         readOnly:
           NEXT_VERSION: 0.0.0
@@ -21,7 +21,7 @@ pipelines:
             - name: idePluginsJavaReleaseGit
           integrations:
             - name: il_automation
-            - name: entplus_deployer
+            - name: ecosys_entplus_deployer
         execution:
           onExecute:
             - cd $res_idePluginsJavaReleaseGit_resourcePath
@@ -50,7 +50,7 @@ pipelines:
             # Configure JFrog CLI
             - curl -fL https://install-cli.jfrog.io | sh
             - jf c rm --quiet
-            - jf c add internal --url=$int_entplus_deployer_url --user=$int_entplus_deployer_user --password=$int_entplus_deployer_apikey
+            - jf c add internal --url=$int_ecosys_entplus_deployer_url --user=$int_ecosys_entplus_deployer_user --password=$int_ecosys_entplus_deployer_apikey
             - jf gradlec --use-wrapper --repo-resolve ecosys-maven-remote --repo-deploy ecosys-oss-release-local --deploy-maven-desc
 
             # Run audit

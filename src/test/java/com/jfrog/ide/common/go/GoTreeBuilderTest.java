@@ -1,13 +1,13 @@
 package com.jfrog.ide.common.go;
 
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
-import org.jfrog.build.extractor.scan.DependencyTree;
-import org.jfrog.build.extractor.scan.Scope;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Vector;
+import java.util.Set;
 
 import static com.jfrog.ide.common.go.GoTreeBuilder.MIN_GO_VERSION;
 import static com.jfrog.ide.common.go.GoTreeBuilder.parseGoVersion;
@@ -27,7 +27,6 @@ import static org.testng.Assert.*;
  */
 public class GoTreeBuilderTest {
     private static final Path GO_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "go"));
-    private static final Scope NONE_SCOPE = new Scope();
     private static final Log log = new NullLog();
     private static final GoDriver goDriver = new GoDriver(null, null, null, log);
 
@@ -42,8 +41,9 @@ public class GoTreeBuilderTest {
         }};
 
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project1"), null, log);
-            DependencyTree dt = treeBuilder.buildTree();
+            Path projectDir = GO_ROOT.resolve("project1");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
@@ -59,8 +59,9 @@ public class GoTreeBuilderTest {
             put("github.com/jfrog/gocmd:0.1.12", 2);
         }};
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project2"), null, log);
-            DependencyTree dt = treeBuilder.buildTree();
+            Path projectDir = GO_ROOT.resolve("project2");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
@@ -77,8 +78,9 @@ public class GoTreeBuilderTest {
             put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
         }};
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project3"), null, log);
-            DependencyTree dt = treeBuilder.buildTree();
+            Path projectDir = GO_ROOT.resolve("project3");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
@@ -95,22 +97,23 @@ public class GoTreeBuilderTest {
             put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
         }};
         try {
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, GO_ROOT.resolve("project4"), null, log);
-            DependencyTree dt = treeBuilder.buildTree();
+            Path projectDir = GO_ROOT.resolve("project4");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    private void validateDependencyTreeResults(Map<String, Integer> expected, DependencyTree actual) throws IOException {
+    private void validateDependencyTreeResults(Map<String, Integer> expected, DepTree actual) throws IOException {
         addExpectedVersionNode(expected);
-        Vector<DependencyTree> children = actual.getChildren();
+        Set<String> children = actual.getRootNode().getChildren();
         assertEquals(children.size(), expected.size());
-        for (DependencyTree current : children) {
-            assertTrue(expected.containsKey(current.toString()));
-            assertEquals(current.getChildren().size(), expected.get(current.toString()).intValue());
-            assertTrue(current.getScopes().contains(NONE_SCOPE));
+        for (String childId : children) {
+            DepTreeNode childNode = actual.getNodes().get(childId);
+            assertNotNull(childNode);
+            assertEquals(childNode.getChildren().size(), expected.get(childId).intValue());
         }
     }
 

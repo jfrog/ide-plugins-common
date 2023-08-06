@@ -1,25 +1,19 @@
 package com.jfrog.ide.common.gradle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
-import com.jfrog.GradleDependencyTree;
+import com.jfrog.GradleDepTreeResults;
+import com.jfrog.GradleDependencyNode;
+import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.scan.DependencyTree;
 import org.jfrog.build.extractor.scan.GeneralInfo;
-import org.jfrog.build.extractor.scan.License;
-import org.jfrog.build.extractor.scan.Scope;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Build Gradle dependency tree before the Xray scan.
@@ -32,10 +26,12 @@ public class GradleTreeBuilder {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final GradleDriver gradleDriver;
     private final Path projectDir;
+    private final String descriptorFilePath;
     private Path pluginLibDir;
 
-    public GradleTreeBuilder(Path projectDir, Map<String, String> env, String gradleExe) {
+    public GradleTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env, String gradleExe) {
         this.projectDir = projectDir;
+        this.descriptorFilePath = descriptorFilePath;
         this.gradleDriver = new GradleDriver(gradleExe, env);
     }
 
@@ -46,7 +42,7 @@ public class GradleTreeBuilder {
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
-    public DependencyTree buildTree(Log logger) throws IOException {
+    public DepTree buildTree(Log logger) throws IOException {
         gradleDriver.verifyGradleInstalled();
         List<File> gradleDependenciesFiles = gradleDriver.generateDependenciesGraphAsJson(projectDir.toFile(), logger);
         return createDependencyTrees(gradleDependenciesFiles);
@@ -59,63 +55,31 @@ public class GradleTreeBuilder {
      * @return a dependency tree contain one or more Gradle projects.
      * @throws IOException in case of any I/O error.
      */
-    private DependencyTree createDependencyTrees(List<File> gradleDependenciesFiles) throws IOException {
-        DependencyTree rootNode = new DependencyTree(projectDir.getFileName().toString());
-        rootNode.setMetadata(true);
-        rootNode.setGeneralInfo(new GeneralInfo().componentId(projectDir.getFileName().toString()).path(projectDir.toString()));
-        for (File projectFile : gradleDependenciesFiles) {
-            String projectName = new String(Base64.getDecoder().decode(projectFile.getName()), StandardCharsets.UTF_8);
-            GradleDependencyTree node = objectMapper.readValue(projectFile, GradleDependencyTree.class);
-            GeneralInfo generalInfo = createGeneralInfo(projectName, node).path(projectDir.toString());
-            DependencyTree projectNode = createNode(generalInfo, node);
-            projectNode.setMetadata(true);
-            populateDependencyTree(projectNode, node);
-            rootNode.add(projectNode);
+    private DepTree createDependencyTrees(List<File> gradleDependenciesFiles) throws IOException {
+        String rootId = projectDir.getFileName().toString();
+        DepTreeNode rootNode = new DepTreeNode().descriptorFilePath(descriptorFilePath);
+
+        Map<String, DepTreeNode> nodes = new HashMap<>();
+        for (File moduleDepsFile : gradleDependenciesFiles) {
+            GradleDepTreeResults results = objectMapper.readValue(moduleDepsFile, GradleDepTreeResults.class);
+            for (Map.Entry<String, GradleDependencyNode> nodeEntry : results.getNodes().entrySet()) {
+                String compId = nodeEntry.getKey();
+                GradleDependencyNode gradleDep = nodeEntry.getValue();
+                DepTreeNode node = new DepTreeNode().scopes(gradleDep.getConfigurations()).children(gradleDep.getChildren());
+                nodes.put(compId, node);
+            }
+            String moduleRootId = results.getRoot();
+            nodes.get(moduleRootId).descriptorFilePath(descriptorFilePath);
+            rootNode.getChildren().add(moduleRootId);
         }
-        if (gradleDependenciesFiles.size() == 1) {
-            rootNode = (DependencyTree) rootNode.getFirstChild();
+        if (rootNode.getChildren().size() == 1) {
+            return new DepTree(rootNode.getChildren().iterator().next(), nodes);
         }
-        return rootNode;
+        nodes.put(rootId, rootNode);
+        return new DepTree(rootId, nodes);
     }
 
-    /**
-     * Recursively populate a Gradle dependency node.
-     *
-     * @param node                 - The dependency node to populate
-     * @param gradleDependencyNode - The Gradle dependency node created by 'generateDependenciesGraphAsJson'
-     */
-    private void populateDependencyTree(DependencyTree node, GradleDependencyTree gradleDependencyNode) {
-        for (Map.Entry<String, GradleDependencyTree> gradleEntry : gradleDependencyNode.getChildren().entrySet()) {
-            GeneralInfo generalInfo = createGeneralInfo(gradleEntry.getKey(), gradleEntry.getValue());
-            DependencyTree child = createNode(generalInfo, gradleEntry.getValue());
-            node.add(child);
-            populateDependencyTree(child, gradleEntry.getValue());
-        }
-    }
-
-    private GeneralInfo createGeneralInfo(String id, GradleDependencyTree node) {
+    private GeneralInfo createGeneralInfo(String id, GradleDependencyNode node) {
         return new GeneralInfo().pkgType("gradle").componentId(id);
-    }
-
-    /**
-     * Create a dependency tree node.
-     *
-     * @param generalInfo          - The dependency General info
-     * @param gradleDependencyNode - The Gradle dependency node created by 'generateDependenciesGraphAsJson'
-     * @return the dependency tree node.
-     */
-    private DependencyTree createNode(GeneralInfo generalInfo, GradleDependencyTree gradleDependencyNode) {
-        DependencyTree node = new DependencyTree(generalInfo.getComponentId());
-        node.setGeneralInfo(generalInfo);
-        Set<Scope> scopes = gradleDependencyNode.getConfigurations().stream().map(Scope::new).collect(Collectors.toSet());
-        if (scopes.isEmpty()) {
-            scopes.add(new Scope());
-        }
-        node.setScopes(scopes);
-        node.setLicenses(Sets.newHashSet(new License()));
-        if (isBlank(generalInfo.getGroupId())) {
-            node.setMetadata(true);
-        }
-        return node;
     }
 }

@@ -95,7 +95,7 @@ public class LicenseViolationNode extends IssueNode {
 
     @Override
     public String getTitle() {
-        return "License violation";
+        return "License Violation";
     }
 
     @Override
