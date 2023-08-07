@@ -31,7 +31,7 @@ public class ApplicableIssueNode extends FileIssueNode {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ApplicableIssueNode that = (ApplicableIssueNode) o;
-        return Objects.equals(scannerSearchTarget, that.scannerSearchTarget) && Objects.equals(issue, that.issue);
+        return super.equals(o) && Objects.equals(scannerSearchTarget, that.scannerSearchTarget) && Objects.equals(issue, that.issue);
     }
 
     @Override
