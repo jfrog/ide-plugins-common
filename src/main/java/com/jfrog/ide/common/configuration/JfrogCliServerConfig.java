@@ -8,6 +8,7 @@ import javax.net.ssl.SSLContext;
 import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 /**
  * This class is used for managing JFrog CLI's configuration, so that is can be used by the IDEs.
  *
@@ -55,10 +56,6 @@ public class JfrogCliServerConfig implements ServerConfig {
 
     @Override
     public String getAccessToken() {
-        // Prefer username/password if possible.
-        if (isNotBlank(getValueFromJson(USER_NAME))) {
-            return "";
-        }
         return getValueFromJson(ACCESS_TOKEN);
     }
 

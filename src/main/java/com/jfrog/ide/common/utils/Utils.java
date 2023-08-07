@@ -5,21 +5,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
+import com.jfrog.ide.common.configuration.ServerConfig;
 import com.jfrog.xray.client.services.common.Cve;
 import com.jfrog.xray.client.services.summary.VulnerableComponents;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.jfrog.build.extractor.scan.Issue;
 import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Severity;
 
+import javax.net.ssl.SSLContext;
 import java.nio.file.Path;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+import static org.apache.commons.lang3.StringUtils.*;
 
 /**
  * @author yahavi
@@ -88,6 +96,20 @@ public class Utils {
     }
 
     /**
+     * Returns the server configured sslContext or Strategy that trust all certificates if
+     * InsecureTls was chosen by the user.
+     *
+     * @param serverConfig the user's configuration for a JFrog platform server.
+     * @return the server configured sslContext or Strategy that trust all certificates if
+     * InsecureTls was chosen by the user.
+     */
+    public static SSLContext createSSLContext(ServerConfig serverConfig) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        return serverConfig.isInsecureTls() ?
+                SSLContextBuilder.create().loadTrustMaterial(TrustAllStrategy.INSTANCE).build() :
+                serverConfig.getSslContext();
+    }
+
+    /**
      * Returns Set of Paths cleaned of subdirectories.
      * For example the set ["/a", "/b/c", "/a/d"] will become ["/a", "/b/c"]
      *
@@ -126,5 +148,47 @@ public class Utils {
 
     public static String removeComponentIdPrefix(String compId) {
         return StringUtils.substringAfter(compId, "://");
+    }
+
+    /**
+     * Resolve Xray URL from the input Xray URL (may be blank) or from the input platform URL.
+     *
+     * @param xrayUrl     - Customize Xray URL or blank
+     * @param platformUrl - JFrog platform URL
+     * @return the resolved Xray URL
+     */
+    public static String resolveXrayUrl(String xrayUrl, String platformUrl) {
+        return resolveProductUrl(xrayUrl, platformUrl, "xray");
+    }
+
+    /**
+     * Resolve Artifactory URL from the input Artifactory URL (may be blank) or from the input platform URL.
+     *
+     * @param artifactoryUrl - Customize Artifactory URL or blank
+     * @param platformUrl    - JFrog platform URL
+     * @return the resolved Xray URL
+     */
+    public static String resolveArtifactoryUrl(String artifactoryUrl, String platformUrl) {
+        return resolveProductUrl(artifactoryUrl, platformUrl, "artifactory");
+    }
+
+    /**
+     * Resolve Artifactory or Xray URL from the input product URL (may be blank) or from the input platform URL.
+     *
+     * @param productUrl      - Customize Artifactory/Xray URL or blank
+     * @param platformUrl     - JFrog platform URL
+     * @param productEndpoint - "artifactory" or "xray"
+     * @return the resolved Artifactory or Xray URL
+     */
+    private static String resolveProductUrl(String productUrl, String platformUrl, String productEndpoint) {
+        String url = trimToEmpty(productUrl);
+        if (isNotBlank(url)) {
+            return removeEnd(url, "/");
+        }
+        url = trimToEmpty(platformUrl);
+        if (isBlank(url)) {
+            return "";
+        }
+        return removeEnd(url, "/") + "/" + productEndpoint;
     }
 }
