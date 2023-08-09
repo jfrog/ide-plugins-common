@@ -2,7 +2,7 @@ package com.jfrog.ide.common.nodes;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.jfrog.ide.common.nodes.subentities.ImpactTreeNode;
+import com.jfrog.ide.common.nodes.subentities.ImpactTree;
 import com.jfrog.ide.common.nodes.subentities.License;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import org.apache.commons.lang3.StringUtils;
@@ -22,7 +22,7 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
     @JsonProperty()
     private boolean indirect;
     @JsonProperty()
-    private ImpactTreeNode impactPaths;
+    private ImpactTree impactTree;
     @JsonProperty()
     private List<License> licenses;
 
@@ -74,13 +74,13 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
 
     @JsonGetter()
     @SuppressWarnings("unused")
-    public ImpactTreeNode getImpactPaths() {
-        return impactPaths;
+    public ImpactTree getImpactTree() {
+        return impactTree;
     }
 
     @SuppressWarnings("unused")
-    public void setImpactPaths(ImpactTreeNode impactPaths) {
-        this.impactPaths = impactPaths;
+    public void setImpactTree(ImpactTree impactTree) {
+        this.impactTree = impactTree;
     }
 
     public void addIssue(IssueNode issue) {
