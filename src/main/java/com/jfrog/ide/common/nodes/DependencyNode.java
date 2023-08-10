@@ -156,11 +156,11 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DependencyNode that = (DependencyNode) o;
-        return indirect == that.indirect && Objects.equals(componentId, that.componentId) && Objects.equals(impactPaths, that.impactPaths) && Objects.equals(licenses, that.licenses) && Objects.equals(children, that.children);
+        return indirect == that.indirect && Objects.equals(componentId, that.componentId) && Objects.equals(impactTree, that.impactTree) && Objects.equals(licenses, that.licenses) && Objects.equals(children, that.children);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(componentId, indirect, impactPaths, licenses, children);
+        return Objects.hash(componentId, indirect, impactTree, licenses, children);
     }
 }
