@@ -82,7 +82,8 @@ public class ScanCache {
         try {
             scanCacheObject = objectMapper.readValue(file, ScanCacheObject.class);
             if (scanCacheObject.getVersion() != ScanCacheObject.CACHE_VERSION) {
-                logger.warn("Invalid cache version " + scanCacheObject.getVersion() + ". Ignoring the old cache and starting a new one.");
+                logger.info("Invalid cache version " + scanCacheObject.getVersion() + ". Ignoring the old cache and starting a new one.");
+                scanCacheObject = null;
             }
         } catch (JsonParseException | JsonMappingException e) {
             Utils.logError(logger, "Failed reading cache file. Ignoring the old cache and starting a new one.", e, false);
