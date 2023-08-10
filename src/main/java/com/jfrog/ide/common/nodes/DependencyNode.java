@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import javax.swing.tree.TreeNode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static com.jfrog.ide.common.utils.Utils.removeComponentIdPrefix;
 
@@ -148,5 +149,18 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
     @Override
     public String toString() {
         return getTitle();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DependencyNode that = (DependencyNode) o;
+        return indirect == that.indirect && Objects.equals(componentId, that.componentId) && Objects.equals(impactTree, that.impactTree) && Objects.equals(licenses, that.licenses) && Objects.equals(children, that.children);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(componentId, indirect, impactTree, licenses, children);
     }
 }

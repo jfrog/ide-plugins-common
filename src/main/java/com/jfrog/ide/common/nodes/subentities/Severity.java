@@ -1,11 +1,12 @@
 package com.jfrog.ide.common.nodes.subentities;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import lombok.Getter;
 
 /**
  * @author yahavi
  */
+@Getter
 public enum Severity {
     Normal("Scanned - No Issues", "normal"),
     Pending("Pending Scan", "pending"),
@@ -29,54 +30,31 @@ public enum Severity {
         this.iconName = iconName;
     }
 
-    public String getSeverityName() {
-        return this.severityName;
-    }
-
-    public String getIconName() {
-        return iconName;
-    }
-
     public boolean isHigherThan(Severity other) {
         return this.ordinal() > other.ordinal();
     }
 
     @JsonCreator
     public static Severity fromString(String inputSeverity) {
-        for (Severity severity : Severity.values()) {
-            if (severity.getSeverityName().equalsIgnoreCase(inputSeverity)) {
-                return severity;
-            }
-        }
-        throw new IllegalArgumentException("Severity " + inputSeverity + " doesn't exist");
+        return Severity.valueOf(inputSeverity);
     }
 
     public static Severity fromSarif(String level) {
-        switch (level) {
-            case "error":
-                return Severity.High;
-            case "note":
-                return Severity.Low;
-            case "none":
-                return Severity.Unknown;
-            default:
-                return Severity.Medium;
-        }
+        return switch (level) {
+            case "error" -> Severity.High;
+            case "note" -> Severity.Low;
+            case "none" -> Severity.Unknown;
+            default -> Severity.Medium;
+        };
     }
 
     public static Severity getNotApplicableSeverity(Severity severity) {
-        switch (severity) {
-            case Low:
-                return LowNotApplic;
-            case Medium:
-                return MediumNotApplic;
-            case High:
-                return HighNotApplic;
-            case Critical:
-                return CriticalNotApplic;
-            case Unknown:
-            default:
-                return UnknownNotApplic;
-        }
+        return switch (severity) {
+            case Low -> LowNotApplic;
+            case Medium -> MediumNotApplic;
+            case High -> HighNotApplic;
+            case Critical -> CriticalNotApplic;
+            default -> UnknownNotApplic;
+        };
     }
 }

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 
+import java.util.Objects;
+
 public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
     private String title;
@@ -101,5 +103,18 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @Override
     public String getIcon() {
         return getSeverity().getIconName();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FileIssueNode that = (FileIssueNode) o;
+        return rowStart == that.rowStart && colStart == that.colStart && rowEnd == that.rowEnd && colEnd == that.colEnd && Objects.equals(title, that.title) && Objects.equals(reason, that.reason) && Objects.equals(lineSnippet, that.lineSnippet) && Objects.equals(filePath, that.filePath) && severity == that.severity && reporterType == that.reporterType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, reason, lineSnippet, rowStart, colStart, rowEnd, colEnd, filePath, severity, reporterType);
     }
 }
