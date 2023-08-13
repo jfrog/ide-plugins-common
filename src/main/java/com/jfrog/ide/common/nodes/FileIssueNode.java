@@ -5,6 +5,7 @@ import com.jfrog.ide.common.nodes.subentities.FindingInfo;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import lombok.Getter;
+
 import java.util.Objects;
 
 @Getter
@@ -86,11 +87,11 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FileIssueNode that = (FileIssueNode) o;
-        return rowStart == that.rowStart && colStart == that.colStart && rowEnd == that.rowEnd && colEnd == that.colEnd && Objects.equals(title, that.title) && Objects.equals(reason, that.reason) && Objects.equals(lineSnippet, that.lineSnippet) && Objects.equals(filePath, that.filePath) && severity == that.severity && reporterType == that.reporterType;
+        return Objects.equals(findingInfo, that.findingInfo) && Objects.equals(title, that.title) && Objects.equals(reason, that.reason) && severity == that.severity && reporterType == that.reporterType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(title, reason, lineSnippet, rowStart, colStart, rowEnd, colEnd, filePath, severity, reporterType);
+        return Objects.hash(title, reason, findingInfo, severity, reporterType);
     }
 }
