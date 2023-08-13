@@ -85,7 +85,8 @@ public class ScanCacheTest {
                 "reason",
                 "lineSnippet",
                 "scannerSearchTarget",
-                vulnerabilityNode
+                vulnerabilityNode,
+                "ruleID"
         );
         vulnerabilityNode.updateApplicableInfo(applicableIssueNode);
         fileTreeNode.addIssue(applicableIssueNode);
