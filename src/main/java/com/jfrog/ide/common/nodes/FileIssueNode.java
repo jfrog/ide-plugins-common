@@ -49,10 +49,12 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         return findingInfo.getColStart();
     }
 
+    @SuppressWarnings("unused")
     public int getRowEnd() {
         return findingInfo.getRowEnd();
     }
 
+    @SuppressWarnings("unused")
     public int getColEnd() {
         return findingInfo.getColEnd();
     }
@@ -63,7 +65,7 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
 
     @Override
     public String getSubtitle() {
-        // The indexes ranges start form 0, for user readability convert the range to start from 1.
+        // Indexes are zero-based. To enhance user readability, the range is converted to start from 1.
         return "row: " + (getRowStart() + 1) + " col: " + (getColStart() + 1);
     }
 
@@ -87,11 +89,13 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FileIssueNode that = (FileIssueNode) o;
-        return Objects.equals(findingInfo, that.findingInfo) && Objects.equals(title, that.title) && Objects.equals(reason, that.reason) && severity == that.severity && reporterType == that.reporterType;
+        return Objects.equals(findingInfo, that.findingInfo) && Objects.equals(title, that.title)
+                && Objects.equals(reason, that.reason) && severity == that.severity && reporterType == that.reporterType
+                && Objects.equals(ruleID, that.ruleID);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(title, reason, findingInfo, severity, reporterType);
+        return Objects.hash(title, reason, findingInfo, severity, reporterType, ruleID);
     }
 }
