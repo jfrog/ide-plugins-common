@@ -1,93 +1,72 @@
 package com.jfrog.ide.common.nodes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jfrog.ide.common.nodes.subentities.FindingInfo;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.nodes.subentities.Severity;
+import lombok.Getter;
 
 import java.util.Objects;
 
+@Getter
 public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
     private String title;
     @JsonProperty()
     private String reason;
     @JsonProperty()
-    private String lineSnippet;
-    @JsonProperty()
-    private int rowStart;
-    @JsonProperty()
-    private int colStart;
-    @JsonProperty()
-    private int rowEnd;
-    @JsonProperty()
-    private int colEnd;
-    @JsonProperty()
-    private String filePath;
+    private FindingInfo findingInfo;
     @JsonProperty()
     private Severity severity;
     @JsonProperty()
     private SourceCodeScanType reporterType;
+    @JsonProperty()
+    private String ruleID;
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
     protected FileIssueNode() {
     }
 
-    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity) {
+    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity, String ruleID) {
         this.title = title;
-        this.filePath = filePath;
-        this.rowStart = rowStart;
-        this.colStart = colStart;
-        this.rowEnd = rowEnd;
-        this.colEnd = colEnd;
+        this.findingInfo = new FindingInfo(filePath, rowStart, colStart, rowEnd, colEnd, lineSnippet);
         this.reason = reason;
-        this.lineSnippet = lineSnippet;
         this.reporterType = reportType;
         this.severity = severity;
+        this.ruleID = ruleID;
     }
 
-    @SuppressWarnings("unused")
     public String getFilePath() {
-        return filePath;
+        return findingInfo.getFilePath();
     }
 
-    @SuppressWarnings("unused")
     public int getRowStart() {
-        return rowStart;
+        return findingInfo.getRowStart();
     }
 
-    @SuppressWarnings("unused")
     public int getColStart() {
-        return colStart;
+        return findingInfo.getColStart();
     }
 
     @SuppressWarnings("unused")
     public int getRowEnd() {
-        return rowEnd;
+        return findingInfo.getRowEnd();
     }
 
     @SuppressWarnings("unused")
     public int getColEnd() {
-        return colEnd;
-    }
-
-    public String getReason() {
-        return reason;
+        return findingInfo.getColEnd();
     }
 
     public String getLineSnippet() {
-        return lineSnippet;
-    }
-
-    @SuppressWarnings("unused")
-    public SourceCodeScanType getReporterType() {
-        return reporterType;
+        return findingInfo.getLineSnippet();
     }
 
     @Override
     public String getSubtitle() {
-        // The indexes ranges start form 0, for user readability convert the range to start from 1.
-        return "row: " + (rowStart + 1) + " col: " + (colStart + 1);
+        // Indexes are zero-based. To enhance user readability, the range is converted to start from 1.
+        return "row: " + (getRowStart() + 1) + " col: " + (getColStart() + 1);
     }
 
     @Override
@@ -110,11 +89,13 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FileIssueNode that = (FileIssueNode) o;
-        return rowStart == that.rowStart && colStart == that.colStart && rowEnd == that.rowEnd && colEnd == that.colEnd && Objects.equals(title, that.title) && Objects.equals(reason, that.reason) && Objects.equals(lineSnippet, that.lineSnippet) && Objects.equals(filePath, that.filePath) && severity == that.severity && reporterType == that.reporterType;
+        return Objects.equals(findingInfo, that.findingInfo) && Objects.equals(title, that.title)
+                && Objects.equals(reason, that.reason) && severity == that.severity && reporterType == that.reporterType
+                && Objects.equals(ruleID, that.ruleID);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(title, reason, lineSnippet, rowStart, colStart, rowEnd, colEnd, filePath, severity, reporterType);
+        return Objects.hash(title, reason, findingInfo, severity, reporterType, ruleID);
     }
 }

@@ -6,7 +6,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum SourceCodeScanType {
     CONTEXTUAL("analyze-applicability"),
     SECRETS("secrets-scan"),
-    IAC("iac-scan-modules");
+    IAC("iac-scan-modules"),
+    EOS("analyze-codebase");
 
     private final String param;
 
