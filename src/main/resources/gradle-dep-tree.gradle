@@ -2,7 +2,7 @@ import com.jfrog.GradleDepTree
 
 initscript {
     dependencies {
-        classpath fileTree(System.getenv("pluginLibDir"))
+        classpath fileTree(dir: System.getenv("pluginLibDir"), includes: ['gradle-dep-tree-*.jar'])
     }
 }
 
