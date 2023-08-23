@@ -12,7 +12,7 @@ import java.util.List;
  */
 @Getter
 public class ScanCacheObject {
-    static int CACHE_VERSION = 5;
+    static int CACHE_VERSION = 6;
 
     @JsonProperty("version")
     int version = CACHE_VERSION;
