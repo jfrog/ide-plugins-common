@@ -19,7 +19,9 @@ public class JfrogCliServerConfig implements ServerConfig {
     private final JsonNode serverConfig;
     private final static String USER_NAME = "user";
     private final static String PASSWORD = "password";
+    // jfrog-ignore
     private final static String ACCESS_TOKEN = "accessToken";
+    // jfrog-ignore
     private final static String REFRESH_TOKEN = "refreshToken";
     private final static String URL = "url";
     private final static String ARTIFACTORY_URL = "artifactoryUrl";
