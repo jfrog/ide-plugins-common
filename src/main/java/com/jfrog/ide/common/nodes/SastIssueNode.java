@@ -7,17 +7,17 @@ import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import lombok.Getter;
 
 @Getter
-public class EosIssueNode extends FileIssueNode {
+public class SastIssueNode extends FileIssueNode {
     @JsonProperty()
     private FindingInfo[][] codeFlows;
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
-    private EosIssueNode() {
+    private SastIssueNode() {
     }
 
-    public EosIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, FindingInfo[][] codeFlows, Severity severity, String ruleID) {
-        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.EOS, severity, ruleID);
+    public SastIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, FindingInfo[][] codeFlows, Severity severity, String ruleID) {
+        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.SAST, severity, ruleID);
         this.codeFlows = codeFlows;
     }
 }
