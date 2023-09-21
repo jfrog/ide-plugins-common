@@ -14,7 +14,10 @@ import org.jfrog.build.extractor.go.GoDriver;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -53,7 +56,7 @@ public class GoTreeBuilder {
      * @return Go dependency tree
      * @throws IOException in case of any I/O error.
      */
-    public static DepTree createDependencyTree(GoDriver goDriver, Log logger, boolean verbose, boolean dontBuildVcs) throws IOException {
+    public DepTree createDependencyTree(GoDriver goDriver, Log logger, boolean verbose, boolean dontBuildVcs) throws IOException {
         // Run go mod graph.
         // Not all the dependencies returned are used.
         CommandResults goGraphResult = goDriver.modGraph(verbose);
@@ -68,17 +71,15 @@ public class GoTreeBuilder {
             logger.warn("Errors occurred during building the Go dependency tree. The dependency tree may be incomplete:" +
                     System.lineSeparator() + ExceptionUtils.getRootCauseMessage(e));
         }
-        String rootPackageName = goDriver.getModuleName();
-        Set<String> usedDependencies;
-        if (usedModulesResults.getRes().isEmpty()) {
-            usedDependencies = Collections.singleton(rootPackageName);
-        } else {
-            usedDependencies = Arrays.stream(usedModulesResults.getRes().split("\\r?\\n"))
-                    .map(String::trim)
-                    .map(usedModule -> usedModule.replace(" v", ":"))
-                    .collect(Collectors.toSet());
+        if (usedModulesResults.getRes().isEmpty() && usedModulesResults.getErr().contains("matched no packages")) {
+            throw new IOException("Couldn't build a dependency tree because no packages were found in this Go module: " + projectDir.toString());
         }
+        Set<String> usedDependencies = Arrays.stream(usedModulesResults.getRes().split("\\r?\\n"))
+                .map(String::trim)
+                .map(usedModule -> usedModule.replace(" v", ":"))
+                .collect(Collectors.toSet());
 
+        String rootPackageName = goDriver.getModuleName();
         Map<String, DepTreeNode> nodes = createNodes(usedDependencies);
         DepTree depTree = new DepTree(rootPackageName, nodes);
         populateChildren(depTree, dependenciesGraph);
