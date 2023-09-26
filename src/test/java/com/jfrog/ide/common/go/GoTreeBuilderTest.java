@@ -106,6 +106,40 @@ public class GoTreeBuilderTest {
         }
     }
 
+    /**
+     * The project has no dependencies.
+     */
+    @Test
+    public void testCreateDependencyTree5() {
+        Map<String, Integer> expected = new HashMap<>();
+        try {
+            Path projectDir = GO_ROOT.resolve("project5");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
+            validateDependencyTreeResults(expected, dt);
+        } catch (IOException ex) {
+            fail(ExceptionUtils.getStackTrace(ex));
+        }
+    }
+
+    /**
+     * The project has no source code (it doesn't contain any packages).
+     */
+    @Test
+    public void testCreateDependencyTree6() {
+        Map<String, Integer> expected = new HashMap<>();
+        try {
+            Path projectDir = GO_ROOT.resolve("project6");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
+            fail("Expected an IOException being thrown");
+        } catch (IOException e) {
+            // This exception is expected being thrown
+        } catch (Throwable e) {
+            fail(ExceptionUtils.getStackTrace(e));
+        }
+    }
+
     private void validateDependencyTreeResults(Map<String, Integer> expected, DepTree actual) throws IOException {
         addExpectedVersionNode(expected);
         Set<String> children = actual.getRootNode().getChildren();

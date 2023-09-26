@@ -56,7 +56,7 @@ public class GoTreeBuilder {
      * @return Go dependency tree
      * @throws IOException in case of any I/O error.
      */
-    public static DepTree createDependencyTree(GoDriver goDriver, Log logger, boolean verbose, boolean dontBuildVcs) throws IOException {
+    public DepTree createDependencyTree(GoDriver goDriver, Log logger, boolean verbose, boolean dontBuildVcs) throws IOException {
         // Run go mod graph.
         // Not all the dependencies returned are used.
         CommandResults goGraphResult = goDriver.modGraph(verbose);
@@ -70,6 +70,9 @@ public class GoTreeBuilder {
             usedModulesResults = goDriver.getUsedModules(false, true, dontBuildVcs);
             logger.warn("Errors occurred during building the Go dependency tree. The dependency tree may be incomplete:" +
                     System.lineSeparator() + ExceptionUtils.getRootCauseMessage(e));
+        }
+        if (usedModulesResults.getRes().isEmpty()) {
+            throw new IOException("Couldn't build a dependency tree because no packages were found in this Go module: " + projectDir.toString());
         }
         Set<String> usedDependencies = Arrays.stream(usedModulesResults.getRes().split("\\r?\\n"))
                 .map(String::trim)
