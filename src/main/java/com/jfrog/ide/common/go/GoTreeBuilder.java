@@ -71,7 +71,7 @@ public class GoTreeBuilder {
             logger.warn("Errors occurred during building the Go dependency tree. The dependency tree may be incomplete:" +
                     System.lineSeparator() + ExceptionUtils.getRootCauseMessage(e));
         }
-        if (usedModulesResults.getRes().isEmpty() && usedModulesResults.getErr().contains("matched no packages")) {
+        if (usedModulesResults.getRes().isEmpty()) {
             throw new IOException("Couldn't build a dependency tree because no packages were found in this Go module: " + projectDir.toString());
         }
         Set<String> usedDependencies = Arrays.stream(usedModulesResults.getRes().split("\\r?\\n"))
