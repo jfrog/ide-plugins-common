@@ -7,7 +7,7 @@ public enum SourceCodeScanType {
     CONTEXTUAL("analyze-applicability"),
     SECRETS("secrets-scan"),
     IAC("iac-scan-modules"),
-    EOS("analyze-codebase");
+    SAST("sast");
 
     private final String param;
 
