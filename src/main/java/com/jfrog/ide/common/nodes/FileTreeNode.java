@@ -33,10 +33,6 @@ public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledT
         return topSeverity;
     }
 
-    public String getFilePath() {
-        return filePath;
-    }
-
     @Override
     public String getTitle() {
         return fileName;
