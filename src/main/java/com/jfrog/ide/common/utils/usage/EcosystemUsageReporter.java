@@ -54,6 +54,4 @@ public class EcosystemUsageReporter {
             log.debug("EcosystemUsageReporter failed to report usage:\n" + response.body());
         }
     }
-
-
 }
