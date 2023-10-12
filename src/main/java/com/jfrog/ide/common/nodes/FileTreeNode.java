@@ -5,7 +5,10 @@ import com.jfrog.ide.common.nodes.subentities.Severity;
 import lombok.Getter;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.Vector;
 
 public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<FileTreeNode> {
     @JsonProperty()
@@ -55,6 +58,15 @@ public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledT
         if (issue.getSeverity().isHigherThan(topSeverity)) {
             topSeverity = issue.getSeverity();
         }
+    }
+
+    /**
+     * Merge another {@link FileTreeNode} into this one.
+     *
+     * @param fileTreeNode a {@link FileTreeNode} object to merge into this one.
+     */
+    public void mergeFileTreeNode(FileTreeNode fileTreeNode) {
+        ((List<IssueNode>) (List<?>) Collections.list(fileTreeNode.children())).forEach(issue -> addIssue(issue));
     }
 
     @Override
