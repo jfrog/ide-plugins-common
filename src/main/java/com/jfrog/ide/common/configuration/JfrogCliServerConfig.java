@@ -87,7 +87,7 @@ public class JfrogCliServerConfig implements ServerConfig {
     }
 
     @Override
-    public ProxyConfiguration getProxyConfForTargetUrl(String xrayUrl) {
+    public ProxyConfiguration getProxyConfForTargetUrl(String targetUrl) {
         return null;
     }
 
@@ -99,6 +99,11 @@ public class JfrogCliServerConfig implements ServerConfig {
     @Override
     public int getConnectionTimeout() {
         return 0;
+    }
+
+    @Override
+    public String getCustomResourcesRepo() {
+        return null;
     }
 
     private String getValueFromJson(String fieldName) {
