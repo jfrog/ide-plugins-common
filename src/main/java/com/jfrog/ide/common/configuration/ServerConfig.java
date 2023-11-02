@@ -71,11 +71,11 @@ public interface ServerConfig {
     int getConnectionTimeout();
 
     /**
-     * Returns custom resources repository name. If it's not configured, null is returned.
+     * Returns external resources repository name. If it's not configured, null is returned.
      *
-     * @return Custom resources repository name, if configured.
+     * @return External resources repository name, if configured.
      */
-    String getCustomResourcesRepo();
+    String getExternalResourcesRepo();
 
     @SuppressWarnings("unused")
     default boolean areCredentialsSet() {

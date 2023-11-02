@@ -102,7 +102,7 @@ public class JfrogCliServerConfig implements ServerConfig {
     }
 
     @Override
-    public String getCustomResourcesRepo() {
+    public String getExternalResourcesRepo() {
         return null;
     }
 
