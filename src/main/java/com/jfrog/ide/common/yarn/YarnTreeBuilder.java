@@ -115,12 +115,19 @@ public class YarnTreeBuilder {
             // return the package name
             return Collections.singletonList(packageFullName);
         }
-        int startIndex = rawDependency.indexOf('"');
-        int endIndex = rawDependency.indexOf('"', startIndex + 1);
+        int startIndex = StringUtils.indexOf(rawDependency, '"');
+        int endIndex = StringUtils.indexOf(rawDependency, '"', startIndex + 1);
+
         if (startIndex != -1 && endIndex != -1) {
             // split the path by #
-            String[] split = rawDependency.substring(startIndex + 1, endIndex).split("#");
-            return Arrays.asList(split);
+            String[] splitPath = StringUtils.split(StringUtils.substring(rawDependency, startIndex + 1, endIndex), "#");
+
+            // packageFullName is guaranteed to be the last element in the path
+            if (!StringUtils.equals(splitPath[splitPath.length - 1], (StringUtils.substringBefore(packageFullName, ":")))) {
+                splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
+            }
+            splitPath[splitPath.length - 1] = packageFullName;
+            return Arrays.asList(splitPath);
         }
         return null;
     }
