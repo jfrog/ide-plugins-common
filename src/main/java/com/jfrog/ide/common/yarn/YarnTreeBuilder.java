@@ -9,8 +9,7 @@ import org.jfrog.build.api.util.Log;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.jfrog.ide.common.utils.Utils.createComponentId;
 
@@ -94,6 +93,93 @@ public class YarnTreeBuilder {
     }
 
     /**
+     * Extracts a single dependency path from a raw dependency string.
+     *
+     * @param rawDependencyPath - The raw dependency path string.
+     * @return The extracted dependency path.
+     */
+
+    private List<List<String>> extractMultiplePaths(String packageFullName, List<String> rawDependencyPath) {
+        List<List<String>> paths = new ArrayList<>();
+        for (String rawDependency : rawDependencyPath) {
+            List<String> path = extractSinglePath(packageFullName, rawDependency);
+            if (path != null) {
+                paths.add(path);
+            }
+        }
+        return paths;
+    }
+
+    private List<String> extractSinglePath(String packageFullName, String rawDependency) {
+        if (StringUtils.contains(rawDependency, "Specified in")) {
+            // return the package name
+            return Collections.singletonList(packageFullName);
+        }
+        int startIndex = rawDependency.indexOf('"');
+        int endIndex = rawDependency.indexOf('"', startIndex + 1);
+        if (startIndex != -1 && endIndex != -1) {
+            // split the path by #
+            String[] split = rawDependency.substring(startIndex + 1, endIndex).split("#");
+            return Arrays.asList(split);
+        }
+        return null;
+    }
+
+    /**
+     * Finds the dependency path from the dependency to the root, based on the supplied "yarn why" command output.
+     * The dependency path may appear as a part of a text or in a list of reasons.
+     * <p>
+     * Example 1 (Text):
+     * {"type":"info","data":"This module exists because \"jest-cli#istanbul-api#mkdirp\" depends on it."}
+     * <p>
+     * Example 2 (List):
+     * {"type":"list","data":{"type":"reasons","items":["Specified in \"dependencies\"","Hoisted from \"jest-cli#node-notifier#minimist\"","Hoisted from \"jest-cli#sane#minimist\""]}}
+     *
+     * @param logger          - The logger.
+     * @param packageName     - The package name.
+     *                        Example: "minimist".
+     * @param packageVersions - The package versions.
+     * @return A list of vulnerable dependency chains to the root.
+     */
+    public DepTree findDependencyPath(Log logger, String packageName, Set<String> packageVersions) throws IOException {
+        JsonNode[] yarnWhyItem = yarnDriver.why(projectDir.toFile(), packageName);
+        if (yarnWhyItem[0].has("problems")) {
+            logger.warn("Errors occurred during building the yarn dependency tree. " +
+                    "The dependency tree may be incomplete:\n" + yarnWhyItem[0].get("problems").toString());
+        }
+
+        // Parse "yarn why" results and generate the dependency paths
+        String yarnWhyVersion = "";
+        String packageFullName = packageName;
+        Map<String, List<List<String>>> packageImpactPaths = new HashMap<>();
+        for (JsonNode jsonNode : yarnWhyItem) {
+            JsonNode typeNode = getJsonField(jsonNode, "type");
+            JsonNode dataNode = getJsonField(jsonNode, "data");
+            switch (typeNode.asText()) {
+                case "info":
+                    String dataNodeAsText = dataNode.asText();
+                    if (dataNodeAsText.contains("Found \"")) {
+                        String yarnWhyPackage = StringUtils.substringBetween(dataNodeAsText, "Found \"", "\"");
+                        yarnWhyVersion = StringUtils.substringAfter(yarnWhyPackage, "@");
+                        packageFullName = packageName + ":" + yarnWhyVersion;
+                    } else if (dataNodeAsText.contains("This module exists because") && packageVersions.contains(yarnWhyVersion)) {
+                        packageImpactPaths.put(packageFullName, extractMultiplePaths(packageFullName, Collections.singletonList(dataNodeAsText)));
+                    }
+                    break;
+                case "list":
+                    if (packageVersions.contains(yarnWhyVersion)) {
+                        JsonNode itemsNode = getJsonField(dataNode, "items");
+                        List<String> items = new ArrayList<>();
+                        itemsNode.elements().forEachRemaining(item -> items.add(item.asText()));
+                        packageImpactPaths.put(packageFullName, extractMultiplePaths(packageFullName, items));
+                    }
+                    break;
+            }
+        }
+        System.out.println(packageImpactPaths);
+        return new DepTree("123", new HashMap<>());
+    }
+    /**
      * Convert Yarn's package name (e.g. @scope/comp@1.0.0) to Xray's component ID (e.g. @scope/comp:1.0.0).
      *
      * @param packageName Yarn's package name
@@ -135,7 +221,7 @@ public class YarnTreeBuilder {
     private JsonNode getJsonField(JsonNode jsonNode, String fieldName) throws IOException {
         JsonNode fieldNode = jsonNode.get(fieldName);
         if (fieldNode == null) {
-            throw new IOException(String.format("The parsing of the 'yarn list' command output failed: the field '%s' could not be found.", fieldName));
+            throw new IOException(String.format("The parsing of a yarn command output failed: the field '%s' could not be found.", fieldName));
         }
         return fieldNode;
     }

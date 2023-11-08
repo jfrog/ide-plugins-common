@@ -10,7 +10,6 @@ import org.jfrog.build.extractor.executor.CommandResults;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,9 +17,7 @@ import java.util.stream.Stream;
 /**
  * @author Tal Arian
  */
-public class YarnDriver implements Serializable {
-    private static final long serialVersionUID = 1L;
-
+public class YarnDriver {
     private static final ObjectReader jsonReader = new ObjectMapper().reader();
     private final CommandExecutor commandExecutor;
 
@@ -68,6 +65,38 @@ public class YarnDriver implements Serializable {
 
     public String version(File workingDirectory) throws IOException, InterruptedException {
         return runCommand(workingDirectory, new String[]{"--version"}).getRes();
+    }
+
+    /**
+     * Runs 'yarn why' command.
+     *
+     * @return the command output.
+     */
+    public JsonNode[] why(File workingDirectory, String componentName) throws IOException {
+        List<String> args = new ArrayList<>();
+        args.add("why");
+        args.add(componentName);
+        args.add("--json");
+        args.add("--no-progress");
+        try {
+            CommandResults commandRes = runCommand(workingDirectory, args.toArray(new String[0]));
+            String res = StringUtils.isBlank(commandRes.getRes()) ? "{}" : commandRes.getRes();
+            String[] jsons = res.split("\n");
+            JsonNode[] jsonResults = new JsonNode[jsons.length];
+            for (int i = 0; i < jsons.length; i++) {
+                jsonResults[i] = jsonReader.readTree(jsons[i]);
+            }
+//          note that although the command may succeed (commandRes.isOk() == true), the result may still contain errors (such as no match found)
+            String err = commandRes.getErr();
+            if (!StringUtils.isBlank(err)) {
+                ((ObjectNode) jsonResults[0]).put("problems", commandRes.getErr());
+            }
+
+            return jsonResults;
+
+        } catch (IOException | InterruptedException e) {
+            throw new IOException("yarn why failed", e);
+        }
     }
 
     /**
