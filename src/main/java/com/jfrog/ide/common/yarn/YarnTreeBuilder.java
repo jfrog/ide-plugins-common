@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
+import com.jfrog.ide.common.nodes.subentities.ImpactTree;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 
@@ -95,14 +96,15 @@ public class YarnTreeBuilder {
     /**
      * Extracts a single dependency path from a raw dependency string.
      *
-     * @param rawDependencyPath - The raw dependency path string.
+     * @param rawDependencyPaths - The raw dependency path string.
      * @return The extracted dependency path.
      */
 
-    private List<List<String>> extractMultiplePaths(String packageFullName, List<String> rawDependencyPath) {
+    private List<List<String>> extractMultiplePaths(String projectRootId, String packageFullName, List<String> rawDependencyPaths) {
         List<List<String>> paths = new ArrayList<>();
-        for (String rawDependency : rawDependencyPath) {
-            List<String> path = extractSinglePath(packageFullName, rawDependency);
+        int limit = rawDependencyPaths.size() < ImpactTree.IMPACT_PATHS_LIMIT ? rawDependencyPaths.size() : 50;
+        for (int i = 0; i < limit; i++) {
+            List<String> path = extractSinglePath(projectRootId, packageFullName, rawDependencyPaths.get(i));
             if (path != null) {
                 paths.add(path);
             }
@@ -110,10 +112,13 @@ public class YarnTreeBuilder {
         return paths;
     }
 
-    private List<String> extractSinglePath(String packageFullName, String rawDependency) {
+    private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
+        List<String> pathResult = new ArrayList<>();
+        pathResult.add(projectRootId);
         if (StringUtils.contains(rawDependency, "Specified in")) {
-            // return the package name
-            return Collections.singletonList(packageFullName);
+            // This is a direct dependency
+            pathResult.add(packageFullName);
+            return pathResult;
         }
         int startIndex = StringUtils.indexOf(rawDependency, '"');
         int endIndex = StringUtils.indexOf(rawDependency, '"', startIndex + 1);
@@ -127,7 +132,8 @@ public class YarnTreeBuilder {
                 splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
             }
             splitPath[splitPath.length - 1] = packageFullName;
-            return Arrays.asList(splitPath);
+            pathResult.addAll(Arrays.asList(splitPath));
+            return pathResult;
         }
         return null;
     }
@@ -148,7 +154,7 @@ public class YarnTreeBuilder {
      * @param packageVersions - The package versions.
      * @return A list of vulnerable dependency chains to the root.
      */
-    public DepTree findDependencyPath(Log logger, String packageName, Set<String> packageVersions) throws IOException {
+    public Map<String, List<List<String>>> findDependencyImpactPaths(Log logger, String projectRootId, String packageName, Set<String> packageVersions) throws IOException {
         JsonNode[] yarnWhyItem = yarnDriver.why(projectDir.toFile(), packageName);
         if (yarnWhyItem[0].has("problems")) {
             logger.warn("Errors occurred during building the yarn dependency tree. " +
@@ -170,7 +176,7 @@ public class YarnTreeBuilder {
                         yarnWhyVersion = StringUtils.substringAfter(yarnWhyPackage, "@");
                         packageFullName = packageName + ":" + yarnWhyVersion;
                     } else if (dataNodeAsText.contains("This module exists because") && packageVersions.contains(yarnWhyVersion)) {
-                        packageImpactPaths.put(packageFullName, extractMultiplePaths(packageFullName, Collections.singletonList(dataNodeAsText)));
+                        packageImpactPaths.put(packageFullName, extractMultiplePaths(projectRootId, packageFullName, Collections.singletonList(dataNodeAsText)));
                     }
                     break;
                 case "list":
@@ -178,13 +184,12 @@ public class YarnTreeBuilder {
                         JsonNode itemsNode = getJsonField(dataNode, "items");
                         List<String> items = new ArrayList<>();
                         itemsNode.elements().forEachRemaining(item -> items.add(item.asText()));
-                        packageImpactPaths.put(packageFullName, extractMultiplePaths(packageFullName, items));
+                        packageImpactPaths.put(packageFullName, extractMultiplePaths(projectRootId, packageFullName, items));
                     }
                     break;
             }
         }
-        System.out.println(packageImpactPaths);
-        return new DepTree("123", new HashMap<>());
+        return packageImpactPaths;
     }
     /**
      * Convert Yarn's package name (e.g. @scope/comp@1.0.0) to Xray's component ID (e.g. @scope/comp:1.0.0).
