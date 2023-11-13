@@ -94,12 +94,48 @@ public class YarnTreeBuilder {
     }
 
     /**
-     * Extracts a single dependency path from a raw dependency string.
+     * Extracts a single dependency path from a raw dependency Json string returned from 'Yarn why' command.
      *
-     * @param rawDependencyPaths - The raw dependency path string.
-     * @return The extracted dependency path.
+     * @param projectRootId - The name of the project to display in the root of the impact tree.
+     * @param packageFullName - The vulnerable dependency in <NAME>:<VERSION> format.
+     * @param rawDependency - The raw dependency Json string returned from 'Yarn why' command.
+     * @return The extracted dependency path as a list of dependencies starting from projectRootId till packageFullName.
      */
+    private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
+        List<String> pathResult = new ArrayList<>();
+        pathResult.add(projectRootId);
+        rawDependency = StringUtils.lowerCase(rawDependency);
+        if (StringUtils.contains(rawDependency, "specified in")) {
+            // This is a direct dependency
+            pathResult.add(packageFullName);
+            return pathResult;
+        }
+        int startIndex = StringUtils.indexOf(rawDependency, '"') + 1; // The start of the path
+        int endIndex = StringUtils.indexOf(rawDependency, '"', startIndex);
 
+        if (startIndex > 0 && endIndex != -1) {
+            // split the path by '#'
+            String[] splitPath = StringUtils.split(StringUtils.substring(rawDependency, startIndex, endIndex), "#");
+
+            // packageFullName is guaranteed to be the last element in the path
+            if (!StringUtils.equals(splitPath[splitPath.length - 1], (StringUtils.substringBefore(packageFullName, ":")))) {
+                splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
+            }
+            splitPath[splitPath.length - 1] = packageFullName;
+            pathResult.addAll(Arrays.asList(splitPath));
+            return pathResult;
+        }
+        return null; //TODO: maybe to throw exception or to return empty list?
+    }
+
+    /**
+     * Extracts multiple dependency paths from a list of raw dependency Json strings returned from 'Yarn why' command.
+     *
+     * @param projectRootId      - The name of the project to display in the root of the impact tree.
+     * @param packageFullName    - The vulnerable dependency in <NAME>:<VERSION> format.
+     * @param rawDependencyPaths - The raw dependency Json strings returned from 'Yarn why' command.
+     * @return The extracted dependency paths as a list of dependencies starting from projectRootId till packageFullName.
+     */
     private List<List<String>> extractMultiplePaths(String projectRootId, String packageFullName, List<String> rawDependencyPaths) {
         List<List<String>> paths = new ArrayList<>();
         int limit = rawDependencyPaths.size() < ImpactTree.IMPACT_PATHS_LIMIT ? rawDependencyPaths.size() : 50;
@@ -112,35 +148,9 @@ public class YarnTreeBuilder {
         return paths;
     }
 
-    private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
-        List<String> pathResult = new ArrayList<>();
-        pathResult.add(projectRootId);
-        if (StringUtils.contains(rawDependency, "Specified in")) {
-            // This is a direct dependency
-            pathResult.add(packageFullName);
-            return pathResult;
-        }
-        int startIndex = StringUtils.indexOf(rawDependency, '"');
-        int endIndex = StringUtils.indexOf(rawDependency, '"', startIndex + 1);
-
-        if (startIndex != -1 && endIndex != -1) {
-            // split the path by #
-            String[] splitPath = StringUtils.split(StringUtils.substring(rawDependency, startIndex + 1, endIndex), "#");
-
-            // packageFullName is guaranteed to be the last element in the path
-            if (!StringUtils.equals(splitPath[splitPath.length - 1], (StringUtils.substringBefore(packageFullName, ":")))) {
-                splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
-            }
-            splitPath[splitPath.length - 1] = packageFullName;
-            pathResult.addAll(Arrays.asList(splitPath));
-            return pathResult;
-        }
-        return null;
-    }
-
     /**
-     * Finds the dependency path from the dependency to the root, based on the supplied "yarn why" command output.
-     * The dependency path may appear as a part of a text or in a list of reasons.
+     * Finds the dependency paths from the dependency to the root project, based on the supplied "yarn why" command output.
+     * A dependency path may appear as a part of a text or in a list of items.
      * <p>
      * Example 1 (Text):
      * {"type":"info","data":"This module exists because \"jest-cli#istanbul-api#mkdirp\" depends on it."}
@@ -149,10 +159,12 @@ public class YarnTreeBuilder {
      * {"type":"list","data":{"type":"reasons","items":["Specified in \"dependencies\"","Hoisted from \"jest-cli#node-notifier#minimist\"","Hoisted from \"jest-cli#sane#minimist\""]}}
      *
      * @param logger          - The logger.
-     * @param packageName     - The package name.
+     * @param projectRootId   - The name of the project to display in the root of the impact tree.
+     * @param packageName     - The package name (without version).
      *                        Example: "minimist".
      * @param packageVersions - The package versions.
-     * @return A list of vulnerable dependency chains to the root.
+     * @return A map of package full name (<NAME>:<VERSION>) to a list of dependency paths.
+     * @throws IOException in case of I/O error returned from the running "yarn why" command in the yarnDriver.
      */
     public Map<String, List<List<String>>> findDependencyImpactPaths(Log logger, String projectRootId, String packageName, Set<String> packageVersions) throws IOException {
         JsonNode[] yarnWhyItem = yarnDriver.why(projectDir.toFile(), packageName);
@@ -162,8 +174,8 @@ public class YarnTreeBuilder {
         }
 
         // Parse "yarn why" results and generate the dependency paths
-        String yarnWhyVersion = "";
         String packageFullName = packageName;
+        String yarnWhyVersion = "";
         Map<String, List<List<String>>> packageImpactPaths = new HashMap<>();
         for (JsonNode jsonNode : yarnWhyItem) {
             JsonNode typeNode = getJsonField(jsonNode, "type");
@@ -171,16 +183,18 @@ public class YarnTreeBuilder {
             switch (typeNode.asText()) {
                 case "info":
                     String dataNodeAsText = dataNode.asText();
-                    if (dataNodeAsText.contains("Found \"")) {
+                    if (dataNodeAsText.contains("Found \"")) { // This is an info node telling the package version
                         String yarnWhyPackage = StringUtils.substringBetween(dataNodeAsText, "Found \"", "\"");
                         yarnWhyVersion = StringUtils.substringAfter(yarnWhyPackage, "@");
                         packageFullName = packageName + ":" + yarnWhyVersion;
                     } else if (dataNodeAsText.contains("This module exists because") && packageVersions.contains(yarnWhyVersion)) {
+                        // This is an info node containing a single dependency path of a relevant vulnerable package version.
                         packageImpactPaths.put(packageFullName, extractMultiplePaths(projectRootId, packageFullName, Collections.singletonList(dataNodeAsText)));
                     }
                     break;
                 case "list":
                     if (packageVersions.contains(yarnWhyVersion)) {
+                        // This is a list node containing a list of dependency paths of a relevant vulnerable package version.
                         JsonNode itemsNode = getJsonField(dataNode, "items");
                         List<String> items = new ArrayList<>();
                         itemsNode.elements().forEachRemaining(item -> items.add(item.asText()));
