@@ -35,7 +35,7 @@ public class YarnTreeBuilder {
     /**
      * Build the yarn dependency tree.
      *
-     * @param logger      - The logger.
+     * @param logger - The logger.
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
@@ -96,36 +96,35 @@ public class YarnTreeBuilder {
     /**
      * Extracts a single dependency path from a raw dependency Json string returned from 'Yarn why' command.
      *
-     * @param projectRootId - The name of the project to display in the root of the impact tree.
+     * @param projectRootId   - The name of the project to display in the root of the impact tree.
      * @param packageFullName - The vulnerable dependency in <NAME>:<VERSION> format.
-     * @param rawDependency - The raw dependency Json string returned from 'Yarn why' command.
+     * @param rawDependency   - The raw dependency Json string returned from 'Yarn why' command.
      * @return The extracted dependency path as a list of dependencies starting from projectRootId till packageFullName.
      */
     private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
         List<String> pathResult = new ArrayList<>();
-        pathResult.add(projectRootId);
-        rawDependency = StringUtils.lowerCase(rawDependency);
-        if (StringUtils.contains(rawDependency, "specified in")) {
-            // This is a direct dependency
+        pathResult.add(projectRootId); // The root project is guaranteed to be the first element in the path
+
+        rawDependency = StringUtils.lowerCase(rawDependency); // the word specified can be in upper or lower case
+        if (StringUtils.contains(rawDependency, "specified in")) { // This is a direct dependency
             pathResult.add(packageFullName);
             return pathResult;
         }
-        int startIndex = StringUtils.indexOf(rawDependency, '"') + 1; // The start of the path
-        int endIndex = StringUtils.indexOf(rawDependency, '"', startIndex);
 
-        if (startIndex > 0 && endIndex != -1) {
-            // split the path by '#'
-            String[] splitPath = StringUtils.split(StringUtils.substring(rawDependency, startIndex, endIndex), "#");
+        // Split the path by '#'
+        String[] splitPath = StringUtils.split(StringUtils.substringBetween(rawDependency, "\""), "#");
 
-            // packageFullName is guaranteed to be the last element in the path
-            if (!StringUtils.equals(splitPath[splitPath.length - 1], (StringUtils.substringBefore(packageFullName, ":")))) {
-                splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
-            }
-            splitPath[splitPath.length - 1] = packageFullName;
-            pathResult.addAll(Arrays.asList(splitPath));
-            return pathResult;
+        if (splitPath == null) {
+            return null;
         }
-        return null; //TODO: maybe to throw exception or to return empty list?
+
+        // packageFullName is guaranteed to be the last element in the path
+        if (!StringUtils.equals(splitPath[splitPath.length - 1], (StringUtils.substringBefore(packageFullName, ":")))) {
+            splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
+        }
+        splitPath[splitPath.length - 1] = packageFullName;
+        pathResult.addAll(Arrays.asList(splitPath));
+        return pathResult;
     }
 
     /**
@@ -169,7 +168,7 @@ public class YarnTreeBuilder {
     public Map<String, List<List<String>>> findDependencyImpactPaths(Log logger, String projectRootId, String packageName, Set<String> packageVersions) throws IOException {
         JsonNode[] yarnWhyItem = yarnDriver.why(projectDir.toFile(), packageName);
         if (yarnWhyItem[0].has("problems")) {
-            logger.warn("Errors occurred during building the yarn dependency tree. " +
+            logger.warn("Errors occurred during building the Yarn dependency tree. " +
                     "The dependency tree may be incomplete:\n" + yarnWhyItem[0].get("problems").toString());
         }
 
@@ -205,6 +204,7 @@ public class YarnTreeBuilder {
         }
         return packageImpactPaths;
     }
+
     /**
      * Convert Yarn's package name (e.g. @scope/comp@1.0.0) to Xray's component ID (e.g. @scope/comp:1.0.0).
      *

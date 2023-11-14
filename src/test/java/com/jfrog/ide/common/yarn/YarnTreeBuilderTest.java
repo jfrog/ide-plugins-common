@@ -20,10 +20,8 @@ import java.nio.file.Paths;
 import static org.testng.Assert.*;
 
 /**
- * Test correctness of DependencyTree for different npm projects.
- * The tests verify correctness before and after 'npm install' command.
- *
- * @author yahavi
+ * Test correctness of DependencyTree for different yarn projects.
+ * The tests verify correctness before and after 'yarn install' command.
  */
 public class YarnTreeBuilderTest {
     private static final Path YARN_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "yarn"));
