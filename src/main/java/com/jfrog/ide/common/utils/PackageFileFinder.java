@@ -36,7 +36,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
         this.exclusions = FileSystems.getDefault().getPathMatcher("glob:" + excludedPaths);
         this.basePath = basePath;
 
-        for (Path projectPath : Utils.consolidatePaths(projectPaths)) {
+        for (Path projectPath : projectPaths) {
             Files.walkFileTree(projectPath, this);
         }
         if (!excludedDirectories.isEmpty()) {
@@ -50,7 +50,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     /**
      * Get package.json directories and their directories.
      *
-     * @return List of package.json's parent directories.
+     * @return Set of package.json's parent directories.
      */
     public Set<String> getNpmPackagesFilePairs() {
         Set<String> packageJsonDirectoriesSet = Sets.newHashSet(packageJsonDirectories);
@@ -62,7 +62,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     /**
      * Get package.json directories and their directories.
      *
-     * @return List of yarn.lock's parent directories.
+     * @return Set of yarn.lock's parent directories.
      */
     public Set<String> getYarnPackagesFilePairs() {
         return Sets.newHashSet(yarnLockDirectories);
@@ -71,7 +71,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     /**
      * Get build.gradle and build.gradle.kts directories and their directories.
      *
-     * @return List of build.gradle and build.gradle.kts's parent directories.
+     * @return Set of build.gradle and build.gradle.kts's parent directories.
      */
     public Set<String> getBuildGradlePackagesFilePairs() {
         return Sets.newHashSet(buildGradleDirectories);
@@ -80,7 +80,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     /**
      * Get go.mod directories and their directories.
      *
-     * @return List of go.mod's parent directories.
+     * @return Set of go.mod's parent directories.
      */
     public Set<String> getGoPackagesFilePairs() {
         return Sets.newHashSet(goModDirectories);
