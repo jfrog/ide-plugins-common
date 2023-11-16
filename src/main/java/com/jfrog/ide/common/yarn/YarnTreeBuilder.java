@@ -101,7 +101,7 @@ public class YarnTreeBuilder {
      * @param rawDependency   - The raw dependency Json string returned from 'Yarn why' command.
      * @return The extracted dependency path as a list of dependencies starting from projectRootId till packageFullName.
      */
-    private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
+    List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
         List<String> pathResult = new ArrayList<>();
         pathResult.add(projectRootId); // The root project is guaranteed to be the first element in the path
 
@@ -135,7 +135,7 @@ public class YarnTreeBuilder {
      * @param rawDependencyPaths - The raw dependency Json strings returned from 'Yarn why' command.
      * @return The extracted dependency paths as a list of dependencies starting from projectRootId till packageFullName.
      */
-    private List<List<String>> extractMultiplePaths(String projectRootId, String packageFullName, List<String> rawDependencyPaths) {
+    List<List<String>> extractMultiplePaths(String projectRootId, String packageFullName, List<String> rawDependencyPaths) {
         List<List<String>> paths = new ArrayList<>();
         int limit = rawDependencyPaths.size() < ImpactTree.IMPACT_PATHS_LIMIT ? rawDependencyPaths.size() : 50;
         for (int i = 0; i < limit; i++) {
