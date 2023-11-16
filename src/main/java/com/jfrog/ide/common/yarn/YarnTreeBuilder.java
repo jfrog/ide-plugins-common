@@ -101,7 +101,7 @@ public class YarnTreeBuilder {
      * @param rawDependency   - The raw dependency Json string returned from 'Yarn why' command.
      * @return The extracted dependency path as a list of dependencies starting from projectRootId till packageFullName.
      */
-    List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
+    private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
         List<String> pathResult = new ArrayList<>();
         pathResult.add(projectRootId); // The root project is guaranteed to be the first element in the path
 
@@ -170,6 +170,7 @@ public class YarnTreeBuilder {
         if (yarnWhyItem[0].has("problems")) {
             logger.warn("Errors occurred during building the Yarn dependency tree. " +
                     "The dependency tree may be incomplete:\n" + yarnWhyItem[0].get("problems").toString());
+
         }
 
         // Parse "yarn why" results and generate the dependency paths
@@ -184,7 +185,7 @@ public class YarnTreeBuilder {
                     String dataNodeAsText = dataNode.asText();
                     if (dataNodeAsText.contains("Found \"")) { // This is an info node telling the package version
                         String yarnWhyPackage = StringUtils.substringBetween(dataNodeAsText, "Found \"", "\"");
-                        yarnWhyVersion = StringUtils.substringAfter(yarnWhyPackage, "@");
+                        yarnWhyVersion = StringUtils.substringAfterLast(yarnWhyPackage, "@");
                         packageFullName = packageName + ":" + yarnWhyVersion;
                     } else if (dataNodeAsText.contains("This module exists because") && packageVersions.contains(yarnWhyVersion)) {
                         // This is an info node containing a single dependency path of a relevant vulnerable package version.
