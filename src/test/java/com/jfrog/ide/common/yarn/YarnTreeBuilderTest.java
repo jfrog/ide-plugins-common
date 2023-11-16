@@ -67,14 +67,25 @@ public class YarnTreeBuilderTest {
         };
     }
 
-    @Test(dataProvider = "yarnTreeBuilderProvider")
-    public void yarnTreeBuilderTest(Project project, int expectedChildren) throws IOException {
+    @DataProvider
+    private Object[][] findDependencyImpactPathsProvider() {
+        return new Object[][]{
+                {Project.DEPENDENCY, "@types/node", Set.of("14.14.10"), List.of(List.of("package-name2", "@types/node:14.14.10"))},
+        };
+    }
+
+    private YarnTreeBuilder getYarnTreeBuilder(Project project) throws IOException {
         tempProject = Files.createTempDirectory("ide-plugins-common-yarn").toFile();
         tempProject.deleteOnExit();
         FileUtils.copyDirectory((project).path.toFile(), tempProject);
         Path projectDir = tempProject.toPath();
         descriptorFilePath = projectDir.resolve("package.json").toString();
-        YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(projectDir, descriptorFilePath, null);
+        return new YarnTreeBuilder(projectDir, descriptorFilePath, null);
+    }
+
+    @Test(dataProvider = "yarnTreeBuilderProvider")
+    public void yarnTreeBuilderTest(Project project, int expectedChildren) throws IOException {
+        YarnTreeBuilder yarnTreeBuilder = getYarnTreeBuilder(project);
         depTree = yarnTreeBuilder.buildTree(new NullLog());
         assertNotNull(depTree);
         String expectedProjectName = project.name;
@@ -118,71 +129,54 @@ public class YarnTreeBuilderTest {
     }
 
     @Test
-    public void extractSinglePathTest() {
-        String projectRootId = "root";
-        String packageFullName = "pkg:1.0.0";
-        String rawDependency = "{\"type\":\"info\",\"data\":\"This module exists because \\\"pkg#subpkg#dep\\\" depends on it.\"}";
-
-        YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(Paths.get(""), "", null);
-        List<String> pathResult = yarnTreeBuilder.extractSinglePath(projectRootId, packageFullName, rawDependency);
-
-        assertNotNull(pathResult);
-        assertEquals(pathResult.size(), 2);
-        assertEquals(pathResult.get(0), projectRootId);
-        assertEquals(pathResult.get(1), packageFullName);
-    }
-
-    @Test
     public void extractMultiplePathsTest() {
         String projectRootId = "root";
         String packageFullName = "pkg:1.0.0";
         List<String> rawDependencyPaths = List.of(
-                "{\"type\":\"reasons\",\"items\":[\"Specified in \\\"dependencies\\\"\",\"Hoisted from \\\"pkg#dep1\\\"\",\"Hoisted from \\\"pkg#dep2\\\"\"]}",
-                "{\"type\":\"reasons\",\"items\":[\"Specified in \\\"devDependencies\\\"\",\"Hoisted from \\\"pkg#dep3\\\"\"]}"
+                "Specified in \"dependencies\"",
+                "Hoisted from \"jest-cli#node-notifier#minimist\"",
+                "Hoisted from \"jest-cli#sane#minimist\"",
+                "Hoisted from \"@test0#\\test1#test2#pkg\"",
+                "This module exists because \"jest-cli#istanbul-api#mkdirp\" depends on it.",
+                "This module exists because it's specified in \"devDependencies\"."
         );
 
+        List<List<String>> expectedPaths = List.of(
+                List.of(projectRootId, packageFullName),
+                List.of(projectRootId, "jest-cli", "node-notifier", "minimist", packageFullName),
+                List.of(projectRootId, "jest-cli", "sane", "minimist", packageFullName),
+                List.of(projectRootId, "@test0", "\\test1", "test2", packageFullName),
+                List.of(projectRootId, "jest-cli", "istanbul-api", "mkdirp", packageFullName),
+                List.of(projectRootId, packageFullName)
+        );
         YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(Paths.get(""), "", null);
         List<List<String>> paths = yarnTreeBuilder.extractMultiplePaths(projectRootId, packageFullName, rawDependencyPaths);
 
         assertNotNull(paths);
-        assertEquals(paths.size(), 2);
-        assertEquals(paths.get(0).size(), 4);
-        assertEquals(paths.get(0).get(0), projectRootId);
-        assertEquals(paths.get(0).get(1), packageFullName);
-        assertEquals(paths.get(0).get(2), "pkg#dep1");
-        assertEquals(paths.get(0).get(3), "pkg#dep2");
+        assertEquals(paths.size(), expectedPaths.size());
+        for (List<String> path : paths) {
+            assertTrue(expectedPaths.contains(path));
+        }
 
-        assertEquals(paths.get(1).size(), 3);
-        assertEquals(paths.get(1).get(0), projectRootId);
-        assertEquals(paths.get(1).get(1), packageFullName);
-        assertEquals(paths.get(1).get(2), "pkg#dep3");
+
     }
 
-    @Test
-    public void findDependencyImpactPathsTest() throws IOException {
-        String projectRootId = "root";
-        String packageName = "pkg";
-        Set<String> packageVersions = Set.of("1.0.0", "2.0.0");
-        List<String> yarnWhyOutput = List.of(
-                "{\"type\":\"info\",\"data\":\"Found \\\"pkg@1.0.0\\\"\"}",
-                "{\"type\":\"list\",\"data\":{\"type\":\"reasons\",\"items\":[\"Specified in \\\"dependencies\\\"\",\"Hoisted from \\\"pkg#dep1\\\"\",\"Hoisted from \\\"pkg#dep2\\\"\"]}}"
-        );
+    @Test(dataProvider = "findDependencyImpactPathsProvider")
+    public void findDependencyImpactPathsTest(Project project, String packageName, Set<String> packageVersions, List<List<String>> expectedPaths) throws IOException {
+        String projectRootId = project.name;
 
-        YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(Paths.get(""), "", null);
-        Map<String, List<List<String>>> paths = yarnTreeBuilder.findDependencyImpactPaths(new NullLog(), projectRootId, packageName, packageVersions);
+        YarnTreeBuilder yarnTreeBuilder = getYarnTreeBuilder(project);
+        Map<String, List<List<String>>> pathsMap = yarnTreeBuilder.findDependencyImpactPaths(new NullLog(), projectRootId, packageName, packageVersions);
 
-        assertNotNull(paths);
-        assertEquals(paths.size(), 1);
-
-        List<List<String>> pkgPaths = paths.get("pkg:1.0.0");
-        assertNotNull(pkgPaths);
-        assertEquals(pkgPaths.size(), 1);
-
-        List<String> singlePath = pkgPaths.get(0);
-        assertEquals(singlePath.size(), 4);
-        assertEquals(singlePath.get(0), projectRootId);
-        assertEquals(singlePath.get(1), "pkg:1.0.0");
-        assertEquals(singlePath.get(2), "pkg#dep1");
-        assertEquals(singlePath.get(3), "pkg#dep2");
+        assertNotNull(pathsMap);
+        for (String packageVersion : packageVersions) {
+            String packageFullName = packageName + ":" + packageVersion;
+            assertTrue(pathsMap.containsKey(packageFullName));
+            List<List<String>> paths = pathsMap.get(packageFullName);
+            assertEquals(paths.size(), expectedPaths.size());
+            for (List<String> path : paths) {
+                assertTrue(expectedPaths.contains(path));
+            }
+        }
     }
 }
