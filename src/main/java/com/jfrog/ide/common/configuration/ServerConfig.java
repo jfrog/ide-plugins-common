@@ -53,12 +53,12 @@ public interface ServerConfig {
     SSLContext getSslContext();
 
     /**
-     * Reads the http proxy configuration set in IDE configuration and returns the proxy configuration for the Xray URL.
+     * Reads the HTTP proxy configuration set in IDE configuration and returns the proxy configuration for the target URL.
      *
-     * @param xrayUrl - Xray url.
-     * @return proxy config for the Xray URL.
+     * @param targetUrl The target URL.
+     * @return Proxy configuration for the target URL.
      */
-    ProxyConfiguration getProxyConfForTargetUrl(String xrayUrl);
+    ProxyConfiguration getProxyConfForTargetUrl(String targetUrl);
 
     /**
      * @return connection retries.
@@ -69,6 +69,13 @@ public interface ServerConfig {
      * @return connection timeout.
      */
     int getConnectionTimeout();
+
+    /**
+     * Returns external resources repository name. If it's not configured, null is returned.
+     *
+     * @return External resources repository name, if configured.
+     */
+    String getExternalResourcesRepo();
 
     @SuppressWarnings("unused")
     default boolean areCredentialsSet() {
