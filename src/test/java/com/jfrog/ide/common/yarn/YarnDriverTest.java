@@ -53,30 +53,43 @@ public class YarnDriverTest {
     }
 
     @DataProvider
-    private Object[][] yarnWhyProvider() {
+    private Object[][] yarnWhyDependencyProvider() {
         return new Object[][]{
                 {Project.DEPENDENCY, "progress"},
-                {Project.DEPENDENCY, "has-flag"},
-                {Project.EMPTY, "component-name"} // Should return an error
-        };
+                {Project.DEPENDENCY, "has-flag"}};
     }
 
-    @Test(dataProvider = "yarnWhyProvider")
-    public void yarnWhyTest(Project project, String componentName) {
+    @Test(dataProvider = "yarnWhyDependencyProvider")
+    public void yarnWhyDependencyTest(Project project, String componentName) {
         try {
             JsonNode[] whyResults = yarnDriver.why(tempProject, componentName);
             assertNotNull(whyResults);
             assertTrue(whyResults.length > 0);
 
-            if (project == Project.EMPTY) {
-                assertTrue(whyResults[0].has("problems"), "Yarn why command result should contain problems:\n" + whyResults[0].toString());
-                return;
-            }
-
             for (JsonNode result : whyResults) {
                 assertNotNull(result);
                 assertFalse(result.has("problems"), "Unexpected problems in yarn why command result:\n" + result.get("problems"));
             }
+        } catch (IOException e) {
+            fail("Exception during yarn why command: " + e.getMessage(), e);
+        }
+    }
+
+    @DataProvider
+    private Object[][] yarnWhyEmptyProvider() {
+        return new Object[][]{{Project.EMPTY, "component-name"} // Should return an error
+        };
+    }
+
+    @Test(dataProvider = "yarnWhyEmptyProvider")
+    public void yarnWhyEmptyTest(Project project, String componentName) {
+        try {
+            JsonNode[] whyResults = yarnDriver.why(tempProject, componentName);
+            assertNotNull(whyResults);
+            assertTrue(whyResults.length > 0);
+
+            assertTrue(whyResults[0].has("problems"), "Yarn why command result should contain problems:\n" + whyResults[0].toString());
+
         } catch (IOException e) {
             fail("Exception during yarn why command: " + e.getMessage(), e);
         }

@@ -93,6 +93,10 @@ public class YarnTreeBuilder {
         dependenciesList.elements().forEachRemaining(subDep -> addDepTreeNodes(nodes, subDep, depNode));
     }
 
+    private boolean isDirectDependency(String rawDependency) {
+        rawDependency = StringUtils.lowerCase(rawDependency); // The word specified can be in upper or lower case
+        return StringUtils.contains(rawDependency, "specified in");
+    }
     /**
      * Extracts a single dependency path from a raw dependency Json string returned from 'Yarn why' command.
      *
@@ -104,12 +108,10 @@ public class YarnTreeBuilder {
     private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
         List<String> pathResult = new ArrayList<>();
         pathResult.add(projectRootId); // The root project is guaranteed to be the first element in the path
-
-        rawDependency = StringUtils.lowerCase(rawDependency); // The word specified can be in upper or lower case
         // remove any "_project_" strings (can be generated as part of a Yarn workspace in Yarn Monorepo feature)
         rawDependency = StringUtils.remove(rawDependency, "_project_");
 
-        if (StringUtils.contains(rawDependency, "specified in")) { // This is a direct dependency
+        if (isDirectDependency(rawDependency)) { // This is a direct dependency
             pathResult.add(packageFullName);
             return pathResult;
         }

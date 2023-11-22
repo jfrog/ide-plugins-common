@@ -73,26 +73,22 @@ public class YarnDriver {
      * @return the command output.
      */
     public JsonNode[] why(File workingDirectory, String componentName) throws IOException {
-        List<String> args = new ArrayList<>();
-        args.add("why");
-        args.add(componentName);
-        args.add("--json");
-        args.add("--no-progress");
+        String[] args = {"why", componentName, "--json", "--no-progress"};
         try {
-            CommandResults commandRes = runCommand(workingDirectory, args.toArray(new String[0]));
+            CommandResults commandRes = runCommand(workingDirectory, args);
             String res = StringUtils.isBlank(commandRes.getRes()) ? "{}" : commandRes.getRes();
-            String[] jsons = res.split("\n");
-            JsonNode[] jsonResults = new JsonNode[jsons.length];
-            for (int i = 0; i < jsons.length; i++) {
-                jsonResults[i] = jsonReader.readTree(jsons[i]);
+            String[] splittedResults = res.split("\n");
+            JsonNode[] yarnWhyResults = new JsonNode[splittedResults.length];
+            for (int i = 0; i < splittedResults.length; i++) {
+                yarnWhyResults[i] = jsonReader.readTree(splittedResults[i]);
             }
 //          note that although the command may succeed (commandRes.isOk() == true), the result may still contain errors (such as no match found)
             String err = commandRes.getErr();
             if (!StringUtils.isBlank(err)) {
-                ((ObjectNode) jsonResults[0]).put("problems", commandRes.getErr());
+                ((ObjectNode) yarnWhyResults[0]).put("problems", commandRes.getErr());
             }
 
-            return jsonResults;
+            return yarnWhyResults;
 
         } catch (IOException | InterruptedException e) {
             throw new IOException("yarn why failed", e);

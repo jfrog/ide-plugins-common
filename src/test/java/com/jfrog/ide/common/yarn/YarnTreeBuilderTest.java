@@ -67,14 +67,7 @@ public class YarnTreeBuilderTest {
         };
     }
 
-    @DataProvider
-    private Object[][] findDependencyImpactPathsProvider() {
-        return new Object[][]{
-                {Project.DEPENDENCY, "@types/node", Set.of("14.14.10"), List.of(List.of("package-name2", "@types/node:14.14.10"))},
-        };
-    }
-
-    private YarnTreeBuilder getYarnTreeBuilder(Project project) throws IOException {
+    private YarnTreeBuilder createYarnTreeBuilder(Project project) throws IOException {
         tempProject = Files.createTempDirectory("ide-plugins-common-yarn").toFile();
         tempProject.deleteOnExit();
         FileUtils.copyDirectory((project).path.toFile(), tempProject);
@@ -85,7 +78,7 @@ public class YarnTreeBuilderTest {
 
     @Test(dataProvider = "yarnTreeBuilderProvider")
     public void yarnTreeBuilderTest(Project project, int expectedChildren) throws IOException {
-        YarnTreeBuilder yarnTreeBuilder = getYarnTreeBuilder(project);
+        YarnTreeBuilder yarnTreeBuilder = createYarnTreeBuilder(project);
         depTree = yarnTreeBuilder.buildTree(new NullLog());
         assertNotNull(depTree);
         String expectedProjectName = project.name;
@@ -161,11 +154,18 @@ public class YarnTreeBuilderTest {
 
     }
 
+    @DataProvider
+    private Object[][] findDependencyImpactPathsProvider() {
+        return new Object[][]{
+                {Project.DEPENDENCY, "@types/node", Set.of("14.14.10"), List.of(List.of("package-name2", "@types/node:14.14.10"))},
+        };
+    }
+
     @Test(dataProvider = "findDependencyImpactPathsProvider")
     public void findDependencyImpactPathsTest(Project project, String packageName, Set<String> packageVersions, List<List<String>> expectedPaths) throws IOException {
         String projectRootId = project.name;
 
-        YarnTreeBuilder yarnTreeBuilder = getYarnTreeBuilder(project);
+        YarnTreeBuilder yarnTreeBuilder = createYarnTreeBuilder(project);
         Map<String, List<List<String>>> pathsMap = yarnTreeBuilder.findDependencyImpactPaths(new NullLog(), projectRootId, packageName, packageVersions);
 
         assertNotNull(pathsMap);
