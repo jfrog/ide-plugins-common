@@ -105,7 +105,10 @@ public class YarnTreeBuilder {
         List<String> pathResult = new ArrayList<>();
         pathResult.add(projectRootId); // The root project is guaranteed to be the first element in the path
 
-        rawDependency = StringUtils.lowerCase(rawDependency); // the word specified can be in upper or lower case
+        rawDependency = StringUtils.lowerCase(rawDependency); // The word specified can be in upper or lower case
+        // remove any "_project_" strings (can be generated as part of a Yarn workspace in Yarn Monorepo feature)
+        rawDependency = StringUtils.remove(rawDependency, "_project_");
+
         if (StringUtils.contains(rawDependency, "specified in")) { // This is a direct dependency
             pathResult.add(packageFullName);
             return pathResult;
