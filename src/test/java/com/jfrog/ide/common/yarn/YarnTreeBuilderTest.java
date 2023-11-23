@@ -31,7 +31,8 @@ public class YarnTreeBuilderTest {
 
     enum Project {
         EMPTY("package-name1", "empty"),
-        DEPENDENCY("package-name2", "dependency");
+        DEPENDENCY("package-name2", "dependency"),
+        EXAMPLE("example-yarn-package", "exampleYarnPackage");
 
         private final String name;
         private final Path path;
@@ -158,6 +159,14 @@ public class YarnTreeBuilderTest {
     private Object[][] findDependencyImpactPathsProvider() {
         return new Object[][]{
                 {Project.DEPENDENCY, "@types/node", Set.of("14.14.10"), List.of(List.of("package-name2", "@types/node:14.14.10"))},
+                {Project.EXAMPLE, "lodash", Set.of("4.16.2"), List.of(List.of("example-yarn-package", "lodash:4.16.2"),
+                        List.of("example-yarn-package", "jest-cli", "jest-runtime", "babel-core", "lodash:4.16.2"),
+                        List.of("example-yarn-package", "jest-cli", "jest-runtime", "babel-core", "babel-register", "lodash:4.16.2"),
+                        List.of("example-yarn-package", "jest-cli", "istanbul-lib-instrument", "babel-generator", "lodash:4.16.2"),
+                        List.of("example-yarn-package", "jest-cli", "istanbul-lib-instrument", "babel-template", "lodash:4.16.2"),
+                        List.of("example-yarn-package", "jest-cli", "istanbul-lib-instrument", "babel-traverse", "lodash:4.16.2"),
+                        List.of("example-yarn-package", "jest-cli", "istanbul-lib-instrument", "babel-types", "lodash:4.16.2")
+                )},
         };
     }
 
