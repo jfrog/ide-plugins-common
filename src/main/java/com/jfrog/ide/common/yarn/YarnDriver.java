@@ -3,8 +3,9 @@ package com.jfrog.ide.common.yarn;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
+import org.jfrog.build.api.util.Log;
+import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
 
@@ -20,9 +21,16 @@ import java.util.stream.Stream;
 public class YarnDriver {
     private static final ObjectReader jsonReader = new ObjectMapper().reader();
     private final CommandExecutor commandExecutor;
+    private final Log log;
 
     public YarnDriver(Map<String, String> env) {
         this.commandExecutor = new CommandExecutor("yarn", env);
+        this.log = new NullLog();
+    }
+
+    public YarnDriver(Map<String, String> env, Log log) {
+        this.commandExecutor = new CommandExecutor("yarn", env);
+        this.log = log;
     }
 
     @SuppressWarnings("unused")
@@ -50,8 +58,9 @@ public class YarnDriver {
             String res = StringUtils.isBlank(commandRes.getRes()) ? "{}" : commandRes.getRes();
             JsonNode jsonResults = jsonReader.readTree(res);
 
-            if (!commandRes.isOk() && !jsonResults.has("problems")) {
-                ((ObjectNode) jsonResults).put("problems", commandRes.getErr());
+            if (!commandRes.isOk()) {
+                log.error("Errors occurred during Yarn list command. " +
+                        "The dependency tree may be incomplete:\n" + commandRes.getErr());
             }
             return jsonResults;
         } catch (IOException | InterruptedException e) {
@@ -76,16 +85,20 @@ public class YarnDriver {
         String[] args = {"why", componentName, "--json", "--no-progress"};
         try {
             CommandResults commandRes = runCommand(workingDirectory, args);
-            String res = StringUtils.isBlank(commandRes.getRes()) ? "{}" : commandRes.getRes();
+
+            // Note that although the command may succeed (commandRes.isOk() == true), the result may still contain errors (such as no match found)
+            String err = commandRes.getErr();
+            if (!StringUtils.isBlank(err)) {
+                log.error("Errors occurred during Yarn why command for dependency '" + componentName + "'. " +
+                        "The dependency tree may be incomplete:\n" + err);
+                return new JsonNode[0];
+            }
+
+            String res = commandRes.getRes();
             String[] splittedResults = res.split("\n");
             JsonNode[] yarnWhyResults = new JsonNode[splittedResults.length];
             for (int i = 0; i < splittedResults.length; i++) {
                 yarnWhyResults[i] = jsonReader.readTree(splittedResults[i]);
-            }
-//          note that although the command may succeed (commandRes.isOk() == true), the result may still contain errors (such as no match found)
-            String err = commandRes.getErr();
-            if (!StringUtils.isBlank(err)) {
-                ((ObjectNode) yarnWhyResults[0]).put("problems", commandRes.getErr());
             }
 
             return yarnWhyResults;

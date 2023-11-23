@@ -25,29 +25,26 @@ public class YarnTreeBuilder {
     private final YarnDriver yarnDriver;
     private final Path projectDir;
     private final String descriptorFilePath;
+    private final Log log;
 
-    public YarnTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env) {
+    public YarnTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env, Log log) {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
-        this.yarnDriver = new YarnDriver(env);
+        this.yarnDriver = new YarnDriver(env, log);
+        this.log = log;
     }
 
     /**
      * Build the yarn dependency tree.
      *
-     * @param logger - The logger.
      * @return full dependency tree without Xray scan results.
      * @throws IOException in case of I/O error.
      */
-    public DepTree buildTree(Log logger) throws IOException {
+    public DepTree buildTree() throws IOException {
         if (!yarnDriver.isYarnInstalled()) {
             throw new IOException("Could not scan Yarn project dependencies, because Yarn is not in the PATH.");
         }
         JsonNode listResults = yarnDriver.list(projectDir.toFile());
-        if (listResults.get("problems") != null) {
-            logger.warn("Errors occurred during building the yarn dependency tree. " +
-                    "The dependency tree may be incomplete:\n" + listResults.get("problems").toString());
-        }
         return buildYarnDependencyTree(listResults);
     }
 
@@ -162,7 +159,6 @@ public class YarnTreeBuilder {
      * Example 2 (List):
      * {"type":"list","data":{"type":"reasons","items":["Specified in \"dependencies\"","Hoisted from \"jest-cli#node-notifier#minimist\"","Hoisted from \"jest-cli#sane#minimist\""]}}
      *
-     * @param logger          - The logger.
      * @param projectRootId   - The name of the project to display in the root of the impact tree.
      * @param packageName     - The package name (without version).
      *                        Example: "minimist".
@@ -170,13 +166,8 @@ public class YarnTreeBuilder {
      * @return A map of package full name (<NAME>:<VERSION>) to a list of dependency paths.
      * @throws IOException in case of I/O error returned from the running "yarn why" command in the yarnDriver.
      */
-    public Map<String, List<List<String>>> findDependencyImpactPaths(Log logger, String projectRootId, String packageName, Set<String> packageVersions) throws IOException {
+    public Map<String, List<List<String>>> findDependencyImpactPaths(String projectRootId, String packageName, Set<String> packageVersions) throws IOException {
         JsonNode[] yarnWhyItem = yarnDriver.why(projectDir.toFile(), packageName);
-        if (yarnWhyItem[0].has("problems")) {
-            logger.warn("Errors occurred during building the Yarn dependency tree. " +
-                    "The dependency tree may be incomplete:\n" + yarnWhyItem[0].get("problems").toString());
-
-        }
 
         // Parse "yarn why" results and generate the dependency paths
         String packageFullName = packageName;

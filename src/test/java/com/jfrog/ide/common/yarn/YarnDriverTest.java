@@ -66,10 +66,6 @@ public class YarnDriverTest {
             assertNotNull(whyResults);
             assertTrue(whyResults.length > 0);
 
-            for (JsonNode result : whyResults) {
-                assertNotNull(result);
-                assertFalse(result.has("problems"), "Unexpected problems in yarn why command result:\n" + result.get("problems"));
-            }
         } catch (IOException e) {
             fail("Exception during yarn why command: " + e.getMessage(), e);
         }
@@ -86,9 +82,7 @@ public class YarnDriverTest {
         try {
             JsonNode[] whyResults = yarnDriver.why(tempProject, componentName);
             assertNotNull(whyResults);
-            assertTrue(whyResults.length > 0);
-
-            assertTrue(whyResults[0].has("problems"), "Yarn why command result should contain problems:\n" + whyResults[0].toString());
+            assertFalse(whyResults.length > 0);
 
         } catch (IOException e) {
             fail("Exception during yarn why command: " + e.getMessage(), e);

@@ -73,13 +73,13 @@ public class YarnTreeBuilderTest {
         FileUtils.copyDirectory((project).path.toFile(), tempProject);
         Path projectDir = tempProject.toPath();
         descriptorFilePath = projectDir.resolve("package.json").toString();
-        return new YarnTreeBuilder(projectDir, descriptorFilePath, null);
+        return new YarnTreeBuilder(projectDir, descriptorFilePath, null, new NullLog());
     }
 
     @Test(dataProvider = "yarnTreeBuilderProvider")
     public void yarnTreeBuilderTest(Project project, int expectedChildren) throws IOException {
         YarnTreeBuilder yarnTreeBuilder = createYarnTreeBuilder(project);
-        depTree = yarnTreeBuilder.buildTree(new NullLog());
+        depTree = yarnTreeBuilder.buildTree();
         assertNotNull(depTree);
         String expectedProjectName = project.name;
         checkDependencyTree(expectedProjectName, expectedChildren);
@@ -142,7 +142,7 @@ public class YarnTreeBuilderTest {
                 List.of(projectRootId, "jest-cli", "istanbul-api", "mkdirp", packageFullName),
                 List.of(projectRootId, packageFullName)
         );
-        YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(Paths.get(""), "", null);
+        YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(Paths.get(""), "", null, new NullLog());
         List<List<String>> paths = yarnTreeBuilder.extractMultiplePaths(projectRootId, packageFullName, rawDependencyPaths);
 
         assertNotNull(paths);
@@ -166,7 +166,7 @@ public class YarnTreeBuilderTest {
         String projectRootId = project.name;
 
         YarnTreeBuilder yarnTreeBuilder = createYarnTreeBuilder(project);
-        Map<String, List<List<String>>> pathsMap = yarnTreeBuilder.findDependencyImpactPaths(new NullLog(), projectRootId, packageName, packageVersions);
+        Map<String, List<List<String>>> pathsMap = yarnTreeBuilder.findDependencyImpactPaths(projectRootId, packageName, packageVersions);
 
         assertNotNull(pathsMap);
         for (String packageVersion : packageVersions) {
