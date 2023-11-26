@@ -29,7 +29,7 @@ import static org.testng.Assert.*;
 public class YarnTreeBuilderTest {
     private static final Path YARN_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "yarn"));
 
-    enum Project {
+    public enum Project {
         EMPTY("package-name1", "empty"),
         DEPENDENCY("package-name2", "dependency"),
         EXAMPLE("example-yarn-package", "exampleYarnPackage");
@@ -144,15 +144,13 @@ public class YarnTreeBuilderTest {
                 List.of(projectRootId, packageFullName)
         );
         YarnTreeBuilder yarnTreeBuilder = new YarnTreeBuilder(Paths.get(""), "", null, new NullLog());
-        List<List<String>> paths = yarnTreeBuilder.extractMultiplePaths(projectRootId, packageFullName, rawDependencyPaths);
+        List<List<String>> actualPaths = yarnTreeBuilder.extractMultiplePaths(projectRootId, packageFullName, rawDependencyPaths);
 
-        assertNotNull(paths);
-        assertEquals(paths.size(), expectedPaths.size());
-        for (List<String> path : paths) {
+        assertNotNull(actualPaths);
+        assertEquals(actualPaths.size(), expectedPaths.size());
+        for (List<String> path : actualPaths) {
             assertTrue(expectedPaths.contains(path));
         }
-
-
     }
 
     @DataProvider

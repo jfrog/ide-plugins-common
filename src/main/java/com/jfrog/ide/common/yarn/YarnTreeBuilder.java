@@ -93,7 +93,7 @@ public class YarnTreeBuilder {
     private boolean isDirectDependency(String rawDependency) {
         rawDependency = StringUtils.lowerCase(rawDependency); // The word specified can be in upper or lower case
         // If rawDependency contains "specified in" or "workspace-aggregator-" it is a direct dependency
-        return StringUtils.contains(rawDependency, "specified in") || StringUtils.contains(rawDependency, "workspace-aggregator-");
+        return StringUtils.containsAny(rawDependency, "specified in", "workspace-aggregator-");
     }
 
     /**

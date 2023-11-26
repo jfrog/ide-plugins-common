@@ -16,12 +16,12 @@ import java.nio.file.Paths;
 import static org.testng.Assert.*;
 
 /**
- * Test the 'why' functionality in YarnDriver.
+ * Test functionalities of YarnDriver.
  */
 public class YarnDriverTest {
     private static final Path YARN_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "yarn"));
 
-    enum Project {
+    public enum Project {
 
         EMPTY("empty"),
         DEPENDENCY("dependency");
