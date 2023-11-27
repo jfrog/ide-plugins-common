@@ -84,10 +84,10 @@ public class GraphScanLogic implements ScanLogic {
      * @return a graph of components for Xray scan.
      */
     private DependencyTree createScanTree(DepTree tree, ComponentPrefix prefix) {
-        String rootFullId = prefix.getPrefix() + tree.getRootId();
+        String rootFullId = prefix.getPrefix() + tree.rootId();
         DependencyTree scanTree = new DependencyTree(rootFullId);
         Set<String> componentsAdded = new HashSet<>();
-        for (Map.Entry<String, DepTreeNode> nodeEntry : tree.getNodes().entrySet()) {
+        for (Map.Entry<String, DepTreeNode> nodeEntry : tree.nodes().entrySet()) {
             String compId = nodeEntry.getKey();
             if (nodeEntry.getValue().getDescriptorFilePath() == null && componentsAdded.add(compId)) {
                 String nodeFullId = prefix.getPrefix() + compId;

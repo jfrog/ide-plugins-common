@@ -95,8 +95,8 @@ public class GradleTreeBuilderTest {
         DepTree depTree = gradleTreeBuilder.buildTree(new NullLog());
         assertNotNull(depTree);
 
-        assertEquals(depTree.getRootId(), tempProject.getName());
-        assertEquals(depTree.getRootNode().getDescriptorFilePath(), descriptorFilePath);
+        assertEquals(depTree.rootId(), tempProject.getName());
+        assertEquals(depTree.getRootNodeDescriptorFilePath(), descriptorFilePath);
         assertEquals(depTree.getRootNode().getChildren().size(), 3);
         return depTree;
     }
@@ -104,7 +104,7 @@ public class GradleTreeBuilderTest {
     private DepTreeNode getAndAssertSharedModule(DepTree depTree) {
         final String COMP_ID = "org.jfrog.test.gradle.publish:shared:1.0-SNAPSHOT";
         assertTrue(depTree.getRootNode().getChildren().contains(COMP_ID));
-        DepTreeNode shared = depTree.getNodes().get(COMP_ID);
+        DepTreeNode shared = depTree.nodes().get(COMP_ID);
         assertNotNull(shared, "Couldn't find node '" + COMP_ID + "'.");
         assertEquals(shared.getChildren().size(), 1);
         assertNotEquals(Sets.newHashSet(new Scope()), shared.getScopes());

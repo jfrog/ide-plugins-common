@@ -116,7 +116,7 @@ public class NpmTreeBuilderTest {
 
     private void checkDependencyTree(String expectedProjectId, int expectedChildren) {
         assertNotNull(depTree);
-        assertEquals(depTree.getRootId(), expectedProjectId);
+        assertEquals(depTree.rootId(), expectedProjectId);
         DepTreeNode rootNode = depTree.getRootNode();
         assertNotNull(rootNode);
         assertEquals(rootNode.getDescriptorFilePath(), descriptorFilePath);
@@ -134,7 +134,7 @@ public class NpmTreeBuilderTest {
         DepTreeNode rootNode = depTree.getRootNode();
         String childId = rootNode.getChildren().stream().findFirst().orElse(null);
         assertEquals("progress:2.0.3", childId);
-        DepTreeNode childNode = depTree.getNodes().get(childId);
+        DepTreeNode childNode = depTree.nodes().get(childId);
         assertNotNull(childNode);
         Set<String> expectedScopes = Sets.newHashSet("dev");
         // If using npm 6, the dependency may be either in dev and prod scopes
@@ -147,7 +147,7 @@ public class NpmTreeBuilderTest {
     private void twoChildrenScenario() {
         DepTreeNode rootNode = depTree.getRootNode();
         for (String childId : rootNode.getChildren()) {
-            DepTreeNode childNode = depTree.getNodes().get(childId);
+            DepTreeNode childNode = depTree.nodes().get(childId);
             switch (childId) {
                 case "progress:2.0.3":
                     assertTrue(childNode.getScopes().contains("prod"));

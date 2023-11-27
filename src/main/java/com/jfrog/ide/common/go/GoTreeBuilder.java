@@ -157,7 +157,7 @@ public class GoTreeBuilder {
     }
 
     private static void populateChildren(DepTree depTree, String[] dependenciesGraph) {
-        Map<String, DepTreeNode> nodes = depTree.getNodes();
+        Map<String, DepTreeNode> nodes = depTree.nodes();
         for (String entry : dependenciesGraph) {
             if (StringUtils.isAllBlank(entry)) {
                 continue;
@@ -196,7 +196,7 @@ public class GoTreeBuilder {
     private void addGoVersionNode(DepTree depTree, Version goVersion) {
         String goCompId = GO_SOURCE_CODE_PREFIX + goVersion;
         DepTreeNode goVersionNode = new DepTreeNode();
-        depTree.getNodes().put(goCompId, goVersionNode);
+        depTree.nodes().put(goCompId, goVersionNode);
         depTree.getRootNode().getChildren().add(goCompId);
     }
 }
