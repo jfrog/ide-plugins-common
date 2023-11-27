@@ -24,8 +24,7 @@ public class YarnDriver {
     private final Log log;
 
     public YarnDriver(Map<String, String> env) {
-        this.commandExecutor = new CommandExecutor("yarn", env);
-        this.log = new NullLog();
+        this(env, new NullLog());
     }
 
     public YarnDriver(Map<String, String> env, Log log) {
@@ -43,8 +42,9 @@ public class YarnDriver {
     }
 
     /**
-     * Runs 'yarn list' command.
-     *
+     * Runs 'yarn list' command and returns the output as a JsonNode.
+     * @param workingDirectory - The working directory to run the command from.
+     * @param extraArgs - Extra arguments to pass to the command.
      * @return the command output.
      */
     public JsonNode list(File workingDirectory, List<String> extraArgs) throws IOException {
@@ -55,7 +55,7 @@ public class YarnDriver {
         args.addAll(extraArgs);
         try {
             CommandResults commandRes = runCommand(workingDirectory, args.toArray(new String[0]));
-            String res = StringUtils.isBlank(commandRes.getRes()) ? "{}" : commandRes.getRes();
+            String res = StringUtils.defaultIfBlank(commandRes.getRes(), "{}");
             JsonNode jsonResults = jsonReader.readTree(res);
 
             if (!commandRes.isOk()) {
@@ -77,8 +77,9 @@ public class YarnDriver {
     }
 
     /**
-     * Runs 'yarn why' command.
-     *
+     * Runs 'yarn why' command and returns the output as an array of JsonNodes.
+     * @param workingDirectory - The working directory to run the command from.
+     * @param componentName - The component name to run the command for.
      * @return the command output.
      */
     public JsonNode[] why(File workingDirectory, String componentName) throws IOException {
@@ -95,10 +96,10 @@ public class YarnDriver {
             }
 
             String res = commandRes.getRes();
-            String[] splittedResults = res.split("\n");
-            JsonNode[] yarnWhyResults = new JsonNode[splittedResults.length];
-            for (int i = 0; i < splittedResults.length; i++) {
-                yarnWhyResults[i] = jsonReader.readTree(splittedResults[i]);
+            String[] splitResults = res.split("\n");
+            JsonNode[] yarnWhyResults = new JsonNode[splitResults.length];
+            for (int i = 0; i < splitResults.length; i++) {
+                yarnWhyResults[i] = jsonReader.readTree(splitResults[i]);
             }
 
             return yarnWhyResults;
