@@ -22,12 +22,10 @@ public class YarnDriverTest {
     private static final Path YARN_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "yarn"));
 
     public enum Project {
-
         EMPTY("empty"),
         DEPENDENCY("dependency");
 
         private final Path path;
-
         Project(String path) {
             this.path = YARN_ROOT.resolve(path);
         }
@@ -55,37 +53,16 @@ public class YarnDriverTest {
     @DataProvider
     private Object[][] yarnWhyDependencyProvider() {
         return new Object[][]{
-                {Project.DEPENDENCY, "progress"},
-                {Project.DEPENDENCY, "has-flag"}};
-    }
-
-    @Test(dataProvider = "yarnWhyDependencyProvider")
-    public void yarnWhyDependencyTest(Project project, String componentName) {
-        try {
-            JsonNode[] whyResults = yarnDriver.why(tempProject, componentName);
-            assertNotNull(whyResults);
-            assertTrue(whyResults.length > 0);
-
-        } catch (IOException e) {
-            fail("Exception during yarn why command: " + e.getMessage(), e);
-        }
-    }
-
-    @DataProvider
-    private Object[][] yarnWhyEmptyProvider() {
-        return new Object[][]{{Project.EMPTY, "component-name"} // Should return an error
+                {Project.DEPENDENCY, "progress", true},
+                {Project.DEPENDENCY, "has-flag", true},
+                {Project.EMPTY, "component-name", false}
         };
     }
 
-    @Test(dataProvider = "yarnWhyEmptyProvider")
-    public void yarnWhyEmptyTest(Project project, String componentName) {
-        try {
-            JsonNode[] whyResults = yarnDriver.why(tempProject, componentName);
-            assertNotNull(whyResults);
-            assertFalse(whyResults.length > 0);
-
-        } catch (IOException e) {
-            fail("Exception during yarn why command: " + e.getMessage(), e);
-        }
+    @Test(dataProvider = "yarnWhyDependencyProvider")
+    public void yarnWhyDependencyTest(@SuppressWarnings("unused") Project project, String componentName, boolean resultsExist) throws IOException {
+        JsonNode[] whyResults = yarnDriver.why(tempProject, componentName);
+        assertNotNull(whyResults);
+        assertEquals(whyResults.length > 0, resultsExist);
     }
 }

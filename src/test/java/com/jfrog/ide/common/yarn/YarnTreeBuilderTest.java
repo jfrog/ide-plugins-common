@@ -87,7 +87,7 @@ public class YarnTreeBuilderTest {
     }
 
     private void checkDependencyTree(String expectedProjectName, int expectedChildren) {
-        assertEquals(depTree.getRootId(), expectedProjectName + ":0.0.1");
+        assertEquals(depTree.rootId(), expectedProjectName + ":0.0.1");
         DepTreeNode rootNode = depTree.getRootNode();
         assertNotNull(rootNode);
         assertEquals(rootNode.getDescriptorFilePath(), descriptorFilePath);
@@ -101,7 +101,7 @@ public class YarnTreeBuilderTest {
         DepTreeNode rootNode = depTree.getRootNode();
         int count = 0;
         for (String childId : rootNode.getChildren()) {
-            DepTreeNode childNode = depTree.getNodes().get(childId);
+            DepTreeNode childNode = depTree.nodes().get(childId);
             switch (childId) {
                 case "progress:2.0.3":
                 case "has-flag:3.0.0":
