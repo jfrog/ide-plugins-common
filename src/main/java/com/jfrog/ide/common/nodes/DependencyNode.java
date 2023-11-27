@@ -64,6 +64,10 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
 
     public Severity getSeverity() {
         Severity severity = Severity.Normal;
+        if (children == null) {
+            return severity;
+        }
+
         for (TreeNode child : children) {
             Severity childSeverity = ((IssueNode) child).getSeverity();
             if (childSeverity.isHigherThan(severity)) {
@@ -81,7 +85,9 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
 
     @SuppressWarnings("unused")
     public void setImpactTree(ImpactTree impactTree) {
-        this.impactTree = impactTree;
+        if (this.impactTree == null) {
+            this.impactTree = impactTree;
+        }
     }
 
     public void addIssue(IssueNode issue) {
