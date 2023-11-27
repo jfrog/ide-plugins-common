@@ -23,4 +23,8 @@ public class DepTree {
     public DepTreeNode getRootNode() {
         return nodes.get(rootId);
     }
+
+    public String getRootNodeDescriptorFilePath() {
+        return getRootNode().getDescriptorFilePath();
+    }
 }
