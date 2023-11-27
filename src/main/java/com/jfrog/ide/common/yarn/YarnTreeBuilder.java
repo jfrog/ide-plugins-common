@@ -25,13 +25,11 @@ public class YarnTreeBuilder {
     private final YarnDriver yarnDriver;
     private final Path projectDir;
     private final String descriptorFilePath;
-    private final Log log;
 
     public YarnTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env, Log log) {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
         this.yarnDriver = new YarnDriver(env, log);
-        this.log = log;
     }
 
     /**
@@ -96,6 +94,17 @@ public class YarnTreeBuilder {
         return StringUtils.containsAny(rawDependency, "specified in", "workspace-aggregator-");
     }
 
+    private boolean isLastElementPackageName(String[] splitPath, String packageFullName) {
+        return StringUtils.equals(splitPath[splitPath.length - 1], (StringUtils.substringBefore(packageFullName, ":")));
+    }
+
+    private String[] adjustPathIfNeeded(String[] splitPath, String packageFullName) {
+        if (!isLastElementPackageName(splitPath, packageFullName)) {
+            splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
+        }
+        splitPath[splitPath.length - 1] = packageFullName;
+        return splitPath;
+    }
     /**
      * Extracts a single dependency path from a raw dependency Json string returned from 'Yarn why' command.
      *
@@ -106,27 +115,25 @@ public class YarnTreeBuilder {
      */
     private List<String> extractSinglePath(String projectRootId, String packageFullName, String rawDependency) {
         List<String> pathResult = new ArrayList<>();
-        pathResult.add(projectRootId); // The root project is guaranteed to be the first element in the path
+        // The root project is guaranteed to be the first element in the path
+        pathResult.add(projectRootId);
         // remove any "_project_" strings (can be generated as part of a Yarn workspace in Yarn Monorepo feature)
         rawDependency = StringUtils.remove(rawDependency, "_project_");
 
-        if (isDirectDependency(rawDependency)) { // This is a direct dependency
+        // This is a direct dependency
+        if (isDirectDependency(rawDependency)) {
             pathResult.add(packageFullName);
             return pathResult;
         }
 
         // Split the path by '#'
         String[] splitPath = StringUtils.split(StringUtils.substringBetween(rawDependency, "\""), "#");
-
         if (splitPath == null) {
             return null;
         }
 
         // packageFullName is guaranteed to be the last element in the path
-        if (!StringUtils.equals(splitPath[splitPath.length - 1], (StringUtils.substringBefore(packageFullName, ":")))) {
-            splitPath = Arrays.copyOf(splitPath, splitPath.length + 1);
-        }
-        splitPath[splitPath.length - 1] = packageFullName;
+        splitPath = adjustPathIfNeeded(splitPath, packageFullName);
         pathResult.addAll(Arrays.asList(splitPath));
         return pathResult;
     }
@@ -141,7 +148,7 @@ public class YarnTreeBuilder {
      */
     List<List<String>> extractMultiplePaths(String projectRootId, String packageFullName, List<String> rawDependencyPaths) {
         List<List<String>> paths = new ArrayList<>();
-        int limit = rawDependencyPaths.size() < ImpactTree.IMPACT_PATHS_LIMIT ? rawDependencyPaths.size() : 50;
+        int limit = Math.min(rawDependencyPaths.size(), ImpactTree.IMPACT_PATHS_LIMIT);
         for (int i = 0; i < limit; i++) {
             List<String> path = extractSinglePath(projectRootId, packageFullName, rawDependencyPaths.get(i));
             if (path != null) {
