@@ -36,7 +36,7 @@ public class TestUtils {
      */
     public static DepTreeNode getAndAssertChild(DepTree depTree, DepTreeNode parent, String childName) {
         assertTrue(parent.getChildren().contains(childName));
-        DepTreeNode childNode = depTree.getNodes().get(childName);
+        DepTreeNode childNode = depTree.nodes().get(childName);
         assertNotNull(childNode, "Couldn't find node '" + childName + "'.");
         return childNode;
     }

@@ -145,7 +145,7 @@ public class GoTreeBuilderTest {
         Set<String> children = actual.getRootNode().getChildren();
         assertEquals(children.size(), expected.size());
         for (String childId : children) {
-            DepTreeNode childNode = actual.getNodes().get(childId);
+            DepTreeNode childNode = actual.nodes().get(childId);
             assertNotNull(childNode);
             assertEquals(childNode.getChildren().size(), expected.get(childId).intValue());
         }
