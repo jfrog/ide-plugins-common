@@ -140,6 +140,13 @@ public class GoTreeBuilderTest {
         }
     }
 
+    @Test
+    public void testCreateDependencyTreeEmbedProject() throws IOException {
+        Path projectDir = GO_ROOT.resolve("embedProject");
+        GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+        treeBuilder.buildTree();
+    }
+
     private void validateDependencyTreeResults(Map<String, Integer> expected, DepTree actual) throws IOException {
         addExpectedVersionNode(expected);
         Set<String> children = actual.getRootNode().getChildren();
