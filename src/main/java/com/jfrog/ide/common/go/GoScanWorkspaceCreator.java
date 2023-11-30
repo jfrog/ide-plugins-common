@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.go;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.go.GoDriver;
@@ -68,8 +69,17 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
             goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
+            return FileVisitResult.CONTINUE;
+        }
+        // Skip .git, .idea and .vscode (deny list) directories.
+        if (StringUtils.containsAny(fileName, ".git", ".idea", ".vscode")) {
+            return FileVisitResult.SKIP_SUBTREE;
         }
         // Files other than go.mod and *.go files are not necessary to build the dependency tree of used Go packages.
+        // Therefore, we just create an empty file with the same name so go:embed files won't cause a missing file error.
+        if (!fileName.equals("go.sum")) {
+            Files.createFile(targetDir.resolve(sourceDir.relativize(file)));
+        }
         return FileVisitResult.CONTINUE;
     }
 
