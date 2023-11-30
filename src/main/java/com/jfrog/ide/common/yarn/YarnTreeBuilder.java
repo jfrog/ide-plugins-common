@@ -148,11 +148,13 @@ public class YarnTreeBuilder {
      */
     List<List<String>> extractMultiplePaths(String projectRootId, String packageFullName, List<String> rawDependencyPaths) {
         List<List<String>> paths = new ArrayList<>();
-        int limit = Math.min(rawDependencyPaths.size(), ImpactTree.IMPACT_PATHS_LIMIT);
-        for (int i = 0; i < limit; i++) {
-            List<String> path = extractSinglePath(projectRootId, packageFullName, rawDependencyPaths.get(i));
+        for (String rawDepPath : rawDependencyPaths) {
+            List<String> path = extractSinglePath(projectRootId, packageFullName, rawDepPath);
             if (path != null) {
                 paths.add(path);
+                if (paths.size() >= ImpactTree.IMPACT_PATHS_LIMIT) {
+                    break;
+                }
             }
         }
         return paths;
