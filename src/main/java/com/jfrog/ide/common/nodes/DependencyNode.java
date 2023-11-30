@@ -85,9 +85,7 @@ public class DependencyNode extends SortableChildrenTreeNode implements Subtitle
 
     @SuppressWarnings("unused")
     public void setImpactTree(ImpactTree impactTree) {
-        if (this.impactTree == null) {
-            this.impactTree = impactTree;
-        }
+        this.impactTree = impactTree;
     }
 
     public void addIssue(IssueNode issue) {
