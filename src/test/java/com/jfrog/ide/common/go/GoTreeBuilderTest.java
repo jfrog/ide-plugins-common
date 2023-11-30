@@ -127,11 +127,10 @@ public class GoTreeBuilderTest {
      */
     @Test
     public void testCreateDependencyTree6() {
-        Map<String, Integer> expected = new HashMap<>();
         try {
             Path projectDir = GO_ROOT.resolve("project6");
             GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
-            DepTree dt = treeBuilder.buildTree();
+            treeBuilder.buildTree();
             fail("Expected an IOException being thrown");
         } catch (IOException e) {
             // This exception is expected being thrown
