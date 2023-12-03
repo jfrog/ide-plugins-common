@@ -68,7 +68,7 @@ public class GoTreeBuilder {
         } catch (IOException e) {
             // Errors occurred during running "go list". Run again and this time ignore errors.
             usedModulesResults = goDriver.getUsedModules(false, true, dontBuildVcs);
-            logger.warn("Errors occurred during building the Go dependency tree. The dependency tree may be incomplete:" +
+            logger.error("Errors occurred during building the Go dependency tree. The dependency tree may be incomplete:" +
                     System.lineSeparator() + ExceptionUtils.getRootCauseMessage(e));
         }
         if (usedModulesResults.getRes().isEmpty()) {

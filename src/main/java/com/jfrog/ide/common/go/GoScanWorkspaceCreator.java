@@ -1,5 +1,6 @@
 package com.jfrog.ide.common.go;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.go.GoDriver;
@@ -26,6 +27,7 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
     private final Path sourceDir;
     private final Path targetDir;
     private final Log logger;
+    private static final String[] EXCLUDED_DIRS = new String[]{".git", ".idea", ".vscode"};
 
     public GoScanWorkspaceCreator(String executablePath, Path sourceDir, Path targetDir, Path goModAbsDir, Map<String, String> env, Log logger) {
         this.goDriver = new GoDriver(executablePath, env, goModAbsDir.toFile(), logger);
@@ -36,6 +38,10 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+        // Skip excluded directories.
+        if (StringUtils.equalsAny(dir.getFileName().toString(), EXCLUDED_DIRS)) {
+            return FileVisitResult.SKIP_SUBTREE;
+        }
         // Skip subdirectories with go.mod files.
         // These directories are different Go projects and their go files should not be in the root project.
         if (!sourceDir.equals(dir)) {
@@ -68,8 +74,13 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
             goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
+            return FileVisitResult.CONTINUE;
         }
         // Files other than go.mod and *.go files are not necessary to build the dependency tree of used Go packages.
+        // Therefore, we just create an empty file with the same name so go:embed files won't cause a missing file error.
+        if (!fileName.equals("go.sum")) {
+            Files.createFile(targetDir.resolve(sourceDir.relativize(file)));
+        }
         return FileVisitResult.CONTINUE;
     }
 

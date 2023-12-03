@@ -127,17 +127,21 @@ public class GoTreeBuilderTest {
      */
     @Test
     public void testCreateDependencyTree6() {
-        Map<String, Integer> expected = new HashMap<>();
-        try {
-            Path projectDir = GO_ROOT.resolve("project6");
-            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
-            DepTree dt = treeBuilder.buildTree();
-            fail("Expected an IOException being thrown");
-        } catch (IOException e) {
-            // This exception is expected being thrown
-        } catch (Throwable e) {
-            fail(ExceptionUtils.getStackTrace(e));
-        }
+        Path projectDir = GO_ROOT.resolve("project6");
+        GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+        assertThrows(IOException.class, treeBuilder::buildTree);
+    }
+
+    @Test
+    public void testCreateDependencyTreeEmbedProject() throws IOException {
+        Map<String, Integer> expected = new HashMap<>() {{
+            put("github.com/jfrog/jfrog-cli-core:1.9.0", 10);
+            put("github.com/jfrog/jfrog-client-go:0.26.1", 8);
+        }};
+        Path projectDir = GO_ROOT.resolve("embedProject");
+        GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+        DepTree depTree = treeBuilder.buildTree();
+        validateDependencyTreeResults(expected, depTree);
     }
 
     private void validateDependencyTreeResults(Map<String, Integer> expected, DepTree actual) throws IOException {
