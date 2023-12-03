@@ -8,7 +8,6 @@ import (
 )
 
 //go:embed version.txt
-
 var buildVersion string
 
 func main() {
