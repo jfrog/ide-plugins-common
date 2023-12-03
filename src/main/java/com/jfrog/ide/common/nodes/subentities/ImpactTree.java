@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 public class ImpactTree {
-
-    public static final int IMPACT_PATHS_LIMIT = 50;
+    public static final int IMPACT_PATHS_LIMIT = 20;
 
     @Getter
     @JsonProperty
