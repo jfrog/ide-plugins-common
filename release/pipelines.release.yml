@@ -60,8 +60,6 @@ pipelines:
             - sed -i "s/\(version=\).*\$/\1${NEXT_VERSION}/" gradle.properties
             - git commit -am "[artifactory-release] Release version ${NEXT_VERSION} [skipRun]" --allow-empty
             - git tag ${NEXT_VERSION}
-            - git push
-            - git push --tags
 
             # Run build and publish
             - >
@@ -81,3 +79,4 @@ pipelines:
             - sed -i "s/\(version=\).*\$/\1${NEXT_DEVELOPMENT_VERSION}/" gradle.properties
             - git commit -am "[artifactory-release] Next development version [skipRun]"
             - git push
+            - git push --tags
