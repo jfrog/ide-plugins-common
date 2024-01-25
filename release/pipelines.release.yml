@@ -17,6 +17,7 @@ pipelines:
       - name: Release
         type: Bash
         configuration:
+          nodePool: ci_c5xlarge
           inputResources:
             - name: idePluginsJavaReleaseGit
           integrations:
