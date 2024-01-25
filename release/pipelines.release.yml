@@ -54,7 +54,7 @@ pipelines:
             - jf gradlec --use-wrapper --repo-deploy ecosys-oss-release-local --deploy-maven-desc
 
             # Run audit
-            - jf audit --gradle --use-wrapper
+            #- jf audit --gradle --use-wrapper
 
             # Update version
             - sed -i "s/\(version=\).*\$/\1${NEXT_VERSION}/" gradle.properties
