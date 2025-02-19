@@ -13,6 +13,9 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.maven.artifact.versioning.ComparableVersion;
 
 import static com.jfrog.ide.common.utils.Utils.createMapper;
 
@@ -20,7 +23,10 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
  * @author Tal Arian
  */
 public class JfrogCliDriver {
-
+    private static final String JFROG_CLI_RELEASES_URL = "https://releases.jfrog.io/artifactory/jfrog-cli/v2-jf/";
+    private static final String MINIMUM_JFROG_CLI_VERSION = "2.69.0"; // TODO: TBD
+    private static final String MAXIMUM_JFROG_CLI_VERSION = "2.73.3"; // TODO: TBD
+    public static final String DEFAULT_CLI_DESTINATION_PATH = ""; // TODO: determine where we would like to download and save the cli
     private static final ObjectMapper jsonReader = createMapper();
     private final CommandExecutor commandExecutor;
 
@@ -89,5 +95,101 @@ public class JfrogCliDriver {
         }
 
         return commandResults;
+    }
+
+    public void  void downloadCLIIfNeeded() {
+        if(isJfrogCliInstalled()){
+            // verify installed cli version
+            CommandExecutor commandExecutor = new CommandExecutor(jfrogExeFilePath.toString(), null);
+            List<String> versionCommand = Arrays.asList("--version");
+
+            try {
+                CommandResults versionCommandOutput = commandExecutor.exeCommand(null, versionCommand, null, logger);
+                String cliVersion = extractVersion(versionCommandOutput.getRes());
+
+                if (validateCLIVersion(cliVersion)) {
+                    logger.debug("Local CLI version is: " + cliVersion);
+                    logger.info("Local 'jf.exe' file version has been verified and is compatible. Proceeding with its usage.");
+                } else {
+                    logger.info("Local 'jf.exe' file version is not compatible. Downloading v" + MAXIMUM_JFROG_CLI_VERSION);
+                    downloadCliFromReleases(osName, MAXIMUM_JFROG_CLI_VERSION, systemFolderPath);
+                }
+            } catch (InterruptedException | IOException e) {
+                // TODO: should we fail in case of error or download a new cli exe ?
+                logger.error("Failed to verify CLI version. Downloading v"+ MAXIMUM_JFROG_CLI_VERSION);
+                downloadCliFromReleases(osName, MAXIMUM_JFROG_CLI_VERSION, systemFolderPath);
+            }
+
+        } else {
+            // download cli
+            downloadCliFromReleases(osName, MAXIMUM_JFROG_CLI_VERSION, systemFolderPath);
+        }
+    }
+
+    public void downloadCliFromReleases(String osName, String cliVersion, String destinationPath) throws IOException {
+        String osAndArch = getOSAndArc();
+        String fullCLIPath = JFROG_CLI_RELEASES_URL + cliVersion + "/jfrog-cli-" + osAndArch + "/jf.exe";
+
+        // TODO: download jf.exe from 'fullCLIPath' and save it at 'destinationPath'
+    }
+
+    private String getOSAndArc() throws IOException {
+        String arch = SystemUtils.OS_ARCH;
+        // Windows
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return "windows-amd64";
+        }
+        // Mac
+        if (SystemUtils.IS_OS_MAC) {
+            if (StringUtils.equalsAny(arch, "aarch64", "arm64")) {
+                return "mac-arm64";
+            } else {
+                return "mac-amd64";
+            }
+        }
+        // Linux
+        if (SystemUtils.IS_OS_LINUX) {
+            switch (arch) {
+                case "i386":
+                case "i486":
+                case "i586":
+                case "i686":
+                case "i786":
+                case "x86":
+                    return "linux-386";
+                case "amd64":
+                case "x86_64":
+                case "x64":
+                    return "linux-amd64";
+                case "arm":
+                case "armv7l":
+                    return "linux-arm";
+                case "aarch64":
+                    return "linux-arm64";
+                case "ppc64":
+                case "ppc64le":
+                    return "linux-" + arch;
+            }
+        }
+        throw new IOException(String.format("Unsupported OS: %s-%s", SystemUtils.OS_NAME, arch));
+    }
+
+    private Boolean validateCLIVersion(String cliVersion) {
+        ComparableVersion currentCLIVersion = new ComparableVersion(cliVersion);
+        ComparableVersion maxCLIVersion = new ComparableVersion(MAXIMUM_JFROG_CLI_VERSION);
+        ComparableVersion minCLIVersion = new ComparableVersion(MINIMUM_JFROG_CLI_VERSION);
+
+        return currentCLIVersion.compareTo(minCLIVersion) >=0 && currentCLIVersion.compareTo(maxCLIVersion) <= 0;
+    }
+
+    private String extractVersion(String input) {
+        String regex = "\\d+(\\.\\d+)*";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(input);
+
+        if (matcher.find()) {
+            return matcher.group();
+        }
+        return null;
     }
 }
