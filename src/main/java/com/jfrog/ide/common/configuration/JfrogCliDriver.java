@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jfrog.ide.common.log.Utils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.Log;
@@ -9,6 +10,7 @@ import org.jfrog.build.extractor.executor.CommandResults;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,18 +31,21 @@ public class JfrogCliDriver {
     public static final String DEFAULT_CLI_DESTINATION_PATH = ""; // TODO: determine where we would like to download and save the cli
     private static final ObjectMapper jsonReader = createMapper();
     private final CommandExecutor commandExecutor;
+    private Log log;
+    private String osAndArch;
+    private String jfrogExec = "jf";
 
     @SuppressWarnings("unused")
-    public JfrogCliDriver(Map<String, String> env) {
-        this(env, "");
+    public JfrogCliDriver(Map<String, String> env, Log log) throws IOException {
+        this(env, "", log);
     }
 
-    public JfrogCliDriver(Map<String, String> env, String path) {
-        String jfrogExec = "jf";
+    public JfrogCliDriver(Map<String, String> env, String path, Log log) throws IOException {
         if (SystemUtils.IS_OS_WINDOWS) {
-            jfrogExec += ".exe";
+            this.jfrogExec += ".exe";
         }
-        this.commandExecutor = new CommandExecutor(Paths.get(path, jfrogExec).toString(), env);
+        this.commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), env);
+        this.osAndArch = getOSAndArc();
     }
 
     @SuppressWarnings("unused")
@@ -97,40 +102,44 @@ public class JfrogCliDriver {
         return commandResults;
     }
 
-    public void  void downloadCLIIfNeeded() {
+    public void downloadCliIfNeeded() {
+        downloadCliIfNeeded(DEFAULT_CLI_DESTINATION_PATH);
+    }
+
+    public void downloadCliIfNeeded(String destinationPath) {
+        Path jfrogExeFilePath = Paths.get(destinationPath);
+
         if(isJfrogCliInstalled()){
             // verify installed cli version
             CommandExecutor commandExecutor = new CommandExecutor(jfrogExeFilePath.toString(), null);
             List<String> versionCommand = Arrays.asList("--version");
 
             try {
-                CommandResults versionCommandOutput = commandExecutor.exeCommand(null, versionCommand, null, logger);
+                CommandResults versionCommandOutput = commandExecutor.exeCommand(null, versionCommand, null, log);
                 String cliVersion = extractVersion(versionCommandOutput.getRes());
 
                 if (validateCLIVersion(cliVersion)) {
-                    logger.debug("Local CLI version is: " + cliVersion);
-                    logger.info("Local 'jf.exe' file version has been verified and is compatible. Proceeding with its usage.");
+                    log.debug("Local CLI version is: " + cliVersion);
+                    log.info("Local 'jf.exe' file version has been verified and is compatible. Proceeding with its usage.");
                 } else {
-                    logger.info("Local 'jf.exe' file version is not compatible. Downloading v" + MAXIMUM_JFROG_CLI_VERSION);
-                    downloadCliFromReleases(osName, MAXIMUM_JFROG_CLI_VERSION, systemFolderPath);
+                    log.info("Local 'jf.exe' file version is not compatible. Downloading v" + MAXIMUM_JFROG_CLI_VERSION);
+                    downloadCliFromReleases(MAXIMUM_JFROG_CLI_VERSION, destinationPath);
                 }
             } catch (InterruptedException | IOException e) {
                 // TODO: should we fail in case of error or download a new cli exe ?
-                logger.error("Failed to verify CLI version. Downloading v"+ MAXIMUM_JFROG_CLI_VERSION);
-                downloadCliFromReleases(osName, MAXIMUM_JFROG_CLI_VERSION, systemFolderPath);
+                log.error("Failed to verify CLI version. Downloading v"+ MAXIMUM_JFROG_CLI_VERSION);
+                downloadCliFromReleases(MAXIMUM_JFROG_CLI_VERSION, destinationPath);
             }
-
         } else {
             // download cli
-            downloadCliFromReleases(osName, MAXIMUM_JFROG_CLI_VERSION, systemFolderPath);
+            downloadCliFromReleases(MAXIMUM_JFROG_CLI_VERSION, destinationPath);
         }
     }
 
-    public void downloadCliFromReleases(String osName, String cliVersion, String destinationPath) throws IOException {
-        String osAndArch = getOSAndArc();
-        String fullCLIPath = JFROG_CLI_RELEASES_URL + cliVersion + "/jfrog-cli-" + osAndArch + "/jf.exe";
+    public void downloadCliFromReleases(String cliVersion, String destinationPath) {
+        String fullDownloadPath = JFROG_CLI_RELEASES_URL + cliVersion + "/jfrog-cli-" + this.osAndArch + this.jfrogExec;
 
-        // TODO: download jf.exe from 'fullCLIPath' and save it at 'destinationPath'
+        // TODO: download executable from 'fullCLIPath' and save it in 'destinationPath'
     }
 
     private String getOSAndArc() throws IOException {

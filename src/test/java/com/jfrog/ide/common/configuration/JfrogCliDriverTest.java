@@ -2,6 +2,7 @@ package com.jfrog.ide.common.configuration;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.SystemUtils;
+import org.jfrog.build.api.util.NullLog;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -61,7 +62,7 @@ public class JfrogCliDriverTest {
         }
     }
 
-    private void configJfrogCli() {
+    private void configJfrogCli() throws IOException {
         try {
             tempDir = Files.createTempDirectory("ide-plugins-common-cli-test").toFile();
             tempDir.deleteOnExit();
@@ -70,7 +71,7 @@ public class JfrogCliDriverTest {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
-        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator);
+        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, new NullLog());
 
     }
 
