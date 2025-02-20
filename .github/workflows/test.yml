@@ -30,6 +30,10 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.23"
 
       # Run tests
       - name: Tests on macOS, Linux
