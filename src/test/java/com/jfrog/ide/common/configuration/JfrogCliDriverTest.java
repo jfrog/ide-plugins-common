@@ -1,6 +1,5 @@
 package com.jfrog.ide.common.configuration;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.testng.annotations.AfterMethod;
@@ -109,5 +108,8 @@ public class JfrogCliDriverTest {
             fail(e.getMessage(), e);
         }
     }
+
+
+    // TODO: add tests for added functionality
 
 }

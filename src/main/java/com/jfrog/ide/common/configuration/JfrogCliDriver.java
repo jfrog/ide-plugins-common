@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -108,6 +107,7 @@ public class JfrogCliDriver {
         return commandResults;
     }
 
+    @SuppressWarnings("unused")
     public void downloadCliIfNeeded(String destinationPath) {
         if(isJfrogCliInstalled()){
             // verify installed cli version
@@ -199,11 +199,5 @@ public class JfrogCliDriver {
             return matcher.group();
         }
         return null;
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        JfrogCliDriver driver = new JfrogCliDriver(null, new NullLog());
-        String destinationPath = "C:\\Users\\Keren Reshef\\Downloads\\jfrog-cli.exe";
-        driver.downloadCliIfNeeded(destinationPath);
     }
 }
