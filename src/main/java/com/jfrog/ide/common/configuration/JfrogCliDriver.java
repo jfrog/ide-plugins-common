@@ -5,7 +5,6 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -109,7 +108,7 @@ public class JfrogCliDriver {
     }
 
     @SuppressWarnings("unused")
-    public void downloadCliIfNeeded(String destinationPath, String jfrogCliVersion) throws IOException, InterruptedException {
+    public void downloadCliIfNeeded(String destinationPath, String jfrogCliVersion) throws IOException {
         // verify installed cli version
         String cliVersion = extractVersion(version(null));
         log.debug("Local CLI version is: " + cliVersion);
