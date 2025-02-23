@@ -65,7 +65,7 @@ public class JfrogCliDriverTest {
         }
     }
 
-    private void configJfrogCli(ITestResult result) throws IOException {
+    private void configJfrogCli(ITestResult result) {
         try {
             tempDir = Files.createTempDirectory("ide-plugins-common-cli-test").toFile();
             tempDir.deleteOnExit();
@@ -102,7 +102,7 @@ public class JfrogCliDriverTest {
 
 
     @Test
-    void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException, InterruptedException {
+    void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException {
         String jfrogCliVersion = "2.73.0";
         String destinationFolder = tempDir.getAbsolutePath();
         jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
@@ -120,7 +120,7 @@ public class JfrogCliDriverTest {
     }
 
     @Test
-    void testDownloadCliIfNeeded_whenCliIsNotInstalled() throws IOException, InterruptedException {
+    void testDownloadCliIfNeeded_whenCliIsNotInstalled() throws IOException {
         String jfrogCliVersion = "2.71.0";
         String destinationFolder = tempDir.getAbsolutePath();
         jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());

@@ -30,23 +30,21 @@ public class JfrogCliDriver {
     private static final String JFROG_CLI_RELEASES_URL = "https://releases.jfrog.io/artifactory";
     private static final ObjectMapper jsonReader = createMapper();
     private final CommandExecutor commandExecutor;
-    private final String osAndArch;
     private final Log log;
 
     @Getter
     private String jfrogExec = "jf";
 
     @SuppressWarnings("unused")
-    public JfrogCliDriver(Map<String, String> env, Log log) throws IOException {
+    public JfrogCliDriver(Map<String, String> env, Log log) {
         this(env, "", log);
     }
 
-    public JfrogCliDriver(Map<String, String> env, String path, Log log) throws IOException {
+    public JfrogCliDriver(Map<String, String> env, String path, Log log) {
         if (SystemUtils.IS_OS_WINDOWS) {
             this.jfrogExec += ".exe";
         }
         this.commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), env);
-        this.osAndArch = getOSAndArc();
         this.log = log;
     }
 
@@ -123,7 +121,7 @@ public class JfrogCliDriver {
     }
 
     public void downloadCliFromReleases(String cliVersion, String destinationFolder) throws IOException {
-        String[] urlParts = {"jfrog-cli/v2-jf", cliVersion, "jfrog-cli-" + osAndArch, jfrogExec};
+        String[] urlParts = {"jfrog-cli/v2-jf", cliVersion, "jfrog-cli-" + getOSAndArc(), jfrogExec};
         String fileLocationInReleases = String.join("/", urlParts);
         Path basePath = Paths.get(destinationFolder);
         String destinationPath = basePath.resolve(jfrogExec).toString();
