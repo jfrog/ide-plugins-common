@@ -36,7 +36,6 @@ dependencies {
     implementation group: 'org.apache.httpcomponents', name: 'httpcore', version: '4.4.14'
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
-    implementation 'org.apache.maven:maven-artifact:3.8.6'
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.13'
     implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '3.0.1'
