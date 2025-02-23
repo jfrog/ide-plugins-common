@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createAnonymousAccessArtifactoryManagerBuilder;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
+import static com.jfrog.ide.common.utils.Utils.getOSAndArc;
 
 /**
  * @author Tal Arian
@@ -142,46 +143,6 @@ public class JfrogCliDriver {
         }
     }
 
-    private String getOSAndArc() throws IOException {
-        String arch = SystemUtils.OS_ARCH;
-        // Windows
-        if (SystemUtils.IS_OS_WINDOWS) {
-            return "windows-amd64";
-        }
-        // Mac
-        if (SystemUtils.IS_OS_MAC) {
-            if (StringUtils.equalsAny(arch, "aarch64", "arm64")) {
-                return "mac-arm64";
-            } else {
-                return "mac-amd64";
-            }
-        }
-        // Linux
-        if (SystemUtils.IS_OS_LINUX) {
-            switch (arch) {
-                case "i386":
-                case "i486":
-                case "i586":
-                case "i686":
-                case "i786":
-                case "x86":
-                    return "linux-386";
-                case "amd64":
-                case "x86_64":
-                case "x64":
-                    return "linux-amd64";
-                case "arm":
-                case "armv7l":
-                    return "linux-arm";
-                case "aarch64":
-                    return "linux-arm64";
-                case "ppc64":
-                case "ppc64le":
-                    return "linux-" + arch;
-            }
-        }
-        throw new IOException(String.format("Unsupported OS: %s-%s", SystemUtils.OS_NAME, arch));
-    }
 
     private String extractVersion(String input) {
         if (input != null){

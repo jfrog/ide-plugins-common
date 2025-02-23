@@ -7,6 +7,7 @@ import static com.jfrog.ide.common.utils.Utils.resolveArtifactoryUrl;
 import static com.jfrog.ide.common.utils.Utils.resolveXrayUrl;
 import static org.testng.Assert.assertEquals;
 
+
 public class UtilsTest {
 
     @DataProvider
@@ -40,4 +41,5 @@ public class UtilsTest {
     public void testResolveArtifactoryUrl(String inputArtifactoryUrl, String inputPlatformUrl, String expectedArtifactoryUrl) {
         assertEquals(resolveArtifactoryUrl(inputArtifactoryUrl, inputPlatformUrl), expectedArtifactoryUrl);
     }
+
 }

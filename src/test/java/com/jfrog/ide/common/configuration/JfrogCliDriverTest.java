@@ -34,7 +34,6 @@ public class JfrogCliDriverTest {
     private final String SERVER_URL = "https://ide/plugins/common/test/";
     private String testServerId;
     private File tempDir;
-    private Path jfrogCliPath;
 
     @SuppressWarnings("unused")
     @Test()
@@ -98,16 +97,17 @@ public class JfrogCliDriverTest {
     void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException {
         String jfrogCliVersion = "2.73.0";
         String destinationFolder = tempDir.getAbsolutePath();
-        jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
+        File destinationFolderFile = new File(destinationFolder);
+        Path jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
 
-        // verify cli is installed and get version
+        // Verify Jfrog cli executable file exist and get its version
         assertTrue(Files.exists(jfrogCliPath));
-        String currentCliVersion = jfrogCliDriver.version(new File(destinationFolder));
+        String currentCliVersion = jfrogCliDriver.version(destinationFolderFile);
 
         jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersion);
 
         // Assert the new downloaded cli version is compatible with the required version
-        String newJfrogCliVersion = jfrogCliDriver.version(new File(destinationFolder));
+        String newJfrogCliVersion = jfrogCliDriver.version(destinationFolderFile);
 
         assertTrue(newJfrogCliVersion.contains(jfrogCliVersion));
         assertNotEquals(currentCliVersion, newJfrogCliVersion);
@@ -122,10 +122,6 @@ public class JfrogCliDriverTest {
         try {
             String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
             jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
-            // delete jfrog cli file
-            if (jfrogCliPath != null){
-                Files.deleteIfExists(jfrogCliPath);
-            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
