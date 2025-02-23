@@ -105,7 +105,6 @@ public class JfrogCliDriver {
         return commandResults;
     }
 
-    @SuppressWarnings("unused")
     public void downloadCliIfNeeded(String destinationPath, String jfrogCliVersion) throws IOException {
         // verify installed cli version
         String cliVersion = extractVersion(version(null));
@@ -132,6 +131,10 @@ public class JfrogCliDriver {
             ArtifactoryManagerBuilder artifactoryManagerBuilder = createAnonymousAccessArtifactoryManagerBuilder(JFROG_CLI_RELEASES_URL, serverConfig.getProxyConfForTargetUrl(JFROG_CLI_RELEASES_URL), log);
             ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build();
             File cliExecutable = artifactoryManager.downloadToFile(fileLocationInReleases, destinationPath);
+            // setting the file as executable
+            if(!cliExecutable.setExecutable(true)){
+                log.error(String.format("Failed to set downloaded CLI as executable. Path: %s", destinationPath));
+            }
             log.debug(String.format("Downloaded CLI to %s. Permission te execute: %s", destinationPath, cliExecutable.canExecute()));
         } catch (IOException e) {
             log.error(String.format("Failed to download CLI from %s. Reason: %s", fileLocationInReleases, e.getMessage()), e);

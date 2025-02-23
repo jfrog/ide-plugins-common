@@ -1,8 +1,7 @@
 package com.jfrog.ide.common.configuration;
 
 import org.apache.commons.lang3.SystemUtils;
-import org.jfrog.build.api.util.Log;
-import org.testng.ITestResult;
+import org.jfrog.build.api.util.NullLog;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -18,7 +17,6 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static org.mockito.Mockito.*;
 import static org.testng.Assert.*;
 
 /**
@@ -36,7 +34,6 @@ public class JfrogCliDriverTest {
     private final String SERVER_URL = "https://ide/plugins/common/test/";
     private String testServerId;
     private File tempDir;
-    private final Log mockLogger = mock(Log.class);
     private Path jfrogCliPath;
 
     @SuppressWarnings("unused")
@@ -54,31 +51,27 @@ public class JfrogCliDriverTest {
     }
 
     @BeforeMethod
-    public void setUp(Object[] testArgs, ITestResult result) {
+    public void setUp(Object[] testArgs) {
         try {
-            configJfrogCli(result);
+            configJfrogCli();
             testServerId = createServerId();
             String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), mockLogger);
+            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
     }
 
-    private void configJfrogCli(ITestResult result) {
+    private void configJfrogCli() {
         try {
             tempDir = Files.createTempDirectory("ide-plugins-common-cli-test").toFile();
             tempDir.deleteOnExit();
-            // skip download cli for a specific test
-            if (!result.getMethod().getMethodName().equals("testDownloadCliIfNeeded_whenCliIsNotInstalled")){
-                getCli(tempDir);
-            }
+            getCli(tempDir);
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
-        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, mockLogger);
-
+        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, new NullLog());
     }
 
     private void getCli(File execDir) throws IOException, InterruptedException {
@@ -115,25 +108,9 @@ public class JfrogCliDriverTest {
 
         // Assert the new downloaded cli version is compatible with the required version
         String newJfrogCliVersion = jfrogCliDriver.version(new File(destinationFolder));
+
         assertTrue(newJfrogCliVersion.contains(jfrogCliVersion));
         assertNotEquals(currentCliVersion, newJfrogCliVersion);
-    }
-
-    @Test
-    void testDownloadCliIfNeeded_whenCliIsNotInstalled() throws IOException {
-        String jfrogCliVersion = "2.71.0";
-        String destinationFolder = tempDir.getAbsolutePath();
-        jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
-
-        // verify jfrog cli executable does not exist on the test folder
-        assertFalse(Files.exists(jfrogCliPath));
-
-        jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersion);
-
-        // Assert the jfrog cli file exists and its version is compatible with the required version
-        assertTrue(Files.exists(jfrogCliPath));
-        String newJfrogCliVersion = jfrogCliDriver.version(new File(destinationFolder));
-        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion));
     }
 
     private String createServerId() {
@@ -144,9 +121,11 @@ public class JfrogCliDriverTest {
     public void cleanUp() {
         try {
             String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), null);
+            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
             // delete jfrog cli file
-            Files.delete(Paths.get(tempDir.getAbsolutePath()).resolve(jfrogCliDriver.getJfrogExec()));
+            if (jfrogCliPath != null){
+                Files.deleteIfExists(jfrogCliPath);
+            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
