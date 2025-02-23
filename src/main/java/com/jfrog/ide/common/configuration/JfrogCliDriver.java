@@ -1,9 +1,11 @@
 package com.jfrog.ide.common.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -11,6 +13,7 @@ import org.jfrog.build.extractor.clientConfiguration.client.artifactory.Artifact
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,6 +33,8 @@ public class JfrogCliDriver {
     private final CommandExecutor commandExecutor;
     private final String osAndArch;
     private final Log log;
+
+    @Getter
     private String jfrogExec = "jf";
 
     @SuppressWarnings("unused")
@@ -48,12 +53,7 @@ public class JfrogCliDriver {
 
     @SuppressWarnings("unused")
     public boolean isJfrogCliInstalled() {
-        try {
-            version(null);
-            return true;
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
+        return version(null) != null;
     }
 
     @SuppressWarnings("unused")
@@ -82,11 +82,11 @@ public class JfrogCliDriver {
         }
     }
 
-    public String version(File workingDirectory) throws IOException, InterruptedException {
+    public String version(File workingDirectory) {
         String versionOutput = null;
         try{
             versionOutput = runCommand(workingDirectory, new String[]{"--version"}, Collections.emptyList()).getRes();
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             log.error("Failed to get CLI version. Reason: " + e.getMessage());
         }
         return versionOutput;
@@ -123,9 +123,11 @@ public class JfrogCliDriver {
         }
     }
 
-    public void downloadCliFromReleases(String cliVersion, String destinationPath) throws IOException {
+    public void downloadCliFromReleases(String cliVersion, String destinationFolder) throws IOException {
         String[] urlParts = {"jfrog-cli/v2-jf", cliVersion, "jfrog-cli-" + osAndArch, jfrogExec};
         String fileLocationInReleases = String.join("/", urlParts);
+        Path basePath = Paths.get(destinationFolder);
+        String destinationPath = basePath.resolve(jfrogExec).toString();
 
         // download executable from releases and save it in 'destinationPath'
         try{
