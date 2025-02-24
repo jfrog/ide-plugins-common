@@ -240,5 +240,4 @@ public class Utils {
         }
         return removeEnd(url, "/") + "/" + productEndpoint;
     }
-
 }
