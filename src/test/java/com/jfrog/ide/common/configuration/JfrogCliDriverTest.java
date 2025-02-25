@@ -2,6 +2,7 @@ package com.jfrog.ide.common.configuration;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
+import org.jfrog.build.client.Version;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -95,21 +96,22 @@ public class JfrogCliDriverTest {
 
     @Test
     void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException {
-        String jfrogCliVersion = "2.73.0";
+        // We use hardcoded version because the setup method downloads the latest cli version which is greater than 2.73.0.
+        Version jfrogCliVersion = new Version("2.73.0");
         String destinationFolder = tempDir.getAbsolutePath();
         File destinationFolderFile = new File(destinationFolder);
         Path jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
 
         // Verify Jfrog cli executable file exist and get its version
         assertTrue(Files.exists(jfrogCliPath));
-        String currentCliVersion = jfrogCliDriver.version(destinationFolderFile);
+        String currentCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
 
         jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersion);
 
         // Assert the new downloaded cli version is compatible with the required version
-        String newJfrogCliVersion = jfrogCliDriver.version(destinationFolderFile);
+        String newJfrogCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
 
-        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion));
+        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion.toString()));
         assertNotEquals(currentCliVersion, newJfrogCliVersion);
     }
 

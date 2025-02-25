@@ -5,9 +5,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum SourceCodeScanType {
     CONTEXTUAL("analyze-applicability"),
-    SECRETS("secrets-scan"),
-    IAC("iac-scan-modules"),
-    SAST("sast");
+    SECRETS("JFrog Secrets scanner"),
+    IAC("JFrog Terraform scanner"),
+    SAST("JFrog SAST"),
+    SCA("JFrog Xray Scanner");
 
     private final String param;
 
