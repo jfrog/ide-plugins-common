@@ -11,6 +11,7 @@ import com.jfrog.xray.client.services.summary.VulnerableComponents;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.conn.ssl.TrustAllStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.jfrog.build.extractor.scan.Issue;
@@ -18,6 +19,7 @@ import org.jfrog.build.extractor.scan.License;
 import org.jfrog.build.extractor.scan.Severity;
 
 import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -170,6 +172,53 @@ public class Utils {
      */
     public static String resolveArtifactoryUrl(String artifactoryUrl, String platformUrl) {
         return resolveProductUrl(artifactoryUrl, platformUrl, "artifactory");
+    }
+
+    /**
+     * Get the OS and architecture name.
+     *
+     * @return the OS and architecture name.
+     * @throws IOException in case of unsupported OS.
+     */
+    public static String getOSAndArc() throws IOException {
+        String arch = SystemUtils.OS_ARCH;
+        // Windows
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return "windows-amd64";
+        }
+        // Mac
+        if (SystemUtils.IS_OS_MAC) {
+            if (StringUtils.equalsAny(arch, "aarch64", "arm64")) {
+                return "mac-arm64";
+            } else {
+                return "mac-amd64";
+            }
+        }
+        // Linux
+        if (SystemUtils.IS_OS_LINUX) {
+            switch (arch) {
+                case "i386":
+                case "i486":
+                case "i586":
+                case "i686":
+                case "i786":
+                case "x86":
+                    return "linux-386";
+                case "amd64":
+                case "x86_64":
+                case "x64":
+                    return "linux-amd64";
+                case "arm":
+                case "armv7l":
+                    return "linux-arm";
+                case "aarch64":
+                    return "linux-arm64";
+                case "ppc64":
+                case "ppc64le":
+                    return "linux-" + arch;
+            }
+        }
+        throw new IOException(String.format("Unsupported OS: %s-%s", SystemUtils.OS_NAME, arch));
     }
 
     /**

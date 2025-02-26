@@ -9,7 +9,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        node: [14, 16.9, 16]
+        node: [18, 20, 22]
+        go: [1.23, 1.24]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -30,6 +31,10 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
 
       # Run tests
       - name: Tests on macOS, Linux

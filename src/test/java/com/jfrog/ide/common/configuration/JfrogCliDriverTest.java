@@ -1,7 +1,8 @@
 package com.jfrog.ide.common.configuration;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.lang3.SystemUtils;
+import org.jfrog.build.api.util.NullLog;
+import org.jfrog.build.client.Version;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -11,13 +12,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.fail;
+import static org.testng.Assert.*;
 
 /**
  * Test correctness of executing JFrog CLI commands
@@ -55,7 +56,7 @@ public class JfrogCliDriverTest {
             configJfrogCli();
             testServerId = createServerId();
             String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), null);
+            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
@@ -70,12 +71,11 @@ public class JfrogCliDriverTest {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
-        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator);
-
+        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, new NullLog());
     }
 
     private void getCli(File execDir) throws IOException, InterruptedException {
-        List<String> args;
+        // Downloads latest cli version from releases
         if (SystemUtils.IS_OS_WINDOWS) {
             try (InputStream in = new URL("https://releases.jfrog.io/artifactory/jfrog-cli/v2-jf/[RELEASE]/jfrog-cli-windows-amd64/jf.exe").openStream()) {
                 Files.copy(in, Paths.get(tempDir.getAbsolutePath() + "\\jf.exe"), StandardCopyOption.REPLACE_EXISTING);
@@ -83,7 +83,7 @@ public class JfrogCliDriverTest {
             return;
         }
 
-        args = new ArrayList<>() {{
+        List<String> args = new ArrayList<>() {{
             add("/bin/sh");
             add("-c");
             add("curl -fL https://getcli.jfrog.io/v2-jf | sh");
@@ -95,6 +95,27 @@ public class JfrogCliDriverTest {
     }
 
 
+    @Test
+    void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException {
+        // We use hardcoded version because the setup method downloads the latest cli version which is greater than 2.73.0.
+        Version jfrogCliVersion = new Version("2.73.0");
+        String destinationFolder = tempDir.getAbsolutePath();
+        File destinationFolderFile = new File(destinationFolder);
+        Path jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
+
+        // Verify Jfrog cli executable file exist and get its version
+        assertTrue(Files.exists(jfrogCliPath));
+        String currentCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
+
+        jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersion);
+
+        // Assert the new downloaded cli version is compatible with the required version
+        String newJfrogCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
+
+        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion.toString()));
+        assertNotEquals(currentCliVersion, newJfrogCliVersion);
+    }
+
     private String createServerId() {
         return "ide-plugins-common-test-server-" + timeStampFormat.format(System.currentTimeMillis());
     }
@@ -103,10 +124,9 @@ public class JfrogCliDriverTest {
     public void cleanUp() {
         try {
             String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), null);
+            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
     }
-
 }

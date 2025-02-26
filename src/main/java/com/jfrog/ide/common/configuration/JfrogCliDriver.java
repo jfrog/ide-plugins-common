@@ -1,50 +1,58 @@
 package com.jfrog.ide.common.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.jfrog.build.client.Version;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
+import org.jfrog.build.extractor.clientConfiguration.client.artifactory.ArtifactoryManager;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createAnonymousAccessArtifactoryManagerBuilder;
 import static com.jfrog.ide.common.utils.Utils.createMapper;
+import static com.jfrog.ide.common.utils.Utils.getOSAndArc;
 
 /**
  * @author Tal Arian
  */
 public class JfrogCliDriver {
-
+    private static final String JFROG_CLI_RELEASES_URL = "https://releases.jfrog.io/artifactory";
     private static final ObjectMapper jsonReader = createMapper();
     private final CommandExecutor commandExecutor;
+    private final Log log;
+
+    @Getter
+    private String jfrogExec = "jf";
 
     @SuppressWarnings("unused")
-    public JfrogCliDriver(Map<String, String> env) {
-        this(env, "");
+    public JfrogCliDriver(Map<String, String> env, Log log) {
+        this(env, "", log);
     }
 
-    public JfrogCliDriver(Map<String, String> env, String path) {
-        String jfrogExec = "jf";
+    public JfrogCliDriver(Map<String, String> env, String path, Log log) {
         if (SystemUtils.IS_OS_WINDOWS) {
-            jfrogExec += ".exe";
+            this.jfrogExec += ".exe";
         }
-        this.commandExecutor = new CommandExecutor(Paths.get(path, jfrogExec).toString(), env);
+        this.commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), env);
+        this.log = log;
     }
 
     @SuppressWarnings("unused")
     public boolean isJfrogCliInstalled() {
-        try {
-            version(null);
-            return true;
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
+        return runVersion(null) != null;
     }
 
     @SuppressWarnings("unused")
@@ -73,15 +81,24 @@ public class JfrogCliDriver {
         }
     }
 
-    public String version(File workingDirectory) throws IOException, InterruptedException {
-        return runCommand(workingDirectory, new String[]{"--version"}, Collections.emptyList()).getRes();
+    public String runVersion(File workingDirectory) {
+        String versionOutput = null;
+        try{
+            versionOutput = runCommand(workingDirectory, new String[]{"--version"}, Collections.emptyList()).getRes();
+        } catch (IOException | InterruptedException e) {
+            log.error("Failed to get CLI version. Reason: " + e.getMessage());
+        }
+
+        return versionOutput;
     }
 
-    private CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs) throws IOException, InterruptedException {
+    private CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs) throws IOException,
+            InterruptedException {
         return runCommand(workingDirectory, args, extraArgs, null);
     }
 
-    public CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs, Log logger) throws IOException, InterruptedException {
+    public CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs, Log logger)
+            throws IOException, InterruptedException {
         List<String> finalArgs = Stream.concat(Arrays.stream(args), extraArgs.stream()).collect(Collectors.toList());
         CommandResults commandResults = commandExecutor.exeCommand(workingDirectory, finalArgs, null, logger);
         if (!commandResults.isOk()) {
@@ -89,5 +106,59 @@ public class JfrogCliDriver {
         }
 
         return commandResults;
+    }
+
+    public void downloadCliIfNeeded(String destinationPath, Version jfrogCliVersion) throws IOException {
+        // verify installed cli version
+        Version cliVersion = extractVersionFromCliOutput(runVersion(null));
+        log.debug("Local CLI version is: " + cliVersion);
+        // cli is installed but not the correct version
+        if (cliVersion != null && cliVersion.equals(jfrogCliVersion)) {
+            log.info("Local Jfrog CLI version has been verified and is compatible. Proceeding with its usage.");
+        } else {
+            log.info(String.format("JFrog CLI is either not installed or the current version is incompatible. " +
+                    "Initiating download of version %s to the destination: %s.", jfrogCliVersion, destinationPath));
+            downloadCliFromReleases(jfrogCliVersion, destinationPath);
+        }
+    }
+
+    public void downloadCliFromReleases(Version cliVersion, String destinationFolder) throws IOException {
+        String[] urlParts = {"jfrog-cli/v2-jf", cliVersion.toString(), "jfrog-cli-" + getOSAndArc(), jfrogExec};
+        String fileLocationInReleases = String.join("/", urlParts);
+        Path basePath = Paths.get(destinationFolder);
+        String destinationPath = basePath.resolve(jfrogExec).toString();
+
+        // download executable from releases and save it in 'destinationPath'
+        try{
+            ServerConfig serverConfig = getServerConfig();
+            ArtifactoryManagerBuilder artifactoryManagerBuilder = createAnonymousAccessArtifactoryManagerBuilder(JFROG_CLI_RELEASES_URL, serverConfig.getProxyConfForTargetUrl(JFROG_CLI_RELEASES_URL), log);
+            ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build();
+            File cliExecutable = artifactoryManager.downloadToFile(fileLocationInReleases, destinationPath);
+            // setting the file as executable
+            if(!cliExecutable.setExecutable(true)){
+                log.error(String.format("Failed to set downloaded CLI as executable. Path: %s", destinationPath));
+            } else {
+                log.debug(String.format("Downloaded CLI to %s. Permission te execute: %s", destinationPath, cliExecutable.canExecute()));
+            }
+        } catch (IOException e) {
+            log.error(String.format("Failed to download CLI from %s. Reason: %s", fileLocationInReleases, e.getMessage()), e);
+            throw e;
+        }
+    }
+
+
+    private Version extractVersionFromCliOutput(String input) {
+        if (input != null){
+            // define a pattern for the version format 'x.x.x'
+            String regex = "\\b\\d+\\.\\d+\\.\\d+\\b";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(input);
+
+            if (matcher.find()) {
+                return new Version(matcher.group());
+            }
+        }
+
+        return null;
     }
 }
