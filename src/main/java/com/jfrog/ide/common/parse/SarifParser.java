@@ -29,20 +29,34 @@ public class SarifParser {
 
         SarifReport report = SarifUtil.readReport(reader);
         // extract SCA run object from SARIF, if not exist throws an exception
-        Run SCARun = report.getRuns().stream().
+        List<Run> SCARuns = report.getRuns().stream().
                 filter(run -> run.getTool().getDriver().getName().contains(SourceCodeScanType.SCA.getParam()))
-                .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("Couldn't find SCA scan results in CLI scan output"));
+                .toList();
+        if (SCARuns.isEmpty()) {
+            throw new NoSuchElementException("SCA run not found in SARIF report");
+        }
 
-        // get list of results
-        List<Result> results = SCARun.getResults();
-        for (Result result : results) {// build the JfrogSecurityWarning object
-            PropertyBag properties = result.getProperties();
-            if(properties!= null){
-                String applicability = properties.get("applicability").toString();
-                String fixedVersion = properties.get("fixedVersion").toString();
+        // get list of results for each SCA run
+        for (Run SCARun : SCARuns) {
+            List<Result> results = SCARun.getResults();
+            // get descriptor file directory path
+            // TODO: verify if invocations may be more than one
+            String descriptorDirPath = SCARun.getInvocations().get(0).getWorkingDirectory().getUri();
+
+            for (Result result : results) {
+                // build the JfrogSecurityWarning object
+                PropertyBag properties = result.getProperties();
+                if(properties!= null){
+                    String applicability = properties.get("applicability").toString();
+                    String fixedVersion = properties.get("fixedVersion").toString();
+                }
+                String descriptorFileName = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
+                String descriptorFullPah = descriptorDirPath + File.separator + descriptorFileName;
+
+                warnings.add(new JFrogSecurityWarning(result, SourceCodeScanType.SCA, result.getRule()));
             }
         }
+
 
         return warnings;
     }

@@ -52,7 +52,7 @@ public class JFrogSecurityWarning {
         this.codeFlows = codeFlows;
     }
     @SuppressWarnings("unused")
-    public JFrogSecurityWarning(Result result, SourceCodeScanType reporter, ReportingDescriptor rule) {
+    public JFrogSecurityWarning(Result result, SourceCodeScanType reporter, PropertyOwner rule) {
         this(getFirstRegion(result).getStartLine() - 1,
                 getFirstRegion(result).getStartColumn() - 1,
                 getFirstRegion(result).getEndLine() - 1,
@@ -68,7 +68,7 @@ public class JFrogSecurityWarning {
         );
     }
 
-    private static boolean isWarningApplicable(Result result,ReportingDescriptor rule){
+    private static boolean isWarningApplicable(Result result,PropertyOwner rule){
 //        return !result.getKind().equals(Result.Kind.PASS) && (rule.getProperties().forEach(property -> property.getApplicability().equals("applicable")).orElse(true));
        // TODO: Implement this method properly
         return true;
