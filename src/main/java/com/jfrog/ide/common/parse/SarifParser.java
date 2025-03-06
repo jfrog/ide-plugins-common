@@ -1,17 +1,14 @@
 package com.jfrog.ide.common.parse;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jetbrains.qodana.sarif.model.*;
-import com.jfrog.ide.common.configuration.JfrogCliDriver;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import org.jfrog.build.api.util.Log;
 import com.jetbrains.qodana.sarif.SarifUtil;
 import org.jfrog.build.api.util.NullLog;
-import org.jfrog.build.extractor.executor.CommandResults;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -51,7 +48,7 @@ public class SarifParser {
                     String fixedVersion = properties.get("fixedVersion").toString();
                 }
                 String descriptorFileName = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
-                String descriptorFullPah = descriptorDirPath + File.separator + descriptorFileName;
+                String descriptorFullPath = descriptorDirPath + File.separator + descriptorFileName;
 
                 warnings.add(new JFrogSecurityWarning(result, SourceCodeScanType.SCA, result.getRule()));
             }
@@ -63,21 +60,35 @@ public class SarifParser {
 
 
     public static void main(String[] args) {
-        JfrogCliDriver cliDriver = new JfrogCliDriver(null, new NullLog());
-        File workingDirectory = new File("C:\\Users\\Keren Reshef\\Projects\\test projects\\test-cve-contextual-analysis");
-        String[] commandArgs = {"audit", "--format=sarif"};
+//        JfrogCliDriver cliDriver = new JfrogCliDriver(null, new NullLog());
+//        File workingDirectory = new File("C:\\Users\\Keren Reshef\\Projects\\test projects\\test-cve-contextual-analysis");
+//        String[] commandArgs = {"audit", "--format=sarif"};
+//
+//        try {
+//            CommandResults results = cliDriver.runCommand(workingDirectory, commandArgs, new ArrayList<>(), new NullLog());
+//            if(!results.isOk()){
+//                System.out.println("Running JFrog CLI command failed: " + results.getErr());
+//                return;
+//            }
+//            String output = results.getRes();
+//            SarifParser sarifParser = new SarifParser(new NullLog());
+//            List<JFrogSecurityWarning> warnings = sarifParser.parse(output);
+//            warnings.forEach(warning -> System.out.println(warning.toString()));
+//        } catch (IOException | InterruptedException e) {
+//            System.out.println("Failed to run JFrog CLI command: " + e.getMessage());
+//        }
+
+        // read results from json file
+        String jsonFilePath = "C:\\Users\\Keren Reshef\\Projects\\test projects\\test-cve-contextual-analysis\\results.json";
+        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            CommandResults results = cliDriver.runCommand(workingDirectory, commandArgs, new ArrayList<>(), new NullLog());
-            if(!results.isOk()){
-                System.out.println("Running JFrog CLI command failed: " + results.getErr());
-                return;
-            }
-            String output = results.getRes();
+            JsonNode jsonNode = objectMapper.readTree(new FileInputStream(jsonFilePath));
+            String outputJson = jsonNode.toString();
             SarifParser sarifParser = new SarifParser(new NullLog());
-            List<JFrogSecurityWarning> warnings = sarifParser.parse(output);
+            List<JFrogSecurityWarning> warnings = sarifParser.parse(outputJson);
             warnings.forEach(warning -> System.out.println(warning.toString()));
-        } catch (IOException | InterruptedException e) {
-            System.out.println("Failed to run JFrog CLI command: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Failed to read JSON file" + e.getMessage());
         }
 
     }
