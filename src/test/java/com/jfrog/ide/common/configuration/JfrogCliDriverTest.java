@@ -33,6 +33,8 @@ public class JfrogCliDriverTest {
     private final String PASSWORD = "ide-plugins-common-test-password";
     private final String USER_NAME = "ide-plugins-common-test-user";
     private final String SERVER_URL = "https://ide/plugins/common/test/";
+    private final String ARTIFACTORY_URL = SERVER_URL + "artifactory/";
+    private final String XRAY_URL = SERVER_URL + "xray/";
     private String testServerId;
     private File tempDir;
 
@@ -114,6 +116,36 @@ public class JfrogCliDriverTest {
 
         assertTrue(newJfrogCliVersion.contains(jfrogCliVersion.toString()));
         assertNotEquals(currentCliVersion, newJfrogCliVersion);
+    }
+
+    @Test
+    public void testAddCliServerConfig_withUsernameAndPassword() {
+        try {
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir);
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            assertNotNull(serverConfig);
+            assertEquals(serverConfig.getUsername(), USER_NAME);
+            assertEquals(serverConfig.getPassword(), PASSWORD);
+            assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
+            assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
+        } catch (IOException e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void testAddCliServerConfig_withAccessToken() {
+        String accessToken = UUID.randomUUID().toString();
+        try {
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, accessToken, tempDir);
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            assertNotNull(serverConfig);
+            assertEquals(serverConfig.getAccessToken(), accessToken);
+            assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
+            assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
+        } catch (IOException e) {
+            fail(e.getMessage(), e);
+        }
     }
 
     private String createServerId() {
