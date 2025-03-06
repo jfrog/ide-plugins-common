@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
@@ -146,6 +147,30 @@ public class JfrogCliDriver {
         }
     }
 
+    public void addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory) throws IOException {
+        List<String> args = new ArrayList<>();
+        args.add("config");
+        args.add("add");
+        args.add(cliServerId);
+        args.add("--xray-url=" + xrayUrl);
+        args.add("--artifactory-url=" + artifactoryUrl);
+        args.add("--interactive=false");
+        args.add("--overwrite");
+
+        if (accessToken != null && !accessToken.isEmpty()) {
+            args.add("--access-token=" + accessToken);
+        } else {
+            args.add("--user=" + user);
+            args.add("--password=" + password);
+            args.add("--enc-password=false");
+        }
+
+        try {
+            runCommand(workingDirectory, args.toArray(new String[0]), Collections.emptyList(), new NullLog());
+        } catch (IOException | InterruptedException e) {
+            throw new IOException("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
+        }
+    }
 
     private Version extractVersionFromCliOutput(String input) {
         if (input != null){
