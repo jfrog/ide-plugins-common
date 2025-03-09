@@ -9,6 +9,7 @@ import lombok.Getter;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 
 @Getter
 public class JFrogSecurityWarning {
@@ -17,12 +18,12 @@ public class JFrogSecurityWarning {
     private final int lineEnd;
     private final int colEnd;
     private final String reason;
-    private final String filePath;
+    private final String filePath; // common
     private final String lineSnippet;
     private String scannerSearchTarget;
-    private final String ruleID;
-    private final SourceCodeScanType reporter;
-    private final Severity severity;
+    private final String ruleID; // common
+    private final SourceCodeScanType reporter; // common
+    private final Severity severity; // common
     private final FindingInfo[][] codeFlows;
     private final boolean isApplicable;
 
@@ -62,16 +63,14 @@ public class JFrogSecurityWarning {
                 result.getRuleId(),
                 getFirstRegion(result).getSnippet().getText(),
                 reporter,
-                isWarningApplicable(result,rule),
+                getApplicabilityFromResult(result, rule),
                 Severity.fromSarif(result.getLevel().toString()),
                 convertCodeFlowsToFindingInfo(result.getCodeFlows())
         );
     }
 
-    private static boolean isWarningApplicable(Result result,PropertyOwner rule){
-//        return !result.getKind().equals(Result.Kind.PASS) && (rule.getProperties().forEach(property -> property.getApplicability().equals("applicable")).orElse(true));
-       // TODO: Implement this method properly
-        return true;
+    private static boolean getApplicabilityFromResult(Result result,PropertyOwner rule){
+        return !result.getKind().equals(Result.Kind.PASS) && (Objects.requireNonNull(rule.getProperties()).get("applicability").equals("applicable"));
     }
 
     private static String getFilePath(Result result){
