@@ -136,12 +136,11 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testAddCliServerConfig_withAccessToken() {
-        String accessToken = UUID.randomUUID().toString();
         try {
             jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
             assertNotNull(serverConfig);
-            assertEquals(serverConfig.getAccessToken(), accessToken);
+            assertEquals(serverConfig.getAccessToken(), ACCESS_TOKEN);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
         } catch (IOException e) {
