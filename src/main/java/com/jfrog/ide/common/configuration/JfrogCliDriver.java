@@ -84,7 +84,7 @@ public class JfrogCliDriver {
 
     public String runVersion(File workingDirectory) {
         String versionOutput = null;
-        try{
+        try {
             versionOutput = runCommand(workingDirectory, new String[]{"--version"}, Collections.emptyList()).getRes();
         } catch (IOException | InterruptedException e) {
             log.error("Failed to get CLI version. Reason: " + e.getMessage());
@@ -130,13 +130,13 @@ public class JfrogCliDriver {
         String destinationPath = basePath.resolve(jfrogExec).toString();
 
         // download executable from releases and save it in 'destinationPath'
-        try{
+        try {
             ServerConfig serverConfig = getServerConfig();
             ArtifactoryManagerBuilder artifactoryManagerBuilder = createAnonymousAccessArtifactoryManagerBuilder(JFROG_CLI_RELEASES_URL, serverConfig.getProxyConfForTargetUrl(JFROG_CLI_RELEASES_URL), log);
             ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build();
             File cliExecutable = artifactoryManager.downloadToFile(fileLocationInReleases, destinationPath);
             // setting the file as executable
-            if(!cliExecutable.setExecutable(true)){
+            if (!cliExecutable.setExecutable(true)) {
                 log.error(String.format("Failed to set downloaded CLI as executable. Path: %s", destinationPath));
             } else {
                 log.debug(String.format("Downloaded CLI to %s. Permission te execute: %s", destinationPath, cliExecutable.canExecute()));
@@ -166,7 +166,7 @@ public class JfrogCliDriver {
         }
 
         try {
-            runCommand(workingDirectory, args.toArray(new String[0]), Collections.emptyList(),log);
+            runCommand(workingDirectory, args.toArray(new String[0]), Collections.emptyList(), log);
             log.info("JFrog CLI server has been configured successfully");
         } catch (IOException | InterruptedException e) {
             log.error("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
@@ -174,8 +174,21 @@ public class JfrogCliDriver {
         }
     }
 
+    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, List<String> extraArgs) throws Exception {
+        List<String> args = new ArrayList<>();
+        args.add("audit");
+        String workingDirsString = scannedDirectories.size() > 1 ? String.join(", ", scannedDirectories) : scannedDirectories.get(0);
+        args.add("--working-dirs=" + workingDirsString);
+        args.add("--format=sarif");
+        try {
+            return runCommand(workingDirectory, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), log);
+        } catch (Exception e) {
+            throw new Exception("Failed to run JF audit. Reason: " + e.getMessage(), e);
+        }
+    }
+
     private Version extractVersionFromCliOutput(String input) {
-        if (input != null){
+        if (input != null) {
             // define a pattern for the version format 'x.x.x'
             String regex = "\\b\\d+\\.\\d+\\.\\d+\\b";
             Pattern pattern = Pattern.compile(regex);

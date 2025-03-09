@@ -3,6 +3,7 @@ package com.jfrog.ide.common.configuration;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.client.Version;
+import org.jfrog.build.extractor.executor.CommandResults;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -10,7 +11,9 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,6 +21,7 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static java.util.Collections.singletonList;
 import static org.testng.Assert.*;
 
 /**
@@ -135,15 +139,33 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testAddCliServerConfig_withAccessToken() {
-        String accessToken = UUID.randomUUID().toString();
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, accessToken, tempDir);
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, "89IUGIU", tempDir);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
             assertNotNull(serverConfig);
-            assertEquals(serverConfig.getAccessToken(), accessToken);
+            assertEquals(serverConfig.getAccessToken(), "DASDSA");
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
         } catch (IOException e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void testRunAudit() {
+        String projectToCheck = "gallery-server";
+        try {
+            Path expectedResponsePath = Path.of(Objects.requireNonNull(
+                    getClass().getClassLoader().getResource("example-projects/gallery-server/expectedAuditResponse.json")
+            ).toURI());
+            String expectedResponse = Files.readString(expectedResponsePath);
+            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/gallery-server");
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
+                    singletonList(projectToCheck),
+                    null);
+            //TODO: check real values after the sarif parser is added
+            assertEquals(response.getExitValue(),0);
+        } catch (Exception e) {
             fail(e.getMessage(), e);
         }
     }
