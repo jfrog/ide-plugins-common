@@ -166,8 +166,10 @@ public class JfrogCliDriver {
         }
 
         try {
-            runCommand(workingDirectory, args.toArray(new String[0]), Collections.emptyList(), new NullLog());
+            runCommand(workingDirectory, args.toArray(new String[0]), Collections.emptyList(),log);
+            log.info("JFrog CLI server has been configured successfully");
         } catch (IOException | InterruptedException e) {
+            log.error("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
             throw new IOException("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
         }
     }
