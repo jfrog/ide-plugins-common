@@ -3,6 +3,7 @@ package com.jfrog.ide.common.configuration;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.client.Version;
+import org.jfrog.build.extractor.executor.CommandResults;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -18,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static java.util.Collections.singletonList;
 import static org.testng.Assert.*;
 
 /**
@@ -135,12 +137,11 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testAddCliServerConfig_withAccessToken() {
-        String accessToken = UUID.randomUUID().toString();
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, accessToken, tempDir);
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, "89IUGIU", tempDir);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
             assertNotNull(serverConfig);
-            assertEquals(serverConfig.getAccessToken(), accessToken);
+            assertEquals(serverConfig.getAccessToken(), "DASDSA");
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
         } catch (IOException e) {
@@ -148,7 +149,37 @@ public class JfrogCliDriverTest {
         }
     }
 
-    private String createServerId() {
+    @Test
+    public void testRunAudit_NpmProject() {
+        String projectToCheck = "npm";
+        try {
+            Path exampleProjectsFolder = Path.of("src/test/resources/projects/npm");
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
+                    singletonList(projectToCheck),
+                    null);
+            //TODO: check real values after the sarif parser is added
+            assertEquals(response.getExitValue(),0);
+        } catch (Exception e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void testRunAudit_MultiMavenProject() {
+        List<String> projectsToCheck = new ArrayList<>(Arrays.asList("multi1", "multi2"));
+        try {
+            Path exampleProjectsFolder = Path.of("src/test/resources/projects/maven-example");
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
+                    projectsToCheck,
+                    null);
+            //TODO: check real values after the sarif parser is added
+            assertEquals(response.getExitValue(), 0);
+        } catch (Exception e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+        private String createServerId() {
         return "ide-plugins-common-test-server-" + timeStampFormat.format(System.currentTimeMillis());
     }
 
