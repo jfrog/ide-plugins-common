@@ -177,8 +177,10 @@ public class JfrogCliDriver {
     public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, List<String> extraArgs) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("audit");
-        String workingDirsString = scannedDirectories.size() > 1 ? String.join(", ", scannedDirectories) : scannedDirectories.get(0);
-        args.add("--working-dirs=" + workingDirsString);
+        if (scannedDirectories != null && !scannedDirectories.isEmpty()) {
+            String workingDirsString = scannedDirectories.size() > 1 ? String.join(", ", scannedDirectories) : scannedDirectories.get(0);
+            args.add("--working-dirs=" + workingDirsString);
+        }
         args.add("--format=sarif");
         try {
             return runCommand(workingDirectory, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), log);

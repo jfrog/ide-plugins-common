@@ -11,9 +11,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -152,14 +150,10 @@ public class JfrogCliDriverTest {
     }
 
     @Test
-    public void testRunAudit() {
-        String projectToCheck = "gallery-server";
+    public void testRunAudit_NpmProject() {
+        String projectToCheck = "npm";
         try {
-            Path expectedResponsePath = Path.of(Objects.requireNonNull(
-                    getClass().getClassLoader().getResource("example-projects/gallery-server/expectedAuditResponse.json")
-            ).toURI());
-            String expectedResponse = Files.readString(expectedResponsePath);
-            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/gallery-server");
+            Path exampleProjectsFolder = Path.of("src/test/resources/projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
                     singletonList(projectToCheck),
                     null);
@@ -170,7 +164,22 @@ public class JfrogCliDriverTest {
         }
     }
 
-    private String createServerId() {
+    @Test
+    public void testRunAudit_MultiMavenProject() {
+        List<String> projectsToCheck = new ArrayList<>(Arrays.asList("multi1", "multi2"));
+        try {
+            Path exampleProjectsFolder = Path.of("src/test/resources/projects/maven-example");
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
+                    projectsToCheck,
+                    null);
+            //TODO: check real values after the sarif parser is added
+            assertEquals(response.getExitValue(), 0);
+        } catch (Exception e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+        private String createServerId() {
         return "ide-plugins-common-test-server-" + timeStampFormat.format(System.currentTimeMillis());
     }
 
