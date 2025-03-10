@@ -29,12 +29,20 @@ public class SarifParser {
         List<Run> SCARuns = report.getRuns().stream().
                 filter(run -> run.getTool().getDriver().getName().contains(SourceCodeScanType.SCA.getParam()))
                 .toList();
+
+
+
+        return warnings;
+    }
+
+    private List<SCAFinding> parseSCAFindings(List<Run> SCARuns){
+        List<SCAFinding> scaFindings = new ArrayList<>();
         if (SCARuns.isEmpty()) {
             throw new NoSuchElementException("SCA run not found in SARIF report");
         }
 
-        // get list of results for each SCA run
         for (Run SCARun : SCARuns) {
+            // get list of results for each SCA run
             List<Result> results = SCARun.getResults();
             // get descriptor file directory path
             // TODO: verify if invocations may be more than one
@@ -49,13 +57,20 @@ public class SarifParser {
                 }
                 String descriptorFileName = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
                 String descriptorFullPath = descriptorDirPath + File.separator + descriptorFileName;
+                ReportingDescriptor rule = SCARun.getTool().getDriver().getRules().stream()
+                        .filter(r -> r.getId().equals(result.getRuleId()))
+                        .findFirst()
+                        .orElse(null);
 
-                warnings.add(new JFrogSecurityWarning(result, SourceCodeScanType.SCA, result.getRule()));
+                if (rule == null) {
+                    log.error("Rule not found for result: " + result.getRuleId());
+                } else {
+                    scaFindings.add(new SCAFinding(rule, SourceCodeScanType.SCA, result));
+//                warnings.add(new JFrogSecurityWarning(result, SourceCodeScanType.SCA, result.getRule()));
+                }
             }
         }
-
-
-        return warnings;
+        return null;
     }
 
 

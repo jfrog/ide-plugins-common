@@ -1,11 +1,13 @@
 package com.jfrog.ide.common.parse;
 
-import com.jetbrains.qodana.sarif.model.Message;
 import com.jetbrains.qodana.sarif.model.MultiformatMessageString;
+import com.jetbrains.qodana.sarif.model.ReportingDescriptor;
+import com.jetbrains.qodana.sarif.model.Result;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 
 import java.util.List;
+import java.util.Objects;
 
 public class SCAFinding {
     private Severity severity; // rules -> properties -> security severity
@@ -25,8 +27,21 @@ public class SCAFinding {
     // Qodana object
     private MultiformatMessageString help; // rule -> help (get text + markdown)
 
-
-    private boolean isDirectDependency(List<List<String>> impactPaths, String dependencyName) {
-        return impactPaths.stream().anyMatch(path -> path.size() > 1 && path.get(1).equals(dependencyName));
+    public SCAFinding(ReportingDescriptor rule, SourceCodeScanType reporter, Result result){
+        severity = null; // TODO: get severity from result
+        applicability = Applicability.valueOf(Objects.requireNonNull(result.getProperties()).get("applicability").toString());
+        isDirectDependency = isDirectDependency(getImpactPaths(rule), rule.getId());
     }
+
+    private boolean isDirectDependency(List<List<String>> impactPaths, String ruleId) {
+        // TODO: check if the dependency is listed in the impactPaths as a 2nd place element, where the first element is the project name
+        // impactPath = {"name": "com.fasterxml.jackson.core:jackson-databind", "version": "2.15.2"}
+
+        return impactPaths.stream().anyMatch(path -> path.size() > 1 && path.get(1).equals(ruleId));
+    }
+
+    private List<List<String>> getImpactPaths(ReportingDescriptor rule) {
+        return (List<List<String>>) rule.getProperties().get("impactPaths");
+    }
+
 }

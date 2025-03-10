@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Getter
-public class JFrogSecurityWarning {
+public abstract class JFrogSecurityWarning {
     private final int lineStart;
     private final int colStart;
     private final int lineEnd;

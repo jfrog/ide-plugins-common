@@ -8,7 +8,6 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Vector;
 
 public class FileTreeNode extends SortableChildrenTreeNode implements SubtitledTreeNode, Comparable<FileTreeNode> {
     @JsonProperty()

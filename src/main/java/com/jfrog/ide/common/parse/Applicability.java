@@ -4,22 +4,27 @@ import lombok.Getter;
 
 @Getter
 public enum Applicability {
-    APPLICABLE("Applicable"),
-    NOT_APPLICABLE("Not Applicable"),
-    NOT_DETERMINED("Not Determined");
+    APPLICABLE("applicable"),
+    NOT_APPLICABLE("not_applicable"),
+    UNDETERMINED("undetermined"),
+    NOT_COVERED("not_covered"),
+    MISSING_CONTEXT("missing_context");
 
 
-    private final String applicability;
+    private final String value;
 
-    Applicability(String applicability) {
-        this.applicability = applicability;
+    Applicability(String value) {
+        this.value = value;
     }
 
-    public static Applicability fromSarif(String applicability) {
-        return switch (applicability) {
+    public static Applicability fromSarif(String value) {
+        return switch (value) {
             case "Applicable" -> Applicability.APPLICABLE;
             case "Not Applicable" -> Applicability.NOT_APPLICABLE;
-            default -> Applicability.NOT_DETERMINED;
+            case "Undetermined" -> Applicability.UNDETERMINED;
+            case "Not Covered" -> Applicability.NOT_COVERED;
+            case "Missing Context" -> Applicability.MISSING_CONTEXT;
+            default -> throw new IllegalArgumentException("No applicability constant with value " + value);
         };
     }
 
