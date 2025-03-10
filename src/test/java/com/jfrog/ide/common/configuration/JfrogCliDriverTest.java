@@ -30,9 +30,10 @@ public class JfrogCliDriverTest {
     private final SimpleDateFormat timeStampFormat = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
     private final Map<String, String> testEnv = new HashMap<>();
     private JfrogCliDriver jfrogCliDriver;
-    private final String PASSWORD = "ide-plugins-common-test-password";
-    private final String USER_NAME = "ide-plugins-common-test-user";
-    private final String SERVER_URL = "https://ide/plugins/common/test/";
+    private final String PASSWORD = System.getenv("JFROG_CLI_TEST_PASSWORD");
+    private final String USER_NAME = System.getenv("JFROG_CLI_TEST_USER");
+    private final String SERVER_URL = System.getenv("JFROG_CLI_TEST_URL");
+    private final String ACCESS_TOKEN = System.getenv("JFROG_CLI_TEST_ACCESS_TOKEN");
     private final String ARTIFACTORY_URL = SERVER_URL + "artifactory/";
     private final String XRAY_URL = SERVER_URL + "xray/";
     private String testServerId;
@@ -46,6 +47,9 @@ public class JfrogCliDriverTest {
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
             assertEquals(serverConfig.getUrl(), SERVER_URL);
+            System.out.println(USER_NAME);
+            System.out.println("srver url" +SERVER_URL);
+            System.out.println("xray url" + serverConfig.getXrayUrl());
             assertEquals(serverConfig.getXrayUrl(), SERVER_URL + "xray/");
         } catch (IOException e) {
             fail(e.getMessage(), e);
@@ -135,12 +139,11 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testAddCliServerConfig_withAccessToken() {
-        String accessToken = UUID.randomUUID().toString();
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, accessToken, tempDir);
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
             assertNotNull(serverConfig);
-            assertEquals(serverConfig.getAccessToken(), accessToken);
+            assertEquals(serverConfig.getAccessToken(), ACCESS_TOKEN);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
         } catch (IOException e) {
