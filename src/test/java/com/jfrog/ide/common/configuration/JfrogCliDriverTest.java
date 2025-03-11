@@ -47,9 +47,6 @@ public class JfrogCliDriverTest {
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
             assertEquals(serverConfig.getUrl(), SERVER_URL);
-            System.out.println(USER_NAME);
-            System.out.println("srver url" +SERVER_URL);
-            System.out.println("xray url" + serverConfig.getXrayUrl());
             assertEquals(serverConfig.getXrayUrl(), SERVER_URL + "xray/");
         } catch (IOException e) {
             fail(e.getMessage(), e);
