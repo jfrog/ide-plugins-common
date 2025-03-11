@@ -20,6 +20,7 @@ jobs:
       JF_CLI_TEST_USER: ${{ secrets.JFROG_CLI_TEST_USER }}
       JF_CLI_TEST_URL: ${{ secrets.JFROG_CLI_TEST_URL }}
       JF_CLI_TEST_ACCESS_TOKEN: ${{ secrets.JFROG_CLI_TEST_ACCESS_TOKEN }}
+
     steps:
       - uses: actions/checkout@v3
         with:
