@@ -130,7 +130,7 @@ public class JfrogCliDriverTest {
             assertEquals(serverConfig.getPassword(), PASSWORD);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
-        } catch (IOException e) {
+        } catch (Exception e) {
             fail(e.getMessage(), e);
         }
     }
@@ -138,13 +138,13 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withAccessToken() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, "89IUGIU", tempDir);
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, "", tempDir);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getAccessToken(), "DASDSA");
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
-        } catch (IOException e) {
+        } catch (Exception e) {
             fail(e.getMessage(), e);
         }
     }
@@ -156,6 +156,7 @@ public class JfrogCliDriverTest {
             Path exampleProjectsFolder = Path.of("src/test/resources/projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
                     singletonList(projectToCheck),
+                    testServerId,
                     null);
             //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(),0);
@@ -171,6 +172,7 @@ public class JfrogCliDriverTest {
             Path exampleProjectsFolder = Path.of("src/test/resources/projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
                     projectsToCheck,
+                    testServerId,
                     null);
             //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(), 0);

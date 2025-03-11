@@ -147,7 +147,7 @@ public class JfrogCliDriver {
         }
     }
 
-    public void addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory) throws IOException {
+    public void addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("config");
         args.add("add");
@@ -170,21 +170,22 @@ public class JfrogCliDriver {
             log.info("JFrog CLI server has been configured successfully");
         } catch (IOException | InterruptedException e) {
             log.error("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
-            throw new IOException("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
+                throw new Exception("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
         }
     }
 
-    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, List<String> extraArgs) throws Exception {
+    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, List<String> extraArgs) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("audit");
         if (scannedDirectories != null && !scannedDirectories.isEmpty()) {
             String workingDirsString = scannedDirectories.size() > 1 ? String.join(", ", scannedDirectories) : scannedDirectories.get(0);
             args.add("--working-dirs=" + workingDirsString);
         }
+        args.add("--server-id=" + serverId);
         args.add("--format=sarif");
         try {
             return runCommand(workingDirectory, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), log);
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             throw new Exception("Failed to run JF audit. Reason: " + e.getMessage(), e);
         }
     }
