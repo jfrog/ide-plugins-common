@@ -3,6 +3,7 @@ package com.jfrog.ide.common.parse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jetbrains.qodana.sarif.model.*;
+import com.jfrog.ide.common.nodes.FileTreeNode;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import org.jfrog.build.api.util.Log;
 import com.jetbrains.qodana.sarif.SarifUtil;
@@ -10,6 +11,7 @@ import org.jfrog.build.api.util.NullLog;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -20,26 +22,32 @@ public class SarifParser {
         this.log = log;
     }
 
-    List<JFrogSecurityWarning> parse (String output){
+    List<FileTreeNode> parse (String output) {
         Reader reader = new StringReader(output);
-        List<JFrogSecurityWarning> warnings = new ArrayList<>();
+        List<FileTreeNode> fileTreeNodes = new ArrayList<>();
 
         SarifReport report = SarifUtil.readReport(reader);
-        // extract SCA run object from SARIF, if not exist throws an exception
+        // extract SCA run object from SARIF
+
         List<Run> SCARuns = report.getRuns().stream().
                 filter(run -> run.getTool().getDriver().getName().contains(SourceCodeScanType.SCA.getParam()))
                 .toList();
-
-
-
-        return warnings;
-    }
-
-    private List<SCAFinding> parseSCAFindings(List<Run> SCARuns){
-        List<SCAFinding> scaFindings = new ArrayList<>();
         if (SCARuns.isEmpty()) {
+            log.error("SCA run not found in SARIF report");
             throw new NoSuchElementException("SCA run not found in SARIF report");
         }
+        fileTreeNodes.addAll(parseSCAFindings(SCARuns));
+
+        List<Run> JASRuns = report.getRuns().stream().filter(run -> !SCARuns.contains(run)).toList();
+
+        fileTreeNodes.addAll(parseJASFindings(JASRuns));
+
+        return fileTreeNodes;
+    }
+
+    private List<FileTreeNode> parseSCAFindings(List<Run> SCARuns){
+        List<JFrogSecurityWarning> scaFindings = new ArrayList<>();
+        HashMap<String, FileTreeNode> scaFileTreeNodesMap = new HashMap<>();
 
         for (Run SCARun : SCARuns) {
             // get list of results for each SCA run
@@ -65,12 +73,36 @@ public class SarifParser {
                 if (rule == null) {
                     log.error("Rule not found for result: " + result.getRuleId());
                 } else {
-                    scaFindings.add(new SCAFinding(rule, SourceCodeScanType.SCA, result));
-//                warnings.add(new JFrogSecurityWarning(result, SourceCodeScanType.SCA, result.getRule()));
+                    scaFindings.add(new JFrogSecurityWarning(result, SourceCodeScanType.SCA, rule));
                 }
             }
         }
-        return null;
+        return new ArrayList<>(scaFileTreeNodesMap.values());
+    }
+
+    private List<FileTreeNode> parseJASFindings(List<Run> JASRuns) {
+        List<JFrogSecurityWarning> jasFindings = new ArrayList<>();
+        List<FileTreeNode> jasFileTreeNodes = new ArrayList<>();
+
+        for (Run JASRun : JASRuns) {
+            List<Result> results = JASRun.getResults();
+            String sourceCodeType = JASRun.getTool().getDriver().getName();
+            // TODO: implement correctly
+            for (Result result : results) {
+                ReportingDescriptor rule = JASRun.getTool().getDriver().getRules().stream()
+                        .filter(r -> r.getId().equals(result.getRuleId()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (rule == null) {
+                    log.error("Rule not found for result: " + result.getRuleId());
+                } else {
+                    jasFindings.add(new JFrogSecurityWarning(result, SourceCodeScanType.valueOf(sourceCodeType), rule));
+                }
+            }
+        }
+
+        return jasFileTreeNodes;
     }
 
 
@@ -100,8 +132,8 @@ public class SarifParser {
             JsonNode jsonNode = objectMapper.readTree(new FileInputStream(jsonFilePath));
             String outputJson = jsonNode.toString();
             SarifParser sarifParser = new SarifParser(new NullLog());
-            List<JFrogSecurityWarning> warnings = sarifParser.parse(outputJson);
-            warnings.forEach(warning -> System.out.println(warning.toString()));
+            List<FileTreeNode> results = sarifParser.parse(outputJson);
+            results.forEach(result -> System.out.println(result.toString()));
         } catch (IOException e) {
             System.out.println("Failed to read JSON file" + e.getMessage());
         }

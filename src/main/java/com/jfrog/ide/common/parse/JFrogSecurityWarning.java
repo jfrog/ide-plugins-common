@@ -12,18 +12,18 @@ import java.util.List;
 import java.util.Objects;
 
 @Getter
-public abstract class JFrogSecurityWarning {
+public class JFrogSecurityWarning {
     private final int lineStart;
     private final int colStart;
     private final int lineEnd;
     private final int colEnd;
-    private final String reason;
+    private final String ruleID; // common
     private final String filePath; // common
+    private final Severity severity; // common
+    private final SourceCodeScanType reporter; // common
+    private final String reason;
     private final String lineSnippet;
     private String scannerSearchTarget;
-    private final String ruleID; // common
-    private final SourceCodeScanType reporter; // common
-    private final Severity severity; // common
     private final FindingInfo[][] codeFlows;
     private final boolean isApplicable;
 
@@ -53,7 +53,7 @@ public abstract class JFrogSecurityWarning {
         this.codeFlows = codeFlows;
     }
     @SuppressWarnings("unused")
-    public JFrogSecurityWarning(Result result, SourceCodeScanType reporter, PropertyOwner rule) {
+    public JFrogSecurityWarning(Result result, SourceCodeScanType reporter, ReportingDescriptor rule) {
         this(getFirstRegion(result).getStartLine() - 1,
                 getFirstRegion(result).getStartColumn() - 1,
                 getFirstRegion(result).getEndLine() - 1,
