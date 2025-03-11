@@ -20,6 +20,10 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
+      - name: Echo
+        run: |
+          echo $JF_CLI_TEST_URL
+          echo JF_CLI_TEST_USER
 
       # Install required tools
       - name: Set up Java
