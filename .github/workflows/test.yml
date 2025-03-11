@@ -23,7 +23,8 @@ jobs:
       - name: Echo
         run: |
           echo $JF_CLI_TEST_URL
-          echo JF_CLI_TEST_USER
+          echo $${{ secrets.JFROG_CLI_TEST_URL }}
+          echo $JF_CLI_TEST_USER
 
       # Install required tools
       - name: Set up Java
