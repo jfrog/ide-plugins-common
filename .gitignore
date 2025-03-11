@@ -2,4 +2,3 @@ build
 out
 .idea
 .gradle
-.env
