@@ -36,6 +36,14 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         this.severity = severity;
         this.ruleID = ruleID;
     }
+    public FileIssueNode(String title, String reason, SourceCodeScanType reportType, Severity severity, String ruleID){
+        this.title = title;
+        this.reason = reason;
+        this.reporterType = reportType;
+        this.severity = severity;
+        this.ruleID = ruleID;
+        this.findingInfo = new FindingInfo();
+    }
 
     public String getFilePath() {
         return findingInfo.getFilePath();

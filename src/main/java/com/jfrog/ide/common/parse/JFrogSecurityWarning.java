@@ -54,10 +54,10 @@ public class JFrogSecurityWarning {
     }
     @SuppressWarnings("unused")
     public JFrogSecurityWarning(Result result, SourceCodeScanType reporter, ReportingDescriptor rule) {
-        this(getFirstRegion(result).getStartLine() - 1,
-                getFirstRegion(result).getStartColumn() - 1,
-                getFirstRegion(result).getEndLine() - 1,
-                getFirstRegion(result).getEndColumn() - 1,
+        this(getFirstRegion(result) != null ? getFirstRegion(result).getStartLine() - 1 : 0,
+                getFirstRegion(result) != null ? getFirstRegion(result).getStartColumn() - 1 : 0,
+                getFirstRegion(result) != null ? getFirstRegion(result).getEndLine() - 1 : 0,
+                getFirstRegion(result) != null ? getFirstRegion(result).getEndColumn() - 1 : 0,
                 result.getMessage().getText(),
                 getFilePath(result),
                 result.getRuleId(),
