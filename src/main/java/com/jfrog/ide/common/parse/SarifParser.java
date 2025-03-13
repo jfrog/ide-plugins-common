@@ -1,10 +1,12 @@
 package com.jfrog.ide.common.parse;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jetbrains.qodana.sarif.model.*;
 import com.jfrog.ide.common.nodes.FileIssueNode;
 import com.jfrog.ide.common.nodes.FileTreeNode;
+import com.jfrog.ide.common.nodes.ScaIssueNode;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import org.jfrog.build.api.util.Log;
@@ -12,10 +14,7 @@ import com.jetbrains.qodana.sarif.SarifUtil;
 import org.jfrog.build.api.util.NullLog;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 public class SarifParser {
     private Log log;
@@ -48,45 +47,63 @@ public class SarifParser {
     }
 
     private List<FileTreeNode> parseSCAFindings(List<Run> SCARuns){
+        // a method for parsing SCA findings and build FileTreeNodes and IssueNodes
         List<FileTreeNode> scaFileTreeNodes = new ArrayList<>();
 
         for (Run SCARun : SCARuns) {
             // TODO: invocations is a list. we will fetch the path from result->locations->physicalLocation->artifactLocation->uri
-            scaFileTreeNodes.addAll(createSpecificFileIssueNodes(SCARun, SourceCodeScanType.SCA));
+            HashMap<String, FileTreeNode> resultsMap = new HashMap<>();
+            List<Result> resultsList = SCARun.getResults();
 
+            for (Result result : resultsList){
+                String filePath = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
+                Severity severity = Severity.fromSarif(result.getLevel().toString());
+                Applicability applicability = Applicability.fromSarif(Objects.requireNonNull(result.getProperties()).get("applicability").toString());
 
-//            for (Result result : results) {
-//                PropertyBag properties = result.getProperties();
-//                if(properties!= null){
-//                    String applicability = (String)properties.get("applicability");
-//                    String fixedVersion = (String)properties.get("fixedVersion");
-//                }
-//                String descriptorFileName = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
-//                String descriptorFullPath = descriptorDirPath + File.separator + descriptorFileName;
-//                ReportingDescriptor rule = SCARun.getTool().getDriver().getRules().stream()
-//                        .filter(r -> r.getId().equals(result.getRuleId()))
-//                        .findFirst()
-//                        .orElse(null);
-//
-//                if (rule == null) {
-//                    log.error("Rule not found for result: " + result.getRuleId());
-//                } else {
-//                }
-//            }
+                ReportingDescriptor rule = SCARun.getTool().getDriver().getRules().stream()
+                        .filter(r -> r.getId().equals(result.getRuleId()))
+                        .findFirst()
+                        .orElse(null);
+
+                String fixedVersions = result.getProperties().get("fixedVersion").toString();
+
+                if (rule == null) {
+                    log.error("Rule not found for result: " + result.getRuleId());
+                } else {
+                    List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get("impactPaths"), new TypeReference<>() {
+                    });
+
+                    // Create FileTreeNodes for files with found issues
+                    FileTreeNode fileNode = resultsMap.get(filePath);
+                    if (fileNode == null) {
+                        fileNode = new FileTreeNode(filePath);
+                        resultsMap.put(filePath, fileNode);
+                    }
+                    String fullDescription = rule.getFullDescription().getText();
+
+                    // params: String title, String reason, Severity severity, String ruleID, Applicability applicability, List<List<String>> impactPaths, boolean isDirectDependency, List<String> fixedVersions
+                    ScaIssueNode scaIssueNode = new ScaIssueNode(SourceCodeScanType.SCA.getParam(), fullDescription, severity, rule.getId(), applicability, impactPaths, fixedVersions);
+
+                    fileNode.addIssue(scaIssueNode);
+                }
+            }
+
+            scaFileTreeNodes.addAll(resultsMap.values());
         }
         return scaFileTreeNodes;
     }
 
     private List<FileTreeNode> parseJASFindings(List<Run> JASRuns) {
-        // TODO: adjust implementation
-        List<JFrogSecurityWarning> jasFindings = new ArrayList<>();
+        // a method for parsing SCA findings and build FileTreeNodes and IssueNodes
         List<FileTreeNode> jasFileTreeNodes = new ArrayList<>();
 
         for (Run JASRun : JASRuns) {
-            List<Result> results = JASRun.getResults();
-            String sourceCodeType = JASRun.getTool().getDriver().getName();
-            // TODO: implement correctly
-            for (Result result : results) {
+            List<Result> resultsList = JASRun.getResults();
+            HashMap<String, FileTreeNode> resultsMap = new HashMap<>();
+            String sourceCodeToolName = JASRun.getTool().getDriver().getName();
+            SourceCodeScanType reporter = SourceCodeScanType.fromParam(sourceCodeToolName); // TODO: handle SAST frog emoji in tool name
+
+            for (Result result : resultsList) {
                 ReportingDescriptor rule = JASRun.getTool().getDriver().getRules().stream()
                         .filter(r -> r.getId().equals(result.getRuleId()))
                         .findFirst()
@@ -95,45 +112,65 @@ public class SarifParser {
                 if (rule == null) {
                     log.error("Rule not found for result: " + result.getRuleId());
                 } else {
-                    jasFindings.add(new JFrogSecurityWarning(result, SourceCodeScanType.valueOf(sourceCodeType), rule));
+                    String filePath = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
+
+                    FileTreeNode fileNode = resultsMap.get(filePath);
+                    if (fileNode == null) {
+                        fileNode = new FileTreeNode(filePath);
+                        resultsMap.put(filePath, fileNode);
+                    }
+
+                    Severity severity = Severity.fromSarif(result.getLevel().toString());
+                    // params for constructor: String title, String reason, SourceCodeScanType reportType, Severity severity, String ruleID
+                    FileIssueNode issueNode = new FileIssueNode(reporter.getParam(), rule.getShortDescription().getText(),
+                            reporter, severity, rule.getId()); // TODO: add location info
+
+                    fileNode.addIssue(issueNode);
                 }
             }
+            jasFileTreeNodes.addAll(resultsMap.values());
         }
-
         return jasFileTreeNodes;
     }
 
-    private List<FileTreeNode> createSpecificFileIssueNodes(Run run, SourceCodeScanType reporter) {
-        HashMap<String, FileTreeNode> results = new HashMap<>();
-        List<Result> resultsList = run.getResults();
-
-        for (Result result : resultsList){
-            String filePath = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
-            Severity severity = Severity.fromSarif(result.getLevel().toString());
-            ReportingDescriptor rule = run.getTool().getDriver().getRules().stream()
-                    .filter(r -> r.getId().equals(result.getRuleId()))
-                    .findFirst()
-                    .orElse(null);
-
-            if (rule == null) {
-                log.error("Rule not found for result: " + result.getRuleId());
-            } else {
-                // Create FileTreeNodes for files with found issues
-                FileTreeNode fileNode = results.get(filePath);
-                if (fileNode == null) {
-                    fileNode = new FileTreeNode(filePath);
-                    results.put(filePath, fileNode);
-                }
-
-                //        params for constructor: String title, String reason, SourceCodeScanType reportType, Severity severity, String ruleID
-                FileIssueNode issueNode = new FileIssueNode(reporter.getParam(), rule.getShortDescription().getText(),
-                        reporter, severity, rule.getId());
-                fileNode.addIssue(issueNode);
-            }
-        }
-
-        return new ArrayList<>(results.values());
-    }
+//    private List<FileTreeNode> createSpecificFileIssueNodes(Run run, SourceCodeScanType reporter) {
+//        HashMap<String, FileTreeNode> results = new HashMap<>();
+//        List<Result> resultsList = run.getResults();
+//
+//        for (Result result : resultsList){
+//            String filePath = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
+//            Severity severity = Severity.fromSarif(result.getLevel().toString());
+//            Applicability applicability = Applicability.fromSarif(result.getLevel().toString());
+//
+//            ReportingDescriptor rule = run.getTool().getDriver().getRules().stream()
+//                    .filter(r -> r.getId().equals(result.getRuleId()))
+//                    .findFirst()
+//                    .orElse(null);
+//
+//            List<List<ImpactPath>> impactPaths = ImpactPath.deserializeImpactPaths(result.getProperties().get("impactPaths").toString());
+//            String fixedVersions = result.getProperties().get("fixedVersions").toString();
+//
+//            if (rule == null) {
+//                log.error("Rule not found for result: " + result.getRuleId());
+//            } else {
+//                // Create FileTreeNodes for files with found issues
+//                FileTreeNode fileNode = results.get(filePath);
+//                if (fileNode == null) {
+//                    fileNode = new FileTreeNode(filePath);
+//                    results.put(filePath, fileNode);
+//                }
+//                String fullDescription = rule.getFullDescription().getText();
+//
+//
+//                // params: String title, String reason, Severity severity, String ruleID, Applicability applicability, List<List<String>> impactPaths, boolean isDirectDependency, List<String> fixedVersions
+//                ScaIssueNode scaIssueNode = new ScaIssueNode(reporter.getParam(), fullDescription, severity, rule.getId(), applicability, impactPaths, fixedVersions);
+//
+//                fileNode.addIssue(scaIssueNode);
+//            }
+//        }
+//
+//        return new ArrayList<>(results.values());
+//    }
 
 
     public static void main(String[] args) {
@@ -156,7 +193,7 @@ public class SarifParser {
 //        }
 
         // read results from json file
-        String jsonFilePath = "C:\\Users\\Keren Reshef\\Projects\\test projects\\test-cve-contextual-analysis\\results.json";
+        String jsonFilePath = "C:\\Users\\Keren Reshef\\Projects\\jfrog-cli-security\\tests\\testdata\\projects\\jas\\jas\\results.json";
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             JsonNode jsonNode = objectMapper.readTree(new FileInputStream(jsonFilePath));

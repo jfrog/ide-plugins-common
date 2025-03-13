@@ -21,4 +21,13 @@ public enum SourceCodeScanType {
     public String getParam() {
         return param;
     }
+
+    public static SourceCodeScanType fromParam(String param) {
+        for (SourceCodeScanType type : SourceCodeScanType.values()) {
+            if (type.getParam().equals(param)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with param " + param);
+    }
 }
