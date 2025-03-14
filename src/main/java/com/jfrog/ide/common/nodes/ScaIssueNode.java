@@ -23,14 +23,23 @@ public class ScaIssueNode extends FileIssueNode {
         super(title,  reason,  SourceCodeScanType.SCA,  severity,  ruleID);
         this.applicability = applicability;
         this.impactPaths = impactPaths;
-        this.isDirectDependency = isDirectDependency(impactPaths, ""); // TODO: implement correctly
+        this.isDirectDependency = isDirectDependency(impactPaths, ruleID); // TODO: implement correctly
         this.fixedVersions = fixedVersions;
     }
 
-    private boolean isDirectDependency(List<List<ImpactPath>> impactPaths, String dependencyName) {
+    private boolean isDirectDependency(List<List<ImpactPath>> impactPaths, String ruleId) {
+        String dependencyName = ruleId.split("_")[1];
+        String dependencyVersion = ruleId.split("_")[2];
+        ImpactPath directDependency = new ImpactPath(dependencyName, dependencyVersion);
 
+        for (List<ImpactPath> impactPathsList : impactPaths) {
+            if (impactPathsList.get(1).equals(directDependency)) {
+                return true;
+            }
+        }
         return false;
     }
+
 
 
 }

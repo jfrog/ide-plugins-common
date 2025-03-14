@@ -16,4 +16,6 @@ public class ImpactPath {
     public ImpactPath() {
     }
 
+    public ImpactPath(String dependencyName, String dependencyVersion) {
+    }
 }
