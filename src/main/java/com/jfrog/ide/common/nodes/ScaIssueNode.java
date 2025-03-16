@@ -3,7 +3,7 @@ package com.jfrog.ide.common.nodes;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.parse.Applicability;
-import com.jfrog.ide.common.parse.ImpactPath;
+import com.jfrog.ide.common.nodes.subentities.ImpactPath;
 import lombok.Getter;
 
 import java.util.List;
@@ -23,10 +23,17 @@ public class ScaIssueNode extends FileIssueNode {
         super(title,  reason,  SourceCodeScanType.SCA,  severity,  ruleID);
         this.applicability = applicability;
         this.impactPaths = impactPaths;
-        this.isDirectDependency = isDirectDependency(impactPaths, ruleID); // TODO: implement correctly
+        this.isDirectDependency = isDirectDependency(impactPaths, ruleID);
         this.fixedVersions = fixedVersions;
     }
 
+    /**
+     * Determines if the issue is a direct dependency.
+     *
+     * @param impactPaths  The impact paths of the violated rule.
+     * @param ruleId       The rule ID associated with the issue.
+     * @return true if the issue is a direct dependency, false otherwise.
+     */
     private boolean isDirectDependency(List<List<ImpactPath>> impactPaths, String ruleId) {
         String dependencyName = ruleId.split("_")[1];
         String dependencyVersion = ruleId.split("_")[2];
@@ -34,12 +41,9 @@ public class ScaIssueNode extends FileIssueNode {
 
         for (List<ImpactPath> impactPathsList : impactPaths) {
             if (impactPathsList.get(1).equals(directDependency)) {
-                return true;
+                return true; // TODO: validate that the first element is the root project
             }
         }
         return false;
     }
-
-
-
 }

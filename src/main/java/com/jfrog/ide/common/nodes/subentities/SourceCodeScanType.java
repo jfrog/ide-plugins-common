@@ -4,27 +4,34 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum SourceCodeScanType {
-    CONTEXTUAL("analyze-applicability"),
-    SECRETS("JFrog Secrets scanner"),
-    IAC("JFrog Terraform scanner"),
-    SAST("JFrog SAST"),
-    SCA("JFrog Xray Scanner");
+    CONTEXTUAL("analyze-applicability", "JFrog Contextual Scan"),
+    SECRETS("JFrog Secrets scanner", "Potential Secret"),
+    IAC("JFrog Terraform scanner", "Infrastructure as Code Vulnerability"),
+    SAST("JFrog SAST", "SAST Vulnerability"),
+    SCA("JFrog Xray Scanner", "SCA Vulnerability");
 
-    private final String param;
+    private final String scannerName;
+    private final String scannerIssueTitle;
 
     @JsonCreator
-    SourceCodeScanType(String param) {
-        this.param = param;
+    SourceCodeScanType(String scannerName, String scannerIssueTitle) {
+        this.scannerName = scannerName;
+        this.scannerIssueTitle = scannerIssueTitle;
     }
 
     @JsonValue
-    public String getParam() {
-        return param;
+    public String getScannerName() {
+        return scannerName;
+    }
+
+    @JsonValue
+    public String getScannerIssueTitle() {
+        return scannerIssueTitle;
     }
 
     public static SourceCodeScanType fromParam(String param) {
         for (SourceCodeScanType type : SourceCodeScanType.values()) {
-            if (type.getParam().equals(param)) {
+            if (type.getScannerName().equals(param)) {
                 return type;
             }
         }
