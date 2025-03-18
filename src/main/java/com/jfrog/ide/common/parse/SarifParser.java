@@ -1,7 +1,6 @@
 package com.jfrog.ide.common.parse;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jetbrains.qodana.sarif.model.*;
 import com.jfrog.ide.common.nodes.FileIssueNode;
@@ -14,7 +13,6 @@ import com.jfrog.ide.common.nodes.subentities.Severity;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import org.jfrog.build.api.util.Log;
 import com.jetbrains.qodana.sarif.SarifUtil;
-import org.jfrog.build.api.util.NullLog;
 
 import java.io.*;
 import java.util.*;
@@ -45,7 +43,7 @@ public class SarifParser {
         Reader reader = new StringReader(output);
         SarifReport report = SarifUtil.readReport(reader);
         List<Run> runs = report.getRuns();
-        if (runs.isEmpty()) {
+        if (runs == null || runs.isEmpty()) {
             log.error("No runs found in SARIF report");
             throw new NoSuchElementException("No runs found in the scan SARIF report");
         }
@@ -111,7 +109,7 @@ public class SarifParser {
         List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get("impactPaths"), new TypeReference<>() {
         });
         Severity severity = Severity.fromSarif(result.getLevel().toString());
-        String fullDescription = rule.getFullDescription().getText();
+        String fullDescription = rule.getFullDescription() != null? rule.getFullDescription().getText() : null;
         String reason = result.getMessage().getText();
 
         return new ScaIssueNode(SourceCodeScanType.SCA.getScannerIssueTitle(), reason, severity, rule.getId(), applicability, impactPaths, fixedVersions, fullDescription);
@@ -171,21 +169,5 @@ public class SarifParser {
             }
         }
         return results;
-    }
-
-
-    public static void main(String[] args) {
-        // read results from json file
-        String jsonFilePath = "C:\\Users\\Keren Reshef\\Projects\\jfrog-cli-security\\tests\\testdata\\projects\\jas\\jas\\results.json";
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            JsonNode jsonNode = objectMapper.readTree(new FileInputStream(jsonFilePath));
-            String outputJson = jsonNode.toString();
-            SarifParser sarifParser = new SarifParser(new NullLog());
-            List<FileTreeNode> results = sarifParser.parse(outputJson);
-            results.forEach(result -> System.out.println(result.toString()));
-        } catch (IOException e) {
-            System.out.println("Failed to read JSON file" + e.getMessage());
-        }
     }
 }

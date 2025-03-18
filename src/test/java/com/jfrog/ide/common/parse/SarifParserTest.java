@@ -2,19 +2,36 @@ package com.jfrog.ide.common.parse;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.testng.annotations.BeforeTest;
+import com.jfrog.ide.common.nodes.FileTreeNode;
+import com.jfrog.ide.common.nodes.SastIssueNode;
+import com.jfrog.ide.common.nodes.ScaIssueNode;
+import com.jfrog.ide.common.nodes.subentities.FindingInfo;
+import com.jfrog.ide.common.nodes.subentities.Severity;
+import org.jfrog.build.api.util.NullLog;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import static org.testng.Assert.*;
+
 
 public class SarifParserTest {
     private String sarifReport;
+    private SarifParser parser;
+    private List<FileTreeNode> results;
+    private final String resourcesDir = "src/test/resources/parse/";
 
+
+    @BeforeClass
+    public void setUp() {
+        parser = new SarifParser(new NullLog());
+    }
 
     private String readSarifReportFromFile(String filePath) throws IOException {
-//        String jsonFilePath = "src/test/resources/parse/sca_no_jas.json";
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonNode = objectMapper.readTree(new FileInputStream(filePath));
         return jsonNode.toString();
@@ -22,7 +39,52 @@ public class SarifParserTest {
 
     @Test
     public void testParseInvalidSarifReport() throws IOException {
-        this.sarifReport = readSarifReportFromFile("src/test/resources/parse/sca_no_jas.json");
+        // test a report without "runs" element
+        sarifReport = readSarifReportFromFile(resourcesDir + "invalid_sarif.json");
+        assertThrows(NoSuchElementException.class, () -> parser.parse(sarifReport));
+    }
 
+    @Test
+    public void testParseSarifReportWithOnlyScaResults() throws IOException {
+        sarifReport = readSarifReportFromFile(resourcesDir + "sca_no_jas.json");
+        results = parser.parse(sarifReport);
+
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getChildren().size(), 10);
+        assertEquals(results.get(0).getSeverity(), Severity.High);
+        results.get(0).getChildren().forEach(node -> assertEquals(node.getClass(), ScaIssueNode.class));
+        results.forEach(fileTreeNode -> fileTreeNode.getChildren().forEach(node -> {
+            if (node instanceof ScaIssueNode scaIssueNode) {
+                assertNotNull(scaIssueNode.getImpactPaths());
+                assertFalse(scaIssueNode.getImpactPaths().isEmpty());
+            }
+        }));
+    }
+
+
+
+    @Test
+    public void testParseSarifReportWithCodeFlowsInSast() throws IOException {
+        sarifReport = readSarifReportFromFile(resourcesDir + "code_flows_in_sast.json");
+        results = parser.parse(sarifReport);
+
+        assertEquals(results.size(), 2);
+        results.forEach(fileTreeNode -> fileTreeNode.getChildren().forEach(node -> {
+            if (node instanceof SastIssueNode sastIssueNode) {
+                assertNotNull(sastIssueNode.getCodeFlows());
+                assertTrue(sastIssueNode.getCodeFlows().length > 0);
+                for (FindingInfo[] codeFlow : sastIssueNode.getCodeFlows()) {
+                    assertNotNull(codeFlow);
+                    assertTrue(codeFlow.length > 0);
+                    for (FindingInfo findingInfo : codeFlow) {
+                        assertNotNull(findingInfo.getLineSnippet());
+                        assertTrue(findingInfo.getRowStart() > 0);
+                        assertTrue(findingInfo.getColStart() > 0);
+                        assertTrue(findingInfo.getRowEnd() > 0);
+                        assertTrue(findingInfo.getColEnd() > 0);
+                    }
+                }
+            }
+        }));
     }
 }
