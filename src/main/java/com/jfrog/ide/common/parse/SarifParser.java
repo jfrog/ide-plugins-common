@@ -44,7 +44,6 @@ public class SarifParser {
         SarifReport report = SarifUtil.readReport(reader);
         List<Run> runs = report.getRuns();
         if (runs == null || runs.isEmpty()) {
-            log.error("No runs found in SARIF report");
             throw new NoSuchElementException("No runs found in the scan SARIF report");
         }
         return new ArrayList<>(parseScanFindings(runs));
@@ -75,6 +74,10 @@ public class SarifParser {
                 if (rule == null) {
                     log.error("Rule not found for result: " + result.getRuleId());
                 } else {
+                    if (result.getLocations() == null || result.getLocations().isEmpty() || result.getLocations().get(0).getPhysicalLocation() == null) {
+                        log.error("Invalid location data for result: " + result.getRuleId());
+                        continue;
+                    }
                     String filePath = result.getLocations().get(0).getPhysicalLocation().getArtifactLocation().getUri();
 
                     // Create FileTreeNodes for files with found issues
@@ -104,15 +107,16 @@ public class SarifParser {
      * @return a ScaIssueNode representing the issue.
      */
     private FileIssueNode generateScaFileIssueNode(ReportingDescriptor rule, Result result){
-        Applicability applicability = Applicability.fromSarif(Objects.requireNonNull(result.getProperties()).get("applicability").toString());
+        Applicability applicability = (result.getProperties().get("applicability") != null) ? Applicability.fromSarif(result.getProperties().get("applicability").toString().toLowerCase()) : null;
         String fixedVersions = Objects.requireNonNull(result.getProperties()).get("fixedVersion").toString();
         List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get("impactPaths"), new TypeReference<>() {
         });
         Severity severity = Severity.fromSarif(result.getLevel().toString());
         String fullDescription = rule.getFullDescription() != null? rule.getFullDescription().getText() : null;
         String reason = result.getMessage().getText();
+        String title = getTitleByScannerType(SourceCodeScanType.SCA, rule, result);
 
-        return new ScaIssueNode(SourceCodeScanType.SCA.getScannerIssueTitle(), reason, severity, rule.getId(), applicability, impactPaths, fixedVersions, fullDescription);
+        return new ScaIssueNode(title, reason, severity, rule.getId(), applicability, impactPaths, fixedVersions, fullDescription);
     }
 
     /**
@@ -127,20 +131,44 @@ public class SarifParser {
     private FileIssueNode generateJasFileIssueNode(ReportingDescriptor rule, Result result, SourceCodeScanType reporter, String filePath){
         Severity severity = Severity.fromSarif(result.getLevel().toString());
         String fullDescription = rule.getFullDescription().getText();
-        int rowStart = result.getLocations().get(0).getPhysicalLocation().getRegion().getStartLine();
-        int colStart = result.getLocations().get(0).getPhysicalLocation().getRegion().getStartColumn();
-        int rowEnd = result.getLocations().get(0).getPhysicalLocation().getRegion().getEndLine();
-        int colEnd = result.getLocations().get(0).getPhysicalLocation().getRegion().getEndColumn();
-        String lineSnippet = result.getLocations().get(0).getPhysicalLocation().getRegion().getSnippet().getText();
+        Region region = getFirstRegionFromResult(result);
+        int rowStart = region.getStartLine();
+        int colStart = region.getStartColumn();
+        int rowEnd = region.getEndLine();
+        int colEnd = region.getEndColumn();
+        String lineSnippet = region.getSnippet().getText();
         String reason = result.getMessage().getText();
+        String title = getTitleByScannerType(reporter, rule, result);
         if (reporter.equals(SourceCodeScanType.SAST)) {
             FindingInfo[][] codeFlows = convertCodeFlowsToFindingInfo(result.getCodeFlows());
-            return new SastIssueNode(reporter.getScannerIssueTitle(), filePath, rowStart, colStart, rowEnd, colEnd, reason,
+            return new SastIssueNode(title, filePath, rowStart, colStart, rowEnd, colEnd, reason,
                     lineSnippet, codeFlows, severity, rule.getId(), fullDescription);
         }
 
-        return new FileIssueNode(reporter.getScannerIssueTitle(), filePath, rowStart, colStart, rowEnd, colEnd, reason,
+        return new FileIssueNode(title, filePath, rowStart, colStart, rowEnd, colEnd, reason,
                 lineSnippet, reporter, severity, rule.getId(), fullDescription);
+    }
+
+    private String getTitleByScannerType(SourceCodeScanType reporter, ReportingDescriptor rule, Result result) {
+        return switch (reporter) {
+            case SCA -> rule.getId().split("_")[0];
+            case SAST -> rule.getShortDescription().getText();
+            default -> result.getMessage().getText();
+        };
+    }
+
+
+    /**
+     * Retrieves the first region from the given SARIF result.
+     * If the result has no locations, returns an empty region with an empty snippet.
+     *
+     * @param result the SARIF result from which to extract the first region.
+     * @return the first region from the result's locations, or an empty region if no locations are present.
+     */
+    private Region getFirstRegionFromResult(Result result) {
+        Region emptyRegion = new Region();
+        emptyRegion.setSnippet(new ArtifactContent());
+        return !result.getLocations().isEmpty() ? result.getLocations().get(0).getPhysicalLocation().getRegion() : emptyRegion;
     }
 
     private static FindingInfo[][] convertCodeFlowsToFindingInfo(List<CodeFlow> codeFlows) {

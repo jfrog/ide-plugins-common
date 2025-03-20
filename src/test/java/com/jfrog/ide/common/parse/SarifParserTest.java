@@ -20,7 +20,6 @@ import static org.testng.Assert.*;
 
 
 public class SarifParserTest {
-    private String sarifReport;
     private SarifParser parser;
     private List<FileTreeNode> results;
     private final String resourcesDir = "src/test/resources/parse/";
@@ -38,16 +37,14 @@ public class SarifParserTest {
     }
 
     @Test
-    public void testParseInvalidSarifReport() throws IOException {
+    public void testParseInvalidSarifReport() {
         // test a report without "runs" element
-        sarifReport = readSarifReportFromFile(resourcesDir + "invalid_sarif.json");
-        assertThrows(NoSuchElementException.class, () -> parser.parse(sarifReport));
+        assertThrows(NoSuchElementException.class, () -> parser.parse(readSarifReportFromFile(resourcesDir + "invalid_sarif.json")));
     }
 
     @Test
     public void testParseSarifReportWithOnlyScaResults() throws IOException {
-        sarifReport = readSarifReportFromFile(resourcesDir + "sca_no_jas.json");
-        results = parser.parse(sarifReport);
+        results = parser.parse(readSarifReportFromFile(resourcesDir + "sca_no_jas.json"));
 
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getChildren().size(), 10);
@@ -65,8 +62,7 @@ public class SarifParserTest {
 
     @Test
     public void testParseSarifReportWithCodeFlowsInSast() throws IOException {
-        sarifReport = readSarifReportFromFile(resourcesDir + "code_flows_in_sast.json");
-        results = parser.parse(sarifReport);
+        results = parser.parse(readSarifReportFromFile(resourcesDir + "code_flows_in_sast.json"));
 
         assertEquals(results.size(), 2);
         results.forEach(fileTreeNode -> fileTreeNode.getChildren().forEach(node -> {

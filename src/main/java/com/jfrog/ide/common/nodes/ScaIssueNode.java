@@ -13,7 +13,7 @@ public class ScaIssueNode extends FileIssueNode {
     private Applicability applicability;
     private List<List<ImpactPath>> impactPaths;
     private String fixedVersions;
-    // TODO: add isDirectDependency indication
+    // TODO: add isDirectDependency indication after implementing corresponding logic in cli-security
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")

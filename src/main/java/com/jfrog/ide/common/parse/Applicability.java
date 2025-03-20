@@ -19,15 +19,14 @@ public enum Applicability {
 
     public static Applicability fromSarif(String value) {
         return switch (value) {
-            case "Applicable" -> Applicability.APPLICABLE;
-            case "Not Applicable" -> Applicability.NOT_APPLICABLE;
-            case "Undetermined" -> Applicability.UNDETERMINED;
-            case "Not Covered" -> Applicability.NOT_COVERED;
-            case "Missing Context" -> Applicability.MISSING_CONTEXT;
-            default -> throw new IllegalArgumentException("No applicability constant with value " + value);
+            case "applicable" -> Applicability.APPLICABLE;
+            case "not applicable" -> Applicability.NOT_APPLICABLE;
+            case "undetermined" -> Applicability.UNDETERMINED;
+            case "not covered" -> Applicability.NOT_COVERED;
+            case "missing context" -> Applicability.MISSING_CONTEXT;
+            default -> throw new IllegalArgumentException("'%s' applicability status not supported" + value);
         };
     }
-
 }
 
 

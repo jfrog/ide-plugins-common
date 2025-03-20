@@ -22,16 +22,6 @@ public enum SourceCodeScanType {
         return scannerName;
     }
 
-    public String getScannerIssueTitle() {
-        return switch (this) {
-            case CONTEXTUAL -> "Applicable Issue";
-            case SECRETS -> "Potential Secret";
-            case IAC -> "Infrastructure as Code Vulnerability";
-            case SAST -> "SAST Vulnerability";
-            case SCA -> "SCA Vulnerability";
-        };
-    }
-
     public static SourceCodeScanType fromParam(String param) {
         for (SourceCodeScanType type : SourceCodeScanType.values()) {
             if (type.getScannerName().equals(param)) {
