@@ -1,0 +1,28 @@
+{
+  "version": "2.1.0",
+  "tools": [
+    {
+      "results": [
+        {
+          "ruleId": "EX001",
+          "message": {
+            "text": "This is an example message."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///example/path"
+                },
+                "region": {
+                  "startLine": 10,
+                  "startColumn": 5
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

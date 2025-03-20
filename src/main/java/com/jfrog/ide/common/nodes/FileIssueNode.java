@@ -23,6 +23,8 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
     private String ruleID;
 
+    private String fullDescription;
+
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
     protected FileIssueNode() {
@@ -35,6 +37,23 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         this.reporterType = reportType;
         this.severity = severity;
         this.ruleID = ruleID;
+    }
+
+    // Constructor for building FileIssueNode with fullDescription param
+    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity, String ruleID, String fullDescription) {
+        this(title, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, reportType, severity, ruleID);
+        this.fullDescription = fullDescription;
+    }
+
+    // Temporary constructor for ScaIssueNode that currently not passing location info
+    public FileIssueNode(String title, String reason, SourceCodeScanType reportType, Severity severity, String ruleID, String fullDescription){
+        this.title = title;
+        this.reason = reason;
+        this.reporterType = reportType;
+        this.severity = severity;
+        this.ruleID = ruleID;
+        this.fullDescription = fullDescription;
+        this.findingInfo = new FindingInfo();
     }
 
     public String getFilePath() {
