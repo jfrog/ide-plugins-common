@@ -2,6 +2,7 @@ package com.jfrog.ide.common.parse;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jfrog.ide.common.nodes.FileIssueNode;
 import com.jfrog.ide.common.nodes.FileTreeNode;
 import com.jfrog.ide.common.nodes.SastIssueNode;
 import com.jfrog.ide.common.nodes.ScaIssueNode;
@@ -40,6 +41,8 @@ public class SarifParserTest {
     public void testParseInvalidSarifReport() {
         // test a report without "runs" element
         assertThrows(NoSuchElementException.class, () -> parser.parse(readSarifReportFromFile(resourcesDir + "invalid_sarif.json")));
+        // test a report without "results" element
+        assertThrows(NullPointerException.class, () -> parser.parse(readSarifReportFromFile(resourcesDir + "invalid_sarif_no_results.json")));
     }
 
     @Test
@@ -82,5 +85,32 @@ public class SarifParserTest {
                 }
             }
         }));
+    }
+
+    @Test
+    public void testParseSarifReportWithScaAndJasResults() throws IOException {
+        results = parser.parse(readSarifReportFromFile(resourcesDir + "sca_iac_secrets_sast.json"));
+
+        assertEquals(results.size(), 4);
+        results.forEach(fileTreeNode -> {
+            switch (((FileIssueNode) fileTreeNode.getChildren().get(0)).getReporterType()) {
+                case SCA:
+                    assertEquals(fileTreeNode.getSeverity(), Severity.High);
+                    assertEquals(fileTreeNode.getChildren().size(), 10);
+                    break;
+                case IAC:
+                    assertEquals(fileTreeNode.getSeverity(), Severity.Medium);
+                    assertEquals(fileTreeNode.getChildren().size(), 5);
+                    break;
+                case SECRETS:
+                    assertEquals(fileTreeNode.getSeverity(), Severity.High);
+                    assertEquals(fileTreeNode.getChildren().size(), 1);
+                    break;
+                case SAST:
+                    assertEquals(fileTreeNode.getSeverity(), Severity.Medium);
+                    assertEquals(fileTreeNode.getChildren().size(), 3);
+                    break;
+            }
+        });
     }
 }
