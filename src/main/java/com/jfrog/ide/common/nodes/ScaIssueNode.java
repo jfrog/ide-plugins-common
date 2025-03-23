@@ -21,7 +21,7 @@ public class ScaIssueNode extends FileIssueNode {
     }
 
     public ScaIssueNode(String title, String reason, Severity severity, String ruleID, Applicability applicability, List<List<ImpactPath>> impactPaths, String fixedVersions, String fullDescription) {
-        super(title,  reason,  SourceCodeScanType.SCA,  severity,  ruleID, fullDescription);
+        super(title, reason, SourceCodeScanType.SCA, severity, ruleID, fullDescription);
         this.applicability = applicability;
         this.impactPaths = impactPaths;
         this.fixedVersions = fixedVersions;

@@ -14,9 +14,11 @@ public class ImpactPath {
     private String version;
 
     // empty constructor for deserialization
+    @SuppressWarnings("unused")
     public ImpactPath() {
     }
 
+    @SuppressWarnings("unused")
     public ImpactPath(String dependencyName, String dependencyVersion) {
         this.name = dependencyName;
         this.version = dependencyVersion;
@@ -27,6 +29,6 @@ public class ImpactPath {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ImpactPath that = (ImpactPath) o;
-        return Objects.equals(name, that.name) && Objects.equals(version, that.version);
+        return Objects.equals(this.name, that.name) && Objects.equals(this.version, that.version);
     }
 }

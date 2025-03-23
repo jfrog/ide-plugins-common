@@ -54,7 +54,6 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     testImplementation group: 'org.testng', name: 'testng', version: '7.7.0'
-
 }
 
 task uberJar(type: Jar) {

@@ -61,8 +61,6 @@ public class SarifParserTest {
         }));
     }
 
-
-
     @Test
     public void testParseSarifReportWithCodeFlowsInSast() throws IOException {
         results = parser.parse(readSarifReportFromFile(resourcesDir + "code_flows_in_sast.json"));
@@ -92,6 +90,7 @@ public class SarifParserTest {
         results = parser.parse(readSarifReportFromFile(resourcesDir + "sca_iac_secrets_sast.json"));
 
         assertEquals(results.size(), 4);
+
         results.forEach(fileTreeNode -> {
             switch (((FileIssueNode) fileTreeNode.getChildren().get(0)).getReporterType()) {
                 case SCA:

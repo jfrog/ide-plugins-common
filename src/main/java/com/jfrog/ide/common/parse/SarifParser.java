@@ -21,6 +21,9 @@ import java.util.*;
  * SarifParser is responsible for parsing SARIF reports and converting them into a list of FileTreeNode objects.
  */
 public class SarifParser {
+    private static final String APPLICABILITY = "applicability";
+    private static final String FIXED_VERSION = "fixedVersion";
+    private static final String IMPACT_PATHS = "impactPaths";
     private final Log log;
 
     /**
@@ -107,9 +110,9 @@ public class SarifParser {
      * @return a ScaIssueNode representing the issue.
      */
     private FileIssueNode generateScaFileIssueNode(ReportingDescriptor rule, Result result){
-        Applicability applicability = (result.getProperties().get("applicability") != null) ? Applicability.fromSarif(result.getProperties().get("applicability").toString().toLowerCase()) : null;
-        String fixedVersions = Objects.requireNonNull(result.getProperties()).get("fixedVersion").toString();
-        List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get("impactPaths"), new TypeReference<>() {
+        Applicability applicability = (result.getProperties().get(APPLICABILITY) != null) ? Applicability.fromSarif(result.getProperties().get(APPLICABILITY).toString().toLowerCase()) : null;
+        String fixedVersions = Objects.requireNonNull(result.getProperties()).get(FIXED_VERSION).toString();
+        List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get(IMPACT_PATHS), new TypeReference<>() {
         });
         Severity severity = Severity.fromSarif(result.getLevel().toString());
         String fullDescription = rule.getFullDescription() != null? rule.getFullDescription().getText() : null;
@@ -157,18 +160,13 @@ public class SarifParser {
         };
     }
 
-
-    /**
-     * Retrieves the first region from the given SARIF result.
-     * If the result has no locations, returns an empty region with an empty snippet.
-     *
-     * @param result the SARIF result from which to extract the first region.
-     * @return the first region from the result's locations, or an empty region if no locations are present.
-     */
     private Region getFirstRegionFromResult(Result result) {
         Region emptyRegion = new Region();
         emptyRegion.setSnippet(new ArtifactContent());
-        return !result.getLocations().isEmpty() ? result.getLocations().get(0).getPhysicalLocation().getRegion() : emptyRegion;
+        if (result.getLocations().isEmpty()){
+            return emptyRegion;
+        }
+        return result.getLocations().get(0).getPhysicalLocation().getRegion();
     }
 
     private static FindingInfo[][] convertCodeFlowsToFindingInfo(List<CodeFlow> codeFlows) {

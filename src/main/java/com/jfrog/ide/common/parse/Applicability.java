@@ -10,7 +10,6 @@ public enum Applicability {
     NOT_COVERED("not_covered"),
     MISSING_CONTEXT("missing_context");
 
-
     private final String value;
 
     Applicability(String value) {
