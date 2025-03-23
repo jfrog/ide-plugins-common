@@ -76,6 +76,7 @@ public class JfrogCliDriverTest {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
+        testEnv.put("JFROG_CLI_LOG_LEVEL", "DEBUG");
         jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, new NullLog());
     }
 
@@ -150,7 +151,7 @@ public class JfrogCliDriverTest {
         }
     }
 
-    @Test(enabled = false)
+    @Test
     public void testRunAudit_NpmProject() {
         String projectToCheck = "npm";
         try {
