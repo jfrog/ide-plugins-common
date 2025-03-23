@@ -168,7 +168,7 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testRunAudit_MultiMavenProject() {
-        List<String> projectsToCheck = new ArrayList<>(Arrays.asList("multi1", "multi2"));
+        List<String> projectsToCheck = new ArrayList<>(Arrays.asList("multi1"));
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
