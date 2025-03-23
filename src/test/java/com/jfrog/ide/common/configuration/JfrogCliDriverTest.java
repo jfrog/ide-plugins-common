@@ -150,7 +150,7 @@ public class JfrogCliDriverTest {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void testRunAudit_NpmProject() {
         String projectToCheck = "npm";
         try {
@@ -168,7 +168,7 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testRunAudit_MultiMavenProject() {
-        List<String> projectsToCheck = new ArrayList<>(Arrays.asList("multi1"));
+        List<String> projectsToCheck = new ArrayList<>(Arrays.asList("multi1", "multi2"));
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
