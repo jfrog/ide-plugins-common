@@ -10,15 +10,24 @@ public enum SourceCodeScanType {
     SAST("JFrog SAST"),
     SCA("JFrog Xray Scanner");
 
-    private final String param;
+    private final String scannerName;
 
     @JsonCreator
-    SourceCodeScanType(String param) {
-        this.param = param;
+    SourceCodeScanType(String scannerName) {
+        this.scannerName = scannerName;
     }
 
     @JsonValue
-    public String getParam() {
-        return param;
+    public String getScannerName() {
+        return scannerName;
+    }
+
+    public static SourceCodeScanType fromParam(String param) {
+        for (SourceCodeScanType type : SourceCodeScanType.values()) {
+            if (type.getScannerName().equals(param)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with param " + param);
     }
 }

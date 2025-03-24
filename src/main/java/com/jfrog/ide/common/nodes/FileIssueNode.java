@@ -21,20 +21,39 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     @JsonProperty()
     private SourceCodeScanType reporterType;
     @JsonProperty()
-    private String ruleID;
+    private String ruleId;
+    @JsonProperty()
+    private String fullDescription;
 
     // Empty constructor for deserialization
     @SuppressWarnings("unused")
     protected FileIssueNode() {
     }
 
-    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity, String ruleID) {
+    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity, String ruleId) {
         this.title = title;
         this.findingInfo = new FindingInfo(filePath, rowStart, colStart, rowEnd, colEnd, lineSnippet);
         this.reason = reason;
         this.reporterType = reportType;
         this.severity = severity;
-        this.ruleID = ruleID;
+        this.ruleId = ruleId;
+    }
+
+    // Constructor for building FileIssueNode with fullDescription param
+    public FileIssueNode(String title, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, SourceCodeScanType reportType, Severity severity, String ruleId, String fullDescription) {
+        this(title, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, reportType, severity, ruleId);
+        this.fullDescription = fullDescription;
+    }
+
+    // TODO: Temporary constructor for ScaIssueNode that currently not passing location info. When corresponding functionality is implemented, this constructor should be removed.
+    public FileIssueNode(String title, String reason, SourceCodeScanType reportType, Severity severity, String ruleId, String fullDescription){
+        this.title = title;
+        this.reason = reason;
+        this.reporterType = reportType;
+        this.severity = severity;
+        this.ruleId = ruleId;
+        this.fullDescription = fullDescription;
+        this.findingInfo = new FindingInfo();
     }
 
     public String getFilePath() {
@@ -91,11 +110,11 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
         FileIssueNode that = (FileIssueNode) o;
         return Objects.equals(findingInfo, that.findingInfo) && Objects.equals(title, that.title)
                 && Objects.equals(reason, that.reason) && severity == that.severity && reporterType == that.reporterType
-                && Objects.equals(ruleID, that.ruleID);
+                && Objects.equals(ruleId, that.ruleId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(title, reason, findingInfo, severity, reporterType, ruleID);
+        return Objects.hash(title, reason, findingInfo, severity, reporterType, ruleId);
     }
 }

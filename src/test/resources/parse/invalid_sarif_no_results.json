@@ -1,0 +1,349 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "informationUri": "https://docs.jfrog-applications.jfrog.io/jfrog-security-features/sca",
+          "name": "JFrog Xray Scanner",
+          "rules": [
+            {
+              "id": "CVE-2024-30172_BouncyCastle_1.8.9",
+              "name": "CVE-2024-30172-BouncyCastle-1.8.9",
+              "shortDescription": {
+                "text": "[CVE-2024-30172] BouncyCastle 1.8.9"
+              },
+              "fullDescription": {
+                "text": "An issue was discovered in Bouncy Castle Java Cryptography APIs before 1.78. An Ed25519 verification code infinite loop can occur via a crafted signature and public key.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.3      | Not Covered       | `BouncyCastle 1.8.9`       | No fix available   |"
+              },
+              "help": {
+                "text": "An issue was discovered in Bouncy Castle Java Cryptography APIs before 1.78. An Ed25519 verification code infinite loop can occur via a crafted signature and public key.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.3      | Not Covered       | `BouncyCastle 1.8.9`       | No fix available   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "TestApp1",
+                      "version": ""
+                    },
+                    {
+                      "name": "BouncyCastle",
+                      "version": "1.8.9"
+                    }
+                  ]
+                ],
+                "security-severity": "5.3"
+              }
+            },
+            {
+              "id": "CVE-2024-30171_BouncyCastle_1.8.9",
+              "name": "CVE-2024-30171-BouncyCastle-1.8.9",
+              "shortDescription": {
+                "text": "[CVE-2024-30171] BouncyCastle 1.8.9"
+              },
+              "fullDescription": {
+                "text": "An issue was discovered in Bouncy Castle Java TLS API and JSSE Provider before 1.78. Timing-based leakage may occur in RSA based handshakes because of exception processing.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.9      | Not Covered       | `BouncyCastle 1.8.9`       | No fix available   |"
+              },
+              "help": {
+                "text": "An issue was discovered in Bouncy Castle Java TLS API and JSSE Provider before 1.78. Timing-based leakage may occur in RSA based handshakes because of exception processing.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.9      | Not Covered       | `BouncyCastle 1.8.9`       | No fix available   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "TestApp1",
+                      "version": ""
+                    },
+                    {
+                      "name": "BouncyCastle",
+                      "version": "1.8.9"
+                    }
+                  ]
+                ],
+                "security-severity": "5.9"
+              }
+            },
+            {
+              "id": "CVE-2020-1045_Microsoft.AspNetCore.Http_2.1.0",
+              "name": "CVE-2020-1045-Microsoft.AspNetCore.Http-2.1.0",
+              "shortDescription": {
+                "text": "[CVE-2020-1045] Microsoft.AspNetCore.Http 2.1.0"
+              },
+              "fullDescription": {
+                "text": "<p>A security feature bypass vulnerability exists in the way Microsoft ASP.NET Core parses encoded cookie names.</p>\n<p>The ASP.NET Core cookie parser decodes entire cookie strings which could allow a malicious attacker to set a second cookie with the name being percent encoded.</p>\n<p>The security update addresses the vulnerability by fixing the way the ASP.NET Core cookie parser handles encoded names.</p>",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 7.5      | Not Applicable       | `Microsoft.AspNetCore.Hosting 2.1.0`       | [2.1.22]   |"
+              },
+              "help": {
+                "text": "<p>A security feature bypass vulnerability exists in the way Microsoft ASP.NET Core parses encoded cookie names.</p>\n<p>The ASP.NET Core cookie parser decodes entire cookie strings which could allow a malicious attacker to set a second cookie with the name being percent encoded.</p>\n<p>The security update addresses the vulnerability by fixing the way the ASP.NET Core cookie parser handles encoded names.</p>",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 7.5      | Not Applicable       | `Microsoft.AspNetCore.Hosting 2.1.0`       | [2.1.22]   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "ClassLibrary1",
+                      "version": ""
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Hosting",
+                      "version": "2.1.0"
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Http",
+                      "version": "2.1.0"
+                    }
+                  ]
+                ],
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "CVE-2020-1045_Microsoft.AspNetCore.Http_2.1.1",
+              "name": "CVE-2020-1045-Microsoft.AspNetCore.Http-2.1.1",
+              "shortDescription": {
+                "text": "[CVE-2020-1045] Microsoft.AspNetCore.Http 2.1.1"
+              },
+              "fullDescription": {
+                "text": "<p>A security feature bypass vulnerability exists in the way Microsoft ASP.NET Core parses encoded cookie names.</p>\n<p>The ASP.NET Core cookie parser decodes entire cookie strings which could allow a malicious attacker to set a second cookie with the name being percent encoded.</p>\n<p>The security update addresses the vulnerability by fixing the way the ASP.NET Core cookie parser handles encoded names.</p>",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 7.5      | Not Applicable       | `Microsoft.AspNetCore.Hosting 2.1.1`       | [2.1.22]   |"
+              },
+              "help": {
+                "text": "<p>A security feature bypass vulnerability exists in the way Microsoft ASP.NET Core parses encoded cookie names.</p>\n<p>The ASP.NET Core cookie parser decodes entire cookie strings which could allow a malicious attacker to set a second cookie with the name being percent encoded.</p>\n<p>The security update addresses the vulnerability by fixing the way the ASP.NET Core cookie parser handles encoded names.</p>",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 7.5      | Not Applicable       | `Microsoft.AspNetCore.Hosting 2.1.1`       | [2.1.22]   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "TestApp1",
+                      "version": ""
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Hosting",
+                      "version": "2.1.1"
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Http",
+                      "version": "2.1.1"
+                    }
+                  ]
+                ],
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "CVE-2021-26701_System.Text.Encodings.Web_4.5.0",
+              "name": "CVE-2021-26701-System.Text.Encodings.Web-4.5.0",
+              "shortDescription": {
+                "text": "[CVE-2021-26701] System.Text.Encodings.Web 4.5.0"
+              },
+              "fullDescription": {
+                "text": ".NET Core Remote Code Execution Vulnerability",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 8.1      | Not Applicable       | `Microsoft.AspNetCore.Hosting 2.1.0`<br/>`Serilog.AspNetCore 2.1.1`       | [4.5.1], [4.7.2], [5.0.1]   |"
+              },
+              "help": {
+                "text": ".NET Core Remote Code Execution Vulnerability",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 8.1      | Not Applicable       | `Microsoft.AspNetCore.Hosting 2.1.0`<br/>`Serilog.AspNetCore 2.1.1`       | [4.5.1], [4.7.2], [5.0.1]   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "TestApp1",
+                      "version": ""
+                    },
+                    {
+                      "name": "Serilog.AspNetCore",
+                      "version": "2.1.1"
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Hosting.Abstractions",
+                      "version": "2.1.1"
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Http.Abstractions",
+                      "version": "2.1.1"
+                    },
+                    {
+                      "name": "System.Text.Encodings.Web",
+                      "version": "4.5.0"
+                    }
+                  ],
+                  [
+                    {
+                      "name": "ClassLibrary1",
+                      "version": ""
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Hosting",
+                      "version": "2.1.0"
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.Http",
+                      "version": "2.1.0"
+                    },
+                    {
+                      "name": "Microsoft.AspNetCore.WebUtilities",
+                      "version": "2.1.0"
+                    },
+                    {
+                      "name": "System.Text.Encodings.Web",
+                      "version": "4.5.0"
+                    }
+                  ]
+                ],
+                "security-severity": "8.1"
+              }
+            },
+            {
+              "id": "CVE-2024-21907_Newtonsoft.Json_12.0.3",
+              "name": "CVE-2024-21907-Newtonsoft.Json-12.0.3",
+              "shortDescription": {
+                "text": "[CVE-2024-21907] Newtonsoft.Json 12.0.3"
+              },
+              "fullDescription": {
+                "text": "Newtonsoft.Json before version 13.0.1 is affected by a mishandling of exceptional conditions vulnerability. Crafted data that is passed to the JsonConvert.DeserializeObject method may trigger a StackOverflow exception resulting in denial of service. Depending on the usage of the library, an unauthenticated and remote attacker may be able to cause the denial of service condition.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 7.5      | Not Applicable       | `Newtonsoft.Json 12.0.3`<br/>`Google.Cloud.Kms.V1 2.0.0`       | [13.0.1]   |"
+              },
+              "help": {
+                "text": "Newtonsoft.Json before version 13.0.1 is affected by a mishandling of exceptional conditions vulnerability. Crafted data that is passed to the JsonConvert.DeserializeObject method may trigger a StackOverflow exception resulting in denial of service. Depending on the usage of the library, an unauthenticated and remote attacker may be able to cause the denial of service condition.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 7.5      | Not Applicable       | `Newtonsoft.Json 12.0.3`<br/>`Google.Cloud.Kms.V1 2.0.0`       | [13.0.1]   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "TestApp1",
+                      "version": ""
+                    },
+                    {
+                      "name": "Google.Cloud.Kms.V1",
+                      "version": "2.0.0"
+                    },
+                    {
+                      "name": "Google.Api.Gax.Grpc.GrpcCore",
+                      "version": "3.0.0"
+                    },
+                    {
+                      "name": "Google.Api.Gax.Grpc",
+                      "version": "3.0.0"
+                    },
+                    {
+                      "name": "Google.Api.Gax",
+                      "version": "3.0.0"
+                    },
+                    {
+                      "name": "Newtonsoft.Json",
+                      "version": "12.0.3"
+                    }
+                  ],
+                  [
+                    {
+                      "name": "ClassLibrary1",
+                      "version": ""
+                    },
+                    {
+                      "name": "Newtonsoft.Json",
+                      "version": "12.0.3"
+                    }
+                  ]
+                ],
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "CVE-2021-22570_Google.Protobuf_3.11.4",
+              "name": "CVE-2021-22570-Google.Protobuf-3.11.4",
+              "shortDescription": {
+                "text": "[CVE-2021-22570] Google.Protobuf 3.11.4"
+              },
+              "fullDescription": {
+                "text": "Nullptr dereference when a null char is present in a proto symbol. The symbol is parsed incorrectly, leading to an unchecked call into the proto file's name during generation of the resulting error message. Since the symbol is incorrectly parsed, the file is nullptr. We recommend upgrading to version 3.15.0 or greater.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.5      | Not Covered       | `Google.Cloud.Kms.V1 2.0.0`       | [3.15.0]   |"
+              },
+              "help": {
+                "text": "Nullptr dereference when a null char is present in a proto symbol. The symbol is parsed incorrectly, leading to an unchecked call into the proto file's name during generation of the resulting error message. Since the symbol is incorrectly parsed, the file is nullptr. We recommend upgrading to version 3.15.0 or greater.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.5      | Not Covered       | `Google.Cloud.Kms.V1 2.0.0`       | [3.15.0]   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "TestApp1",
+                      "version": ""
+                    },
+                    {
+                      "name": "Google.Cloud.Kms.V1",
+                      "version": "2.0.0"
+                    },
+                    {
+                      "name": "Google.Api.Gax.Grpc.GrpcCore",
+                      "version": "3.0.0"
+                    },
+                    {
+                      "name": "Google.Api.Gax.Grpc",
+                      "version": "3.0.0"
+                    },
+                    {
+                      "name": "Google.Api.CommonProtos",
+                      "version": "2.0.0"
+                    },
+                    {
+                      "name": "Google.Protobuf",
+                      "version": "3.11.4"
+                    }
+                  ]
+                ],
+                "security-severity": "5.5"
+              }
+            },
+            {
+              "id": "CVE-2024-29857_BouncyCastle_1.8.9",
+              "name": "CVE-2024-29857-BouncyCastle-1.8.9",
+              "shortDescription": {
+                "text": "[CVE-2024-29857] BouncyCastle 1.8.9"
+              },
+              "fullDescription": {
+                "text": "An issue was discovered in ECCurve.java and ECCurve.cs in Bouncy Castle Java (BC Java) before 1.78, BC Java LTS before 2.73.6, BC-FJA before 1.0.2.5, and BC C# .Net before 2.3.1. Importing an EC certificate with crafted F2m parameters can lead to excessive CPU consumption during the evaluation of the curve parameters.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.3      | Not Covered       | `BouncyCastle 1.8.9`       | No fix available   |"
+              },
+              "help": {
+                "text": "An issue was discovered in ECCurve.java and ECCurve.cs in Bouncy Castle Java (BC Java) before 1.78, BC Java LTS before 2.73.6, BC-FJA before 1.0.2.5, and BC C# .Net before 2.3.1. Importing an EC certificate with crafted F2m parameters can lead to excessive CPU consumption during the evaluation of the curve parameters.",
+                "markdown": "| Severity Score | Contextual Analysis | Direct Dependencies | Fixed Versions     |\n|  :---:  |  :---:  |  :---:  |  :---:  |\n| 5.3      | Not Covered       | `BouncyCastle 1.8.9`       | No fix available   |"
+              },
+              "properties": {
+                "impactPaths": [
+                  [
+                    {
+                      "name": "TestApp1",
+                      "version": ""
+                    },
+                    {
+                      "name": "BouncyCastle",
+                      "version": "1.8.9"
+                    }
+                  ]
+                ],
+                "security-severity": "5.3"
+              }
+            }
+          ],
+          "version": "3.115.6"
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "workingDirectory": {
+            "uri": "C:\\Users\\User\\Desktop\\nuget\\multi"
+          }
+        }
+      ]
+    }
+  ]
+}

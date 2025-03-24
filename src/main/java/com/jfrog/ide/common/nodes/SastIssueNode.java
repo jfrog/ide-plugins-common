@@ -18,8 +18,15 @@ public class SastIssueNode extends FileIssueNode {
     private SastIssueNode() {
     }
 
+    @SuppressWarnings("unused")
     public SastIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, FindingInfo[][] codeFlows, Severity severity, String ruleID) {
         super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.SAST, severity, ruleID);
+        this.codeFlows = codeFlows;
+    }
+
+    // Constructor for building SastIssueNode with fullDescription param
+    public SastIssueNode(String name, String filePath, int rowStart, int colStart, int rowEnd, int colEnd, String reason, String lineSnippet, FindingInfo[][] codeFlows, Severity severity, String ruleID, String fullDescription) {
+        super(name, filePath, rowStart, colStart, rowEnd, colEnd, reason, lineSnippet, SourceCodeScanType.SAST, severity, ruleID, fullDescription);
         this.codeFlows = codeFlows;
     }
 
