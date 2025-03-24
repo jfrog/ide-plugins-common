@@ -22,7 +22,11 @@ pipelines:
             - restore_cache_files gradle_cache $res_idePluginsJavaSnapshotGit_resourcePath/.gradle
           onExecute:
             - cd $res_idePluginsJavaSnapshotGit_resourcePath
-
+            # Install Go
+            - curl -OL https://golang.org/dl/go1.17.6.linux-amd64.tar.gz
+            - tar -C /usr/local -xzf go1.17.6.linux-amd64.tar.gz
+            - export PATH=$PATH:/usr/local/go/bin
+            - go version
             # Fetch submodule files
             - git submodule init
             - git submodule update
