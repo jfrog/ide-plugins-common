@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
-import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
@@ -23,8 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createAnonymousAccessArtifactoryManagerBuilder;
-import static com.jfrog.ide.common.utils.Utils.createMapper;
-import static com.jfrog.ide.common.utils.Utils.getOSAndArc;
+import static com.jfrog.ide.common.utils.Utils.*;
 
 /**
  * @author Tal Arian
@@ -32,9 +30,9 @@ import static com.jfrog.ide.common.utils.Utils.getOSAndArc;
 public class JfrogCliDriver {
     private static final String JFROG_CLI_RELEASES_URL = "https://releases.jfrog.io/artifactory";
     private static final ObjectMapper jsonReader = createMapper();
-    private final CommandExecutor commandExecutor;
     private final Log log;
-
+    private final String path;
+    private final Map<String, String> env;
     @Getter
     private String jfrogExec = "jf";
 
@@ -47,7 +45,8 @@ public class JfrogCliDriver {
         if (SystemUtils.IS_OS_WINDOWS) {
             this.jfrogExec += ".exe";
         }
-        this.commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), env);
+        this.env = env;
+        this.path = path;
         this.log = log;
     }
 
@@ -58,16 +57,16 @@ public class JfrogCliDriver {
 
     @SuppressWarnings("unused")
     public JfrogCliServerConfig getServerConfig() throws IOException {
-        return getServerConfig(Paths.get(".").toAbsolutePath().normalize().toFile(), Collections.emptyList());
+        return getServerConfig(Paths.get(".").toAbsolutePath().normalize().toFile(), Collections.emptyList(), env);
     }
 
-    public JfrogCliServerConfig getServerConfig(File workingDirectory, List<String> extraArgs) throws IOException {
+    public JfrogCliServerConfig getServerConfig(File workingDirectory, List<String> extraArgs, Map<String, String> envVars) throws IOException {
         List<String> args = new ArrayList<>();
         args.add("config");
         args.add("export");
         args.addAll(extraArgs);
         try {
-            CommandResults commandResults = commandExecutor.exeCommand(workingDirectory, args, null, null);
+            CommandResults commandResults = runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList(), log);
             String res = commandResults.getRes();
             if (StringUtils.isBlank(res) || !commandResults.isOk()) {
                 throw new IOException(commandResults.getErr());
@@ -85,7 +84,7 @@ public class JfrogCliDriver {
     public String runVersion(File workingDirectory) {
         String versionOutput = null;
         try {
-            versionOutput = runCommand(workingDirectory, new String[]{"--version"}, Collections.emptyList()).getRes();
+            versionOutput = runCommand(workingDirectory, env, new String[]{"--version"}, Collections.emptyList()).getRes();
         } catch (IOException | InterruptedException e) {
             log.error("Failed to get CLI version. Reason: " + e.getMessage());
         }
@@ -93,14 +92,18 @@ public class JfrogCliDriver {
         return versionOutput;
     }
 
-    private CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs) throws IOException,
+    private CommandResults runCommand(File workingDirectory, Map<String, String> envVars, String[] args, List<String> extraArgs) throws IOException,
             InterruptedException {
-        return runCommand(workingDirectory, args, extraArgs, null);
+        return runCommand(workingDirectory, envVars, args, extraArgs, null);
     }
 
-    public CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs, Log logger)
+    public CommandResults runCommand(File workingDirectory, Map<String, String> commandEnvVars, String[] args, List<String> extraArgs, Log logger)
             throws IOException, InterruptedException {
         List<String> finalArgs = Stream.concat(Arrays.stream(args), extraArgs.stream()).collect(Collectors.toList());
+        Map<String, String> combinedEnvVars = new HashMap<>();
+        Optional.ofNullable(env).ifPresent(combinedEnvVars::putAll);
+        Optional.ofNullable(commandEnvVars).ifPresent(combinedEnvVars::putAll);
+        CommandExecutor commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), combinedEnvVars);
         CommandResults commandResults = commandExecutor.exeCommand(workingDirectory, finalArgs, null, logger);
         if (!commandResults.isOk()) {
             throw new IOException(commandResults.getErr() + commandResults.getRes());
@@ -148,7 +151,7 @@ public class JfrogCliDriver {
         }
     }
 
-    public void addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory) throws Exception {
+    public void addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory, Map<String, String> envVars) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("config");
         args.add("add");
@@ -167,7 +170,7 @@ public class JfrogCliDriver {
         }
 
         try {
-            runCommand(workingDirectory, args.toArray(new String[0]), Collections.emptyList(), log);
+            runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList(), log);
             log.info("JFrog CLI server has been configured successfully");
         } catch (IOException | InterruptedException e) {
             log.error("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
@@ -175,7 +178,7 @@ public class JfrogCliDriver {
         }
     }
 
-    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, List<String> extraArgs) throws Exception {
+    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, List<String> extraArgs, Map<String, String> envVars) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("audit");
         if (scannedDirectories != null && !scannedDirectories.isEmpty()) {
@@ -185,7 +188,7 @@ public class JfrogCliDriver {
         args.add("--server-id=" + serverId);
         args.add("--format=sarif");
         try {
-            return runCommand(workingDirectory, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), log);
+            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), log);
         } catch (IOException | InterruptedException e) {
             throw new Exception("Failed to run JF audit. Reason: " + e.getMessage(), e);
         }
