@@ -100,7 +100,9 @@ public class JfrogCliDriver {
     public CommandResults runCommand(File workingDirectory, Map<String, String> commandEnvVars, String[] args, List<String> extraArgs, Log logger)
             throws IOException, InterruptedException {
         List<String> finalArgs = Stream.concat(Arrays.stream(args), extraArgs.stream()).collect(Collectors.toList());
-        Map<String, String> combinedEnvVars = mergeEnvVarsMaps(env, commandEnvVars);
+        Map<String, String> combinedEnvVars = new HashMap<>();
+        Optional.ofNullable(env).ifPresent(combinedEnvVars::putAll);
+        Optional.ofNullable(commandEnvVars).ifPresent(combinedEnvVars::putAll);
         CommandExecutor commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), combinedEnvVars);
         CommandResults commandResults = commandExecutor.exeCommand(workingDirectory, finalArgs, null, logger);
         if (!commandResults.isOk()) {
@@ -205,17 +207,5 @@ public class JfrogCliDriver {
         }
 
         return null;
-    }
-
-    private Map<String, String> mergeEnvVarsMaps(Map<String, String> envVars, Map<String, String> additionalEnvVars) {
-        Map<String, String> combinedEnvVars = new HashMap<>();
-        if (envVars != null) {
-            combinedEnvVars.putAll(envVars);
-            if (additionalEnvVars != null){
-                combinedEnvVars.putAll(additionalEnvVars);
-            }
-        }
-
-        return combinedEnvVars;
     }
 }
