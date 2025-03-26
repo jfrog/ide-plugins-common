@@ -22,8 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createAnonymousAccessArtifactoryManagerBuilder;
-import static com.jfrog.ide.common.utils.Utils.createMapper;
-import static com.jfrog.ide.common.utils.Utils.getOSAndArc;
+import static com.jfrog.ide.common.utils.Utils.*;
 
 /**
  * @author Tal Arian
@@ -33,7 +32,7 @@ public class JfrogCliDriver {
     private static final ObjectMapper jsonReader = createMapper();
     private final Log log;
     private final String path;
-    private Map<String, String> env;
+    private final Map<String, String> env;
     @Getter
     private String jfrogExec = "jf";
 
@@ -98,10 +97,11 @@ public class JfrogCliDriver {
         return runCommand(workingDirectory, envVars, args, extraArgs, null);
     }
 
-    public CommandResults runCommand(File workingDirectory, Map<String, String> envVars, String[] args, List<String> extraArgs, Log logger)
+    public CommandResults runCommand(File workingDirectory, Map<String, String> commandEnvVars, String[] args, List<String> extraArgs, Log logger)
             throws IOException, InterruptedException {
         List<String> finalArgs = Stream.concat(Arrays.stream(args), extraArgs.stream()).collect(Collectors.toList());
-        CommandExecutor commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), envVars);
+        Map<String, String> combinedEnvVars = mergeEnvVarsMaps(env, commandEnvVars);
+        CommandExecutor commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), combinedEnvVars);
         CommandResults commandResults = commandExecutor.exeCommand(workingDirectory, finalArgs, null, logger);
         if (!commandResults.isOk()) {
             throw new IOException(commandResults.getErr() + commandResults.getRes());
@@ -205,5 +205,17 @@ public class JfrogCliDriver {
         }
 
         return null;
+    }
+
+    private Map<String, String> mergeEnvVarsMaps(Map<String, String> envVars, Map<String, String> additionalEnvVars) {
+        Map<String, String> combinedEnvVars = new HashMap<>();
+        if (envVars != null) {
+            combinedEnvVars.putAll(envVars);
+            if (additionalEnvVars != null){
+                combinedEnvVars.putAll(additionalEnvVars);
+            }
+        }
+
+        return combinedEnvVars;
     }
 }
