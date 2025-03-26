@@ -2,7 +2,6 @@ package com.jfrog.ide.common.configuration;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
-import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -76,7 +75,7 @@ public class JfrogCliDriverTest {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
-        jfrogCliDriver = new JfrogCliDriver(tempDir.getAbsolutePath() + File.separator, new NullLog());
+        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, new NullLog());
     }
 
     private void getCli(File execDir) throws IOException, InterruptedException {
@@ -117,7 +116,7 @@ public class JfrogCliDriverTest {
         // Assert the new downloaded cli version is compatible with the required version
         String newJfrogCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
 
-        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion.toString()));
+        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion));
         assertNotEquals(currentCliVersion, newJfrogCliVersion);
     }
 

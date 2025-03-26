@@ -33,19 +33,20 @@ public class JfrogCliDriver {
     private static final ObjectMapper jsonReader = createMapper();
     private final Log log;
     private final String path;
-
+    private Map<String, String> env;
     @Getter
     private String jfrogExec = "jf";
 
     @SuppressWarnings("unused")
-    public JfrogCliDriver(Log log) {
-        this("", log);
+    public JfrogCliDriver(Map<String, String> env, Log log) {
+        this(env, "", log);
     }
 
-    public JfrogCliDriver(String path, Log log) {
+    public JfrogCliDriver(Map<String, String> env, String path, Log log) {
         if (SystemUtils.IS_OS_WINDOWS) {
             this.jfrogExec += ".exe";
         }
+        this.env = env;
         this.path = path;
         this.log = log;
     }
@@ -57,7 +58,7 @@ public class JfrogCliDriver {
 
     @SuppressWarnings("unused")
     public JfrogCliServerConfig getServerConfig() throws IOException {
-        return getServerConfig(Paths.get(".").toAbsolutePath().normalize().toFile(), Collections.emptyList(), null);
+        return getServerConfig(Paths.get(".").toAbsolutePath().normalize().toFile(), Collections.emptyList(), env);
     }
 
     public JfrogCliServerConfig getServerConfig(File workingDirectory, List<String> extraArgs, Map<String, String> envVars) throws IOException {
@@ -84,7 +85,7 @@ public class JfrogCliDriver {
     public String runVersion(File workingDirectory) {
         String versionOutput = null;
         try {
-            versionOutput = runCommand(workingDirectory, null, new String[]{"--version"}, Collections.emptyList()).getRes();
+            versionOutput = runCommand(workingDirectory, env, new String[]{"--version"}, Collections.emptyList()).getRes();
         } catch (IOException | InterruptedException e) {
             log.error("Failed to get CLI version. Reason: " + e.getMessage());
         }
