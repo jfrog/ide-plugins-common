@@ -31,7 +31,7 @@ public class SarifParser {
      *
      * @param log the logger to be used for logging errors and information.
      */
-    SarifParser(Log log) {
+    public SarifParser(Log log) {
         this.log = log;
     }
 
@@ -42,7 +42,7 @@ public class SarifParser {
      * @return a list of FileTreeNode objects representing the parsed findings.
      * @throws NoSuchElementException if no runs are found in the SARIF report.
      */
-    List<FileTreeNode> parse (String output) {
+    public List<FileTreeNode> parse (String output) {
         Reader reader = new StringReader(output);
         SarifReport report = SarifUtil.readReport(reader);
         List<Run> runs = report.getRuns();

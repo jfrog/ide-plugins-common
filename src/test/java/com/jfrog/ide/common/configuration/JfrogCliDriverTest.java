@@ -103,7 +103,7 @@ public class JfrogCliDriverTest {
     @Test
     void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException {
         // We use hardcoded version because the setup method downloads the latest cli version which is greater than 2.73.0.
-        Version jfrogCliVersion = new Version("2.73.0");
+        String jfrogCliVersion = "2.73.0";
         String destinationFolder = tempDir.getAbsolutePath();
         File destinationFolderFile = new File(destinationFolder);
         Path jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());

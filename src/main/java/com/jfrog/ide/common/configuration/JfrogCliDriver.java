@@ -109,7 +109,8 @@ public class JfrogCliDriver {
         return commandResults;
     }
 
-    public void downloadCliIfNeeded(String destinationPath, Version jfrogCliVersion) throws IOException {
+    public void downloadCliIfNeeded(String destinationPath, String rawJfrogCliVersion) throws IOException {
+        Version jfrogCliVersion = new Version(rawJfrogCliVersion);
         // verify installed cli version
         Version cliVersion = extractVersionFromCliOutput(runVersion(null));
         log.debug("Local CLI version is: " + cliVersion);
