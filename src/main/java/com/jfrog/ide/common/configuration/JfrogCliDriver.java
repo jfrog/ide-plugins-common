@@ -109,17 +109,18 @@ public class JfrogCliDriver {
         return commandResults;
     }
 
-    public void downloadCliIfNeeded(String destinationPath, Version jfrogCliVersion) throws IOException {
+    public void downloadCliIfNeeded(String destinationPath, String jfrogCliVersion) throws IOException {
+        Version requestedVersion = new Version(jfrogCliVersion);
         // verify installed cli version
         Version cliVersion = extractVersionFromCliOutput(runVersion(null));
         log.debug("Local CLI version is: " + cliVersion);
         // cli is installed but not the correct version
-        if (cliVersion != null && cliVersion.equals(jfrogCliVersion)) {
+        if (cliVersion != null && cliVersion.equals(requestedVersion)) {
             log.info("Local Jfrog CLI version has been verified and is compatible. Proceeding with its usage.");
         } else {
             log.info(String.format("JFrog CLI is either not installed or the current version is incompatible. " +
-                    "Initiating download of version %s to the destination: %s.", jfrogCliVersion, destinationPath));
-            downloadCliFromReleases(jfrogCliVersion, destinationPath);
+                    "Initiating download of version %s to the destination: %s.", requestedVersion, destinationPath));
+            downloadCliFromReleases(requestedVersion, destinationPath);
         }
     }
 
