@@ -45,7 +45,7 @@ public class JfrogCliDriverTest {
     @Test()
     private void cliExportTest() {
         try {
-            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
             assertEquals(serverConfig.getUrl(), SERVER_URL);
@@ -61,7 +61,7 @@ public class JfrogCliDriverTest {
             configJfrogCli();
             testServerId = createServerId();
             String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
@@ -76,7 +76,7 @@ public class JfrogCliDriverTest {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
-        jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, new NullLog());
+        jfrogCliDriver = new JfrogCliDriver(tempDir.getAbsolutePath() + File.separator, new NullLog());
     }
 
     private void getCli(File execDir) throws IOException, InterruptedException {
@@ -124,8 +124,8 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withUsernameAndPassword() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir);
-            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir, testEnv);
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
@@ -139,8 +139,8 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withAccessToken() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir);
-            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir, testEnv);
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getAccessToken(), ACCESS_TOKEN);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
@@ -156,9 +156,7 @@ public class JfrogCliDriverTest {
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    singletonList(projectToCheck),
-                    testServerId,
-                    null);
+                    singletonList(projectToCheck), testServerId, null, testEnv);
             //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(),0);
         } catch (Exception e) {
@@ -172,9 +170,7 @@ public class JfrogCliDriverTest {
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    projectsToCheck,
-                    testServerId,
-                    null);
+                    projectsToCheck, testServerId, null, testEnv);
             //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(), 0);
         } catch (Exception e) {
@@ -190,7 +186,7 @@ public class JfrogCliDriverTest {
     public void cleanUp() {
         try {
             String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
