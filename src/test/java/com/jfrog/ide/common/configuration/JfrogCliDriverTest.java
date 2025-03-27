@@ -123,8 +123,10 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withUsernameAndPassword() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir, testEnv);
+            CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir, testEnv);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
+            assertTrue(response.isOk());
+            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
@@ -138,12 +140,28 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withAccessToken() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir, testEnv);
+            CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir, testEnv);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
+            assertTrue(response.isOk());
+            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getAccessToken(), ACCESS_TOKEN);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
+        } catch (Exception e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void testAddServerConfig_withBadCredentials() {
+        try{
+            CommandResults response = jfrogCliDriver.addCliServerConfig("XRAY_URL", ARTIFACTORY_URL, testServerId, "user", "bad_password", "access_token", tempDir, testEnv);
+
+            // in case of an error the response result should be an empty string. The response error should contain the error message.
+            assertTrue(response.getRes().isBlank());
+            assertFalse(response.getErr().isBlank());
+
         } catch (Exception e) {
             fail(e.getMessage(), e);
         }

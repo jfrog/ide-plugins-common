@@ -151,7 +151,7 @@ public class JfrogCliDriver {
         }
     }
 
-    public void addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory, Map<String, String> envVars) throws Exception {
+    public CommandResults addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory, Map<String, String> envVars) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("config");
         args.add("add");
@@ -170,11 +170,10 @@ public class JfrogCliDriver {
         }
 
         try {
-            runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList(), log);
-            log.info("JFrog CLI server has been configured successfully");
+            // run the config command without log in order to avoid printing of credentials
+            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList());
         } catch (IOException | InterruptedException e) {
-            log.error("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
-                throw new Exception("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
+            throw new Exception("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
         }
     }
 
