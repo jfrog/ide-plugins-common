@@ -117,4 +117,9 @@ public class FileIssueNode extends IssueNode implements SubtitledTreeNode {
     public int hashCode() {
         return Objects.hash(title, reason, findingInfo, severity, reporterType, ruleId);
     }
+
+    @Override
+    public String toString() {
+        return title;
+    }
 }
