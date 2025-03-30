@@ -59,8 +59,9 @@ public class JfrogCliDriverTest {
         try {
             configJfrogCli();
             testServerId = createServerId();
-            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
-            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
+            List<String> credentials = new ArrayList<>(Arrays.asList("--user=" + USER_NAME, "--password=" + PASSWORD));
+            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), credentials, new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
@@ -203,7 +204,7 @@ public class JfrogCliDriverTest {
     public void cleanUp() {
         try {
             String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
-            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), null, new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }

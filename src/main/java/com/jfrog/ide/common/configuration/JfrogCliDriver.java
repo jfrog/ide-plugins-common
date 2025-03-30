@@ -66,7 +66,7 @@ public class JfrogCliDriver {
         args.add("export");
         args.addAll(extraArgs);
         try {
-            CommandResults commandResults = runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList(), log);
+            CommandResults commandResults = runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList(),null, log);
             String res = commandResults.getRes();
             if (StringUtils.isBlank(res) || !commandResults.isOk()) {
                 throw new IOException(commandResults.getErr());
@@ -94,17 +94,17 @@ public class JfrogCliDriver {
 
     private CommandResults runCommand(File workingDirectory, Map<String, String> envVars, String[] args, List<String> extraArgs) throws IOException,
             InterruptedException {
-        return runCommand(workingDirectory, envVars, args, extraArgs, null);
+        return runCommand(workingDirectory, envVars, args, extraArgs,null, null);
     }
 
-    public CommandResults runCommand(File workingDirectory, Map<String, String> commandEnvVars, String[] args, List<String> extraArgs, Log logger)
+    public CommandResults runCommand(File workingDirectory, Map<String, String> commandEnvVars, String[] args, List<String> extraArgs,List<String> credentials, Log logger)
             throws IOException, InterruptedException {
         List<String> finalArgs = Stream.concat(Arrays.stream(args), extraArgs.stream()).collect(Collectors.toList());
         Map<String, String> combinedEnvVars = new HashMap<>();
         Optional.ofNullable(env).ifPresent(combinedEnvVars::putAll);
         Optional.ofNullable(commandEnvVars).ifPresent(combinedEnvVars::putAll);
         CommandExecutor commandExecutor = new CommandExecutor(Paths.get(path, this.jfrogExec).toString(), combinedEnvVars);
-        CommandResults commandResults = commandExecutor.exeCommand(workingDirectory, finalArgs, null, logger);
+        CommandResults commandResults = commandExecutor.exeCommand(workingDirectory, finalArgs, credentials, logger);
         if (!commandResults.isOk()) {
             throw new IOException(commandResults.getErr() + commandResults.getRes());
         }
@@ -153,25 +153,27 @@ public class JfrogCliDriver {
 
     public CommandResults addCliServerConfig(String xrayUrl, String artifactoryUrl, String cliServerId, String user, String password, String accessToken, File workingDirectory, Map<String, String> envVars) throws Exception {
         List<String> args = new ArrayList<>();
+        List<String> credentials = new ArrayList<>();
+
         args.add("config");
         args.add("add");
         args.add(cliServerId);
-        args.add("--xray-url=" + xrayUrl);
-        args.add("--artifactory-url=" + artifactoryUrl);
         args.add("--interactive=false");
         args.add("--overwrite");
+        args.add("--enc-password=false");
 
         if (accessToken != null && !accessToken.isEmpty()) {
-            args.add("--access-token=" + accessToken);
+            credentials.add("--access-token=" + accessToken);
         } else {
             args.add("--user=" + user);
-            args.add("--password=" + password);
-            args.add("--enc-password=false");
+            credentials.add("--password=" + password);
         }
 
+        args.add("--xray-url=" + xrayUrl);
+        args.add("--artifactory-url=" + artifactoryUrl);
+
         try {
-            // run the config command without log in order to avoid printing of credentials
-            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList());
+            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), Collections.emptyList(), credentials ,log);
         } catch (IOException | InterruptedException e) {
             throw new Exception("Failed to configure JFrog CLI server. Reason: " + e.getMessage(), e);
         }
@@ -187,7 +189,7 @@ public class JfrogCliDriver {
         args.add("--server-id=" + serverId);
         args.add("--format=sarif");
         try {
-            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), log);
+            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), null, log);
         } catch (IOException | InterruptedException e) {
             throw new Exception("Failed to run JF audit. Reason: " + e.getMessage(), e);
         }
