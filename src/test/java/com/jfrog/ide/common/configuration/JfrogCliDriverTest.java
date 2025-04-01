@@ -59,8 +59,9 @@ public class JfrogCliDriverTest {
         try {
             configJfrogCli();
             testServerId = createServerId();
-            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
-            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
+            List<String> credentials = new ArrayList<>(Arrays.asList("--user=" + USER_NAME, "--password=" + PASSWORD));
+            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), credentials, new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
@@ -123,8 +124,10 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withUsernameAndPassword() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir, testEnv);
+            CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir, testEnv);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
+            assertTrue(response.isOk());
+            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
@@ -138,12 +141,28 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withAccessToken() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir, testEnv);
+            CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir, testEnv);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
+            assertTrue(response.isOk());
+            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getAccessToken(), ACCESS_TOKEN);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
+        } catch (Exception e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void testAddServerConfig_withBadCredentials() {
+        try{
+            CommandResults response = jfrogCliDriver.addCliServerConfig("XRAY_URL", ARTIFACTORY_URL, testServerId, "user", "bad_password", "access_token", tempDir, testEnv);
+
+            // in case of an error the response result should be an empty string. The response error should contain the error message.
+            assertTrue(response.getRes().isBlank());
+            assertFalse(response.getErr().isBlank());
+
         } catch (Exception e) {
             fail(e.getMessage(), e);
         }
@@ -185,7 +204,7 @@ public class JfrogCliDriverTest {
     public void cleanUp() {
         try {
             String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
-            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), null, new NullLog());
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
