@@ -115,7 +115,7 @@ public class SarifParser {
         List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get(IMPACT_PATHS), new TypeReference<>() {
         });
         Severity severity = Severity.fromSarif(result.getLevel().toString());
-        String fullDescription = rule.getFullDescription() != null? rule.getFullDescription().getText() : null;
+        String fullDescription = rule.getHelp() != null ? rule.getHelp().getText() : null;
         String reason = result.getMessage().getText();
         String title = getTitleByScannerType(SourceCodeScanType.SCA, rule, result);
 
