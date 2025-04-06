@@ -4,11 +4,11 @@ import lombok.Getter;
 
 @Getter
 public enum Applicability {
-    APPLICABLE("applicable"),
-    NOT_APPLICABLE("not_applicable"),
-    UNDETERMINED("undetermined"),
-    NOT_COVERED("not_covered"),
-    MISSING_CONTEXT("missing_context");
+    APPLICABLE("Applicable"),
+    NOT_APPLICABLE("Not Applicable"),
+    UNDETERMINED("Undetermined"),
+    NOT_COVERED("Not Covered"),
+    MISSING_CONTEXT("Missing Context");
 
     private final String value;
 
