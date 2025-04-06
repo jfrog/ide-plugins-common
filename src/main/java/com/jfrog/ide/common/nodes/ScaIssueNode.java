@@ -31,6 +31,7 @@ public class ScaIssueNode extends FileIssueNode {
     }
 
     private void parseComponentFromRuleId(String ruleId) {
+        // The ruleId format is expected to be "CVE_componentName_componentVersion". For example: "CVE-2021-22060_org.springframework:spring-core_5.0.3.RELEASE"
         String[] componentParts = ruleId.split("_");
         if (componentParts.length != 3) {
             return;
