@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
-import org.jfrog.build.client.Version;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -113,11 +112,10 @@ public class JfrogCliDriver {
         return commandResults;
     }
 
-    public void downloadCliIfNeeded(String destinationPath, String rawJfrogCliVersion) throws IOException {
-        Version jfrogCliVersion = new Version(rawJfrogCliVersion);
+    public void downloadCliIfNeeded(String destinationPath, String jfrogCliVersion) throws IOException {
         // verify installed cli version
         if (Files.exists(Paths.get(path, jfrogExec))){
-            Version cliVersion = extractVersionFromCliOutput(runVersion(new File(path)));
+            String cliVersion = extractVersionFromCliOutput(runVersion(new File(path)));
             log.debug("Local CLI version is: " + cliVersion);
             if (jfrogCliVersion.equals(cliVersion)) {
                 log.info("Local Jfrog CLI version has been verified and is compatible. Proceeding with its usage.");
@@ -132,8 +130,8 @@ public class JfrogCliDriver {
         }
     }
 
-    public void downloadCliFromReleases(Version cliVersion, String destinationFolder) throws IOException {
-        String[] urlParts = {"jfrog-cli/v2-jf", cliVersion.toString(), "jfrog-cli-" + getOSAndArc(), jfrogExec};
+    public void downloadCliFromReleases(String cliVersion, String destinationFolder) throws IOException {
+        String[] urlParts = {"jfrog-cli/v2-jf", cliVersion, "jfrog-cli-" + getOSAndArc(), jfrogExec};
         String fileLocationInReleases = String.join("/", urlParts);
         Path basePath = Paths.get(destinationFolder);
 
@@ -192,7 +190,7 @@ public class JfrogCliDriver {
         }
     }
 
-    private Version extractVersionFromCliOutput(String input) {
+    private String extractVersionFromCliOutput(String input) {
         if (input != null) {
             // define a pattern for the version format 'x.x.x'
             String regex = "\\b\\d+\\.\\d+\\.\\d+\\b";
@@ -200,7 +198,7 @@ public class JfrogCliDriver {
             Matcher matcher = pattern.matcher(input);
 
             if (matcher.find()) {
-                return new Version(matcher.group());
+                return matcher.group();
             }
         }
 
