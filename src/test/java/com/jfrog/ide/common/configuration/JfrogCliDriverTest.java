@@ -223,10 +223,12 @@ public class JfrogCliDriverTest {
     }
 
     @AfterMethod
-    public void cleanUp() {
+    public void cleanUp(Method method) {
         try {
-            String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
-            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), null, new NullLog());
+            if (!TEST_NAME_TO_SKIP_CLI_DOWNLOAD.equals(method.getName())) {
+                String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
+                jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), null, new NullLog());
+            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }

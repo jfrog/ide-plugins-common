@@ -132,23 +132,13 @@ public class JfrogCliDriver {
         String[] urlParts = {"jfrog-cli/v2-jf", cliVersion.toString(), "jfrog-cli-" + getOSAndArc(), jfrogExec};
         String fileLocationInReleases = String.join("/", urlParts);
         Path basePath = Paths.get(destinationFolder);
-        String destinationPath = basePath.resolve(jfrogExec).toString();
 
         // download executable from releases and save it in 'destinationPath'
         try {
-//            ArtifactoryManagerBuilder artifactoryManagerBuilder = createAnonymousAccessArtifactoryManagerBuilder(JFROG_CLI_RELEASES_URL, serverConfig.getProxyConfForTargetUrl(JFROG_CLI_RELEASES_URL), log);
-//            ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build();
-//            File cliExecutable = artifactoryManager.downloadToFile(fileLocationInReleases, destinationPath);
             // setting the file as executable
             String finalUrl = JFROG_CLI_RELEASES_URL + "/" + fileLocationInReleases;
             InputStream in = new URL(finalUrl).openStream();
             Files.copy(in, basePath.resolve(jfrogExec), StandardCopyOption.REPLACE_EXISTING);
-
-//            if (!cliExecutable.setExecutable(true)) {
-//                log.error(String.format("Failed to set downloaded CLI as executable. Path: %s", destinationPath));
-//            } else {
-//                log.debug(String.format("Downloaded CLI to %s. Permission te execute: %s", destinationPath, cliExecutable.canExecute()));
-//            }
         } catch (IOException e) {
             log.error(String.format("Failed to download CLI from %s. Reason: %s", fileLocationInReleases, e.getMessage()), e);
             throw e;
