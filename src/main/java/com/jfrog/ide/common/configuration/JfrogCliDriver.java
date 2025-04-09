@@ -6,22 +6,23 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.api.util.Log;
-import org.jfrog.build.extractor.clientConfiguration.ArtifactoryManagerBuilder;
 import org.jfrog.build.extractor.executor.CommandExecutor;
 import org.jfrog.build.extractor.executor.CommandResults;
-import org.jfrog.build.extractor.clientConfiguration.client.artifactory.ArtifactoryManager;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.jfrog.ide.common.utils.ArtifactoryConnectionUtils.createAnonymousAccessArtifactoryManagerBuilder;
 import static com.jfrog.ide.common.utils.Utils.*;
 
 /**
@@ -135,16 +136,19 @@ public class JfrogCliDriver {
 
         // download executable from releases and save it in 'destinationPath'
         try {
-            ServerConfig serverConfig = getServerConfig();
-            ArtifactoryManagerBuilder artifactoryManagerBuilder = createAnonymousAccessArtifactoryManagerBuilder(JFROG_CLI_RELEASES_URL, serverConfig.getProxyConfForTargetUrl(JFROG_CLI_RELEASES_URL), log);
-            ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build();
-            File cliExecutable = artifactoryManager.downloadToFile(fileLocationInReleases, destinationPath);
+//            ArtifactoryManagerBuilder artifactoryManagerBuilder = createAnonymousAccessArtifactoryManagerBuilder(JFROG_CLI_RELEASES_URL, serverConfig.getProxyConfForTargetUrl(JFROG_CLI_RELEASES_URL), log);
+//            ArtifactoryManager artifactoryManager = artifactoryManagerBuilder.build();
+//            File cliExecutable = artifactoryManager.downloadToFile(fileLocationInReleases, destinationPath);
             // setting the file as executable
-            if (!cliExecutable.setExecutable(true)) {
-                log.error(String.format("Failed to set downloaded CLI as executable. Path: %s", destinationPath));
-            } else {
-                log.debug(String.format("Downloaded CLI to %s. Permission te execute: %s", destinationPath, cliExecutable.canExecute()));
-            }
+            String finalUrl = JFROG_CLI_RELEASES_URL + "/" + fileLocationInReleases;
+            InputStream in = new URL(finalUrl).openStream();
+            Files.copy(in, basePath.resolve(jfrogExec), StandardCopyOption.REPLACE_EXISTING);
+
+//            if (!cliExecutable.setExecutable(true)) {
+//                log.error(String.format("Failed to set downloaded CLI as executable. Path: %s", destinationPath));
+//            } else {
+//                log.debug(String.format("Downloaded CLI to %s. Permission te execute: %s", destinationPath, cliExecutable.canExecute()));
+//            }
         } catch (IOException e) {
             log.error(String.format("Failed to download CLI from %s. Reason: %s", fileLocationInReleases, e.getMessage()), e);
             throw e;

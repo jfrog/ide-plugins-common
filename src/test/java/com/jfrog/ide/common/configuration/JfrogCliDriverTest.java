@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +28,7 @@ import static org.testng.Assert.*;
  * @author tala
  */
 public class JfrogCliDriverTest {
-
+    private final String TEST_NAME_TO_SKIP_CLI_DOWNLOAD = "testDownloadCliIfNeeded_whenCliIsNotInstalled";
     private final SimpleDateFormat timeStampFormat = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
     private final Map<String, String> testEnv = new HashMap<>();
     private JfrogCliDriver jfrogCliDriver;
@@ -55,9 +56,9 @@ public class JfrogCliDriverTest {
     }
 
     @BeforeMethod
-    public void setUp(Object[] testArgs) {
+    public void setUp(Object[] testArgs, Method method) {
         try {
-            configJfrogCli();
+            configJfrogCli(TEST_NAME_TO_SKIP_CLI_DOWNLOAD.equals(method.getName()));
             testServerId = createServerId();
             String[] serverConfigCmdArgs = {"config", "add", testServerId, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
             List<String> credentials = new ArrayList<>(Arrays.asList("--user=" + USER_NAME, "--password=" + PASSWORD));
@@ -67,11 +68,13 @@ public class JfrogCliDriverTest {
         }
     }
 
-    private void configJfrogCli() {
+    private void configJfrogCli(Boolean skip) {
         try {
             tempDir = Files.createTempDirectory("ide-plugins-common-cli-test").toFile();
             tempDir.deleteOnExit();
-            getCli(tempDir);
+            if(!skip) {
+                getCli(tempDir);
+            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
@@ -99,6 +102,25 @@ public class JfrogCliDriverTest {
         process.waitFor();
     }
 
+
+    @Test
+    void testDownloadCliIfNeeded_whenCliIsNotInstalled() throws IOException {
+        // We use hardcoded version because the setup method downloads the latest cli version which is greater than 2.73.0.
+        String jfrogCliVersion = "2.73.0";
+        String destinationFolder = tempDir.getAbsolutePath();
+        File destinationFolderFile = new File(destinationFolder);
+        Path jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
+
+        // Verify Jfrog cli executable file does not exist
+        assertFalse(Files.exists(jfrogCliPath));
+
+        jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersion);
+
+        // Assert the new downloaded cli version is compatible with the required version
+        String newJfrogCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
+
+        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion));
+    }
 
     @Test
     void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException {
