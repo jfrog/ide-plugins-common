@@ -134,13 +134,21 @@ public class JfrogCliDriver {
         String[] urlParts = {"jfrog-cli/v2-jf", cliVersion, "jfrog-cli-" + getOSAndArc(), jfrogExec};
         String fileLocationInReleases = String.join("/", urlParts);
         Path basePath = Paths.get(destinationFolder);
+        String destinationPath = basePath.resolve(jfrogExec).toString();
 
         // download executable from releases and save it in 'destinationPath'
         try {
-            // setting the file as executable
             String finalUrl = JFROG_CLI_RELEASES_URL + "/" + fileLocationInReleases;
             InputStream in = new URL(finalUrl).openStream();
             Files.copy(in, basePath.resolve(jfrogExec), StandardCopyOption.REPLACE_EXISTING);
+
+            // setting the file as executable
+            File cliExecutable = new File(String.valueOf(basePath.resolve(jfrogExec)));
+            if (!cliExecutable.setExecutable(true)) {
+                log.error(String.format("Failed to set downloaded CLI as executable. Path: %s", destinationPath));
+            } else {
+                log.debug(String.format("Downloaded CLI to %s. Permission te execute: %s", destinationPath, cliExecutable.canExecute()));
+            }
         } catch (IOException e) {
             throw new IOException(String.format("Failed to download CLI from %s. Reason: %s", fileLocationInReleases, e.getMessage()), e.getCause());
         }

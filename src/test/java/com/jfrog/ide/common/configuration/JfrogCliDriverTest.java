@@ -119,6 +119,7 @@ public class JfrogCliDriverTest {
         // Assert the new downloaded cli version is compatible with the required version
         String newJfrogCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
 
+        assertNotNull(newJfrogCliVersion);
         assertTrue(newJfrogCliVersion.contains(jfrogCliVersion));
     }
 
