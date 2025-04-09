@@ -58,11 +58,14 @@ public class JfrogCliDriverTest {
     @BeforeMethod
     public void setUp(Object[] testArgs, Method method) {
         try {
-            configJfrogCli(TEST_NAME_TO_SKIP_CLI_DOWNLOAD.equals(method.getName()));
-            testServerId = createServerId();
-            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
-            List<String> credentials = new ArrayList<>(Arrays.asList("--user=" + USER_NAME, "--password=" + PASSWORD));
-            jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), credentials, new NullLog());
+            boolean skip = TEST_NAME_TO_SKIP_CLI_DOWNLOAD.equals(method.getName());
+            configJfrogCli(skip);
+            if(!skip) {
+                testServerId = createServerId();
+                String[] serverConfigCmdArgs = {"config", "add", testServerId, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
+                List<String> credentials = new ArrayList<>(Arrays.asList("--user=" + USER_NAME, "--password=" + PASSWORD));
+                jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), credentials, new NullLog());
+            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
