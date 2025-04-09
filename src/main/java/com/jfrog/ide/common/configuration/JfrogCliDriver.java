@@ -116,14 +116,18 @@ public class JfrogCliDriver {
     public void downloadCliIfNeeded(String destinationPath, String rawJfrogCliVersion) throws IOException {
         Version jfrogCliVersion = new Version(rawJfrogCliVersion);
         // verify installed cli version
-        Version cliVersion = extractVersionFromCliOutput(runVersion(null));
-        log.debug("Local CLI version is: " + cliVersion);
-        // cli is installed but not the correct version
-        if (cliVersion != null && cliVersion.equals(jfrogCliVersion)) {
-            log.info("Local Jfrog CLI version has been verified and is compatible. Proceeding with its usage.");
+        if (Files.exists(Paths.get(path, jfrogExec))){
+            Version cliVersion = extractVersionFromCliOutput(runVersion(new File(path)));
+            log.debug("Local CLI version is: " + cliVersion);
+            if (jfrogCliVersion.equals(cliVersion)) {
+                log.info("Local Jfrog CLI version has been verified and is compatible. Proceeding with its usage.");
+            } else {
+                log.info(String.format("JFrog CLI version %s is installed, but the required version is %s. " +
+                        "Initiating download of version %s to the destination: %s.", cliVersion, jfrogCliVersion, jfrogCliVersion, destinationPath));
+                downloadCliFromReleases(jfrogCliVersion, destinationPath);
+            }
         } else {
-            log.info(String.format("JFrog CLI is either not installed or the current version is incompatible. " +
-                    "Initiating download of version %s to the destination: %s.", jfrogCliVersion, destinationPath));
+            log.info(String.format("JFrog CLI is not installed. Initiating download of version %s to the destination: %s.", jfrogCliVersion, destinationPath));
             downloadCliFromReleases(jfrogCliVersion, destinationPath);
         }
     }
@@ -140,8 +144,7 @@ public class JfrogCliDriver {
             InputStream in = new URL(finalUrl).openStream();
             Files.copy(in, basePath.resolve(jfrogExec), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            log.error(String.format("Failed to download CLI from %s. Reason: %s", fileLocationInReleases, e.getMessage()), e);
-            throw e;
+            throw new IOException(String.format("Failed to download CLI from %s. Reason: %s", fileLocationInReleases, e.getMessage()), e.getCause());
         }
     }
 
