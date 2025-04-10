@@ -191,7 +191,7 @@ public class Utils {
             if (StringUtils.equalsAny(arch, "aarch64", "arm64")) {
                 return "mac-arm64";
             } else {
-                return "mac-amd64";
+                return "mac-386";
             }
         }
         // Linux
@@ -213,6 +213,8 @@ public class Utils {
                     return "linux-arm";
                 case "aarch64":
                     return "linux-arm64";
+                case "s390x":
+                    return "linux-s390x";
                 case "ppc64":
                 case "ppc64le":
                     return "linux-" + arch;
