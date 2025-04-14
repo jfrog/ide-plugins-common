@@ -135,11 +135,10 @@ public class JfrogCliDriver {
         String fileLocationInReleases = String.join("/", urlParts);
         Path basePath = Paths.get(destinationFolder);
         String destinationPath = basePath.resolve(jfrogExec).toString();
+        String finalUrl = JFROG_CLI_RELEASES_URL + "/" + fileLocationInReleases;
 
         // download executable from releases and save it in 'destinationPath'
-        try {
-            String finalUrl = JFROG_CLI_RELEASES_URL + "/" + fileLocationInReleases;
-            InputStream in = new URL(finalUrl).openStream();
+        try (InputStream in = new URL(finalUrl).openStream()){
             Files.copy(in, basePath.resolve(jfrogExec), StandardCopyOption.REPLACE_EXISTING);
 
             // setting the file as executable
