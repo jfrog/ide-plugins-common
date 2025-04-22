@@ -45,6 +45,7 @@ public class JfrogCliDriver {
         if (SystemUtils.IS_OS_WINDOWS) {
             this.jfrogExec += ".exe";
         }
+        addDefaultEnvVars(env);
         this.env = env;
         this.path = path;
         this.log = log;
@@ -210,5 +211,12 @@ public class JfrogCliDriver {
         }
 
         return null;
+    }
+
+    private void addDefaultEnvVars(Map<String, String> env) {
+        if (env == null) {
+            return;
+        }
+        env.put("JFROG_CLI_AVOID_NEW_VERSION_WARNING", "true");
     }
 }
