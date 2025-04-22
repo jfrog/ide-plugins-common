@@ -214,9 +214,8 @@ public class JfrogCliDriver {
     }
 
     private void addDefaultEnvVars(Map<String, String> env) {
-        if (env == null) {
-            return;
+        if (env != null) {
+            env.put("JFROG_CLI_AVOID_NEW_VERSION_WARNING", "true");
         }
-        env.put("JFROG_CLI_AVOID_NEW_VERSION_WARNING", "true");
     }
 }
