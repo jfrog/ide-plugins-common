@@ -2,7 +2,6 @@ package com.jfrog.ide.common.configuration;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
-import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -11,6 +10,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,7 +28,7 @@ import static org.testng.Assert.*;
  * @author tala
  */
 public class JfrogCliDriverTest {
-
+    private final String TEST_NAME_TO_SKIP_CLI_DOWNLOAD = "testDownloadCliIfNeeded_whenCliIsNotInstalled";
     private final SimpleDateFormat timeStampFormat = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
     private final Map<String, String> testEnv = new HashMap<>();
     private JfrogCliDriver jfrogCliDriver;
@@ -45,7 +45,7 @@ public class JfrogCliDriverTest {
     @Test()
     private void cliExportTest() {
         try {
-            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
             assertEquals(serverConfig.getUrl(), SERVER_URL);
@@ -56,22 +56,28 @@ public class JfrogCliDriverTest {
     }
 
     @BeforeMethod
-    public void setUp(Object[] testArgs) {
+    public void setUp(Object[] testArgs, Method method) {
         try {
-            configJfrogCli();
-            testServerId = createServerId();
-            String[] serverConfigCmdArgs = {"config", "add", testServerId, "--user=" + USER_NAME, "--password=" + PASSWORD, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            boolean skipDownload = TEST_NAME_TO_SKIP_CLI_DOWNLOAD.equals(method.getName());
+            configJfrogCli(skipDownload);
+            if(!skipDownload) {
+                testServerId = createServerId();
+                String[] serverConfigCmdArgs = {"config", "add", testServerId, "--url=" + SERVER_URL, "--interactive=false", "--enc-password=false"};
+                List<String> credentials = new ArrayList<>(Arrays.asList("--user=" + USER_NAME, "--password=" + PASSWORD));
+                jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), credentials, new NullLog());
+            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
     }
 
-    private void configJfrogCli() {
+    private void configJfrogCli(Boolean skipDownload) {
         try {
             tempDir = Files.createTempDirectory("ide-plugins-common-cli-test").toFile();
             tempDir.deleteOnExit();
-            getCli(tempDir);
+            if(!skipDownload) {
+                getCli(tempDir);
+            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
@@ -101,9 +107,28 @@ public class JfrogCliDriverTest {
 
 
     @Test
+    void testDownloadCliIfNeeded_whenCliIsNotInstalled() throws IOException {
+        String jfrogCliVersionToDownload = "2.73.0";
+        String destinationFolder = tempDir.getAbsolutePath();
+        File destinationFolderFile = new File(destinationFolder);
+        Path jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
+
+        // Verify Jfrog cli executable file does not exist
+        assertFalse(Files.exists(jfrogCliPath));
+
+        jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersionToDownload);
+
+        // Assert the new downloaded cli version is compatible with the required version
+        String newJfrogCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
+
+        assertNotNull(newJfrogCliVersion);
+        assertTrue(newJfrogCliVersion.contains(jfrogCliVersionToDownload));
+    }
+
+    @Test
     void testDownloadCliIfNeeded_whenCliIsInstalledButIncompatible() throws IOException {
         // We use hardcoded version because the setup method downloads the latest cli version which is greater than 2.73.0.
-        String jfrogCliVersion = "2.73.0";
+        String jfrogCliVersionToDownload = "2.73.0";
         String destinationFolder = tempDir.getAbsolutePath();
         File destinationFolderFile = new File(destinationFolder);
         Path jfrogCliPath = Paths.get(destinationFolder).resolve(jfrogCliDriver.getJfrogExec());
@@ -112,20 +137,22 @@ public class JfrogCliDriverTest {
         assertTrue(Files.exists(jfrogCliPath));
         String currentCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
 
-        jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersion);
+        jfrogCliDriver.downloadCliIfNeeded(destinationFolder, jfrogCliVersionToDownload);
 
         // Assert the new downloaded cli version is compatible with the required version
         String newJfrogCliVersion = jfrogCliDriver.runVersion(destinationFolderFile);
 
-        assertTrue(newJfrogCliVersion.contains(jfrogCliVersion.toString()));
+        assertTrue(newJfrogCliVersion.contains(jfrogCliVersionToDownload));
         assertNotEquals(currentCliVersion, newJfrogCliVersion);
     }
 
     @Test
     public void testAddCliServerConfig_withUsernameAndPassword() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir);
-            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir, testEnv);
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
+            assertTrue(response.isOk());
+            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
@@ -139,12 +166,28 @@ public class JfrogCliDriverTest {
     @Test
     public void testAddCliServerConfig_withAccessToken() {
         try {
-            jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir);
-            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList());
+            CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir, testEnv);
+            JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
+            assertTrue(response.isOk());
+            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getAccessToken(), ACCESS_TOKEN);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
             assertEquals(serverConfig.getXrayUrl(), XRAY_URL);
+        } catch (Exception e) {
+            fail(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void testAddServerConfig_withBadCredentials() {
+        try{
+            CommandResults response = jfrogCliDriver.addCliServerConfig("XRAY_URL", ARTIFACTORY_URL, testServerId, "user", "bad_password", "access_token", tempDir, testEnv);
+
+            // in case of an error the response result should be an empty string. The response error should contain the error message.
+            assertTrue(response.getRes().isBlank());
+            assertFalse(response.getErr().isBlank());
+
         } catch (Exception e) {
             fail(e.getMessage(), e);
         }
@@ -156,9 +199,7 @@ public class JfrogCliDriverTest {
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    singletonList(projectToCheck),
-                    testServerId,
-                    null);
+                    singletonList(projectToCheck), testServerId, null, testEnv);
             //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(),0);
         } catch (Exception e) {
@@ -172,9 +213,7 @@ public class JfrogCliDriverTest {
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    projectsToCheck,
-                    testServerId,
-                    null);
+                    projectsToCheck, testServerId, null, testEnv);
             //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(), 0);
         } catch (Exception e) {
@@ -187,10 +226,12 @@ public class JfrogCliDriverTest {
     }
 
     @AfterMethod
-    public void cleanUp() {
+    public void cleanUp(Method method) {
         try {
-            String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
-            jfrogCliDriver.runCommand(tempDir, serverConfigCmdArgs, Collections.emptyList(), new NullLog());
+            if (!TEST_NAME_TO_SKIP_CLI_DOWNLOAD.equals(method.getName())) {
+                String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};
+                jfrogCliDriver.runCommand(tempDir, testEnv, serverConfigCmdArgs, Collections.emptyList(), null, new NullLog());
+            }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage(), e);
         }
