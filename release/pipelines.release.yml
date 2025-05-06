@@ -39,13 +39,13 @@ pipelines:
 
             # Configure git
             - if [[ $NEXT_VERSION =~ ^1.* ]]; then BRANCH="v1"; else BRANCH="master"; fi
-            - git checkout ${BRANCH}
+            - git checkout hot-fix/upgrade-go-absolutizer
             - git remote set-url origin https://$int_il_automation_token@github.com/jfrog/ide-plugins-common.git
 
             # Make sure versions provided
             - echo "Checking variables"
             - test -n "$NEXT_VERSION" -a "$NEXT_VERSION" != "0.0.0"
-            - test -n "$NEXT_DEVELOPMENT_VERSION" -a "$NEXT_DEVELOPMENT_VERSION" != "0.0.x-SNAPSHOT"
+#            - test -n "$NEXT_DEVELOPMENT_VERSION" -a "$NEXT_DEVELOPMENT_VERSION" != "0.0.x-SNAPSHOT"
 
             # Configure JFrog CLI
             - curl -fL https://install-cli.jfrog.io | sh
@@ -76,7 +76,7 @@ pipelines:
             - jf ds rbd ecosystem-ide-plugins-common $NEXT_VERSION --site="releases.jfrog.io" --sync
 
             # Update next development version
-            - sed -i "s/\(version=\).*\$/\1${NEXT_DEVELOPMENT_VERSION}/" gradle.properties
-            - git commit -am "[artifactory-release] Next development version [skipRun]"
-            - git push
+#            - sed -i "s/\(version=\).*\$/\1${NEXT_DEVELOPMENT_VERSION}/" gradle.properties
+#            - git commit -am "[artifactory-release] Next development version [skipRun]"
+#            - git push
             - git push --tags
