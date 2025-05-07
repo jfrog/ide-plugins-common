@@ -46,7 +46,7 @@ pipelines:
             # Make sure versions provided
             - echo "Checking variables"
             - test -n "$NEXT_VERSION" -a "$NEXT_VERSION" != "0.0.0"
-            - test -n "dfsdfv" -a "$NEXT_DEVELOPMENT_VERSION" != "0.0.x-SNAPSHOT"; fi
+            - test -n "$NEXT_DEVELOPMENT_VERSION" -a "$NEXT_DEVELOPMENT_VERSION" != "0.0.x-SNAPSHOT"
 
             # Configure JFrog CLI
             - curl -fL https://install-cli.jfrog.io | sh
@@ -76,8 +76,8 @@ pipelines:
             - jf ds rbc ecosystem-ide-plugins-common $NEXT_VERSION --spec=./release/specs/prod-rbc-filespec.json --spec-vars="version=$NEXT_VERSION" --sign
             - jf ds rbd ecosystem-ide-plugins-common $NEXT_VERSION --site="releases.jfrog.io" --sync
 
-            # Update next development version (only if branch is master)
-            - sed -i "s/\(version=\).*\$/\1${NEXT_DEVELOPMENT_VERSION}/" gradle.properties;
-            - git commit -am "[artifactory-release] Next development version [skipRun]";
-            - git push;
+            # Update next development version
+            - sed -i "s/\(version=\).*\$/\1${NEXT_DEVELOPMENT_VERSION}/" gradle.properties
+            - git commit -am "[artifactory-release] Next development version [skipRun]"
+            - git push
             - git push --tags
