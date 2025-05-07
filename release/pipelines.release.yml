@@ -12,6 +12,7 @@ pipelines:
         readOnly:
           NEXT_VERSION: 0.0.0
           NEXT_DEVELOPMENT_VERSION: 0.0.x-SNAPSHOT
+          BRANCH_NAME: master
 
     steps:
       - name: Release
@@ -38,14 +39,14 @@ pipelines:
             - export JFROG_CLI_BUILD_PROJECT=ecosys
 
             # Configure git
-            - if [[ -n "$BRANCH_NAME" ]]; then BRANCH="$BRANCH_NAME"; elif [[ $NEXT_VERSION =~ ^1.* ]]; then BRANCH="v1"; else BRANCH="master"; fi
+            - if [[ $NEXT_VERSION =~ ^1.* ]]; then BRANCH="v1"; else BRANCH=$BRANCH_NAME; fi
             - git checkout ${BRANCH}
             - git remote set-url origin https://$int_il_automation_token@github.com/jfrog/ide-plugins-common.git
 
             # Make sure versions provided
             - echo "Checking variables"
             - test -n "$NEXT_VERSION" -a "$NEXT_VERSION" != "0.0.0"
-            - if [[ $BRANCH == "master" ]]; then test -n "$NEXT_DEVELOPMENT_VERSION" -a "$NEXT_DEVELOPMENT_VERSION" != "0.0.x-SNAPSHOT"; fi
+            - test -n "dfsdfv" -a "$NEXT_DEVELOPMENT_VERSION" != "0.0.x-SNAPSHOT"; fi
 
             # Configure JFrog CLI
             - curl -fL https://install-cli.jfrog.io | sh
@@ -76,9 +77,7 @@ pipelines:
             - jf ds rbd ecosystem-ide-plugins-common $NEXT_VERSION --site="releases.jfrog.io" --sync
 
             # Update next development version (only if branch is master)
-            - if [[ $BRANCH == "master" ]]; then
-                sed -i "s/\(version=\).*\$/\1${NEXT_DEVELOPMENT_VERSION}/" gradle.properties;
-                git commit -am "[artifactory-release] Next development version [skipRun]";
-                git push;
-              fi
+            - sed -i "s/\(version=\).*\$/\1${NEXT_DEVELOPMENT_VERSION}/" gradle.properties;
+            - git commit -am "[artifactory-release] Next development version [skipRun]";
+            - git push;
             - git push --tags
