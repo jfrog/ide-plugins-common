@@ -12,6 +12,7 @@ pipelines:
         readOnly:
           NEXT_VERSION: 0.0.0
           NEXT_DEVELOPMENT_VERSION: 0.0.x-SNAPSHOT
+          BRANCH_NAME: master
 
     steps:
       - name: Release
@@ -38,7 +39,7 @@ pipelines:
             - export JFROG_CLI_BUILD_PROJECT=ecosys
 
             # Configure git
-            - if [[ $NEXT_VERSION =~ ^1.* ]]; then BRANCH="v1"; else BRANCH="master"; fi
+            - if [[ $NEXT_VERSION =~ ^1.* ]]; then BRANCH="v1"; else BRANCH=$BRANCH_NAME; fi
             - git checkout ${BRANCH}
             - git remote set-url origin https://$int_il_automation_token@github.com/jfrog/ide-plugins-common.git
 
