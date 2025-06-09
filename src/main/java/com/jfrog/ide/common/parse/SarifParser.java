@@ -24,6 +24,7 @@ public class SarifParser {
     private static final String APPLICABILITY = "applicability";
     private static final String FIXED_VERSION = "fixedVersion";
     private static final String IMPACT_PATHS = "impactPaths";
+    private static final String NO_FIX_AVAILABLE = "No fix available";
     private final Log log;
 
     /**
@@ -111,9 +112,9 @@ public class SarifParser {
      */
     private FileIssueNode generateScaFileIssueNode(ReportingDescriptor rule, Result result){
         Applicability applicability = (result.getProperties().get(APPLICABILITY) != null) ? Applicability.fromSarif(result.getProperties().get(APPLICABILITY).toString().toLowerCase()) : null;
-        String fixedVersions = Objects.requireNonNull(result.getProperties()).get(FIXED_VERSION).toString();
-        List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get(IMPACT_PATHS), new TypeReference<>() {
-        });
+        String fixedVersionsString = Objects.requireNonNull(result.getProperties()).get(FIXED_VERSION).toString();
+        String[] fixedVersions = fixedVersionsString.equals(NO_FIX_AVAILABLE) ? null : fixedVersionsString.split(",");
+        List<List<ImpactPath>> impactPaths = new ObjectMapper().convertValue(Objects.requireNonNull(rule.getProperties()).get(IMPACT_PATHS), new TypeReference<>() {});
         Severity severity = Severity.fromSarif(result.getLevel().toString());
         String fullDescription = rule.getHelp() != null ? rule.getHelp().getText() : null;
         String reason = result.getMessage().getText();
