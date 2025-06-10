@@ -12,5 +12,3 @@ public class ImpactGraph {
         this.pathsLimit = pathsLimit;
     }
 }
-
-

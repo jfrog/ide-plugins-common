@@ -1,8 +1,13 @@
 package com.jfrog.ide.common.nodes.subentities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jfrog.ide.common.webview.ImpactGraph;
+import com.jfrog.ide.common.webview.ImpactGraphNode;
 import lombok.Getter;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -30,5 +35,39 @@ public class ImpactPath {
         if (o == null || getClass() != o.getClass()) return false;
         ImpactPath that = (ImpactPath) o;
         return Objects.equals(this.name, that.name) && Objects.equals(this.version, that.version);
+    }
+
+    /**
+     * Converts a list of impact paths to an ImpactGraph.
+     * Each path is a list of ImpactPath objects, representing a path from root to leaf.
+     * Node names are "name:version" (or just "name" if version is empty).
+     */
+    public static ImpactGraph toImpactGraph(List<List<ImpactPath>> impactPaths, int pathsLimit) {
+        // Use a dummy root node
+        Node root = new Node("root");
+        for (List<ImpactPath> path : impactPaths) {
+            Node current = root;
+            for (ImpactPath ip : path) {
+                String nodeName = ip.getName() + (ip.getVersion() != null && !ip.getVersion().isEmpty() ? ":" + ip.getVersion() : "");
+                current = current.children.computeIfAbsent(nodeName, Node::new);
+            }
+        }
+        ImpactGraphNode rootGraphNode = toGraphNode(root);
+        return new ImpactGraph(rootGraphNode, pathsLimit);
+    }
+
+    // Internal tree node for building
+    private static class Node {
+        String name;
+        Map<String, Node> children = new LinkedHashMap<>();
+        Node(String name) { this.name = name; }
+    }
+
+    // Convert internal Node tree to ImpactGraphNode tree
+    private static ImpactGraphNode toGraphNode(Node node) {
+        ImpactGraphNode[] children = node.children.values().stream()
+            .map(ImpactPath::toGraphNode)
+            .toArray(ImpactGraphNode[]::new);
+        return new ImpactGraphNode(node.name, children);
     }
 }
