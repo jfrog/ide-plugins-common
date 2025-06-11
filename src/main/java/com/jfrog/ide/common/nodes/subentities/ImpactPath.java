@@ -42,18 +42,25 @@ public class ImpactPath {
      * Each path is a list of ImpactPath objects, representing a path from root to leaf.
      * Node names are "name:version" (or just "name" if version is empty).
      */
-    public static ImpactGraph toImpactGraph(List<List<ImpactPath>> impactPaths, int pathsLimit) {
+    public static ImpactGraph toImpactGraph(List<List<ImpactPath>> impactPaths) {
         // Use a dummy root node
         Node root = new Node("root");
+        int maxDepth = 0;
         for (List<ImpactPath> path : impactPaths) {
             Node current = root;
+            int depth = 0;
             for (ImpactPath ip : path) {
                 String nodeName = ip.getName() + (ip.getVersion() != null && !ip.getVersion().isEmpty() ? ":" + ip.getVersion() : "");
                 current = current.children.computeIfAbsent(nodeName, Node::new);
+                depth++;
+            }
+            if (depth > maxDepth) {
+                maxDepth = depth;
             }
         }
         ImpactGraphNode rootGraphNode = toGraphNode(root);
-        return new ImpactGraph(rootGraphNode, pathsLimit);
+        // Set pathsLimit to the maximum depth found
+        return new ImpactGraph(rootGraphNode, maxDepth + 1); // +1 to include root
     }
 
     // Internal tree node for building
