@@ -4,12 +4,12 @@ import lombok.Getter;
 
 @Getter
 public class ApplicableDetails {
-    private final boolean isApplicable;
+    private final String applicability;
     private final Evidence[] evidence;
     private final String searchTarget;
 
-    public ApplicableDetails(boolean isApplicable, Evidence[] evidence, String searchTarget) {
-        this.isApplicable = isApplicable;
+    public ApplicableDetails(String applicability, Evidence[] evidence, String searchTarget) {
+        this.applicability = applicability;
         this.evidence = evidence;
         this.searchTarget = searchTarget;
     }

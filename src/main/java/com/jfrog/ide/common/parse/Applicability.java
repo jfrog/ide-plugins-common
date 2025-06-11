@@ -26,6 +26,16 @@ public enum Applicability {
             default -> throw new IllegalArgumentException("'%s' applicability status not supported" + value);
         };
     }
+
+    public static String getWebviewIconName(Applicability applicability) {
+        return switch (applicability) {
+            case APPLICABLE -> "applicable";
+            case NOT_APPLICABLE -> "not_applicable";
+            case UNDETERMINED -> "undetermined";
+            case NOT_COVERED -> "not_covered";
+            case MISSING_CONTEXT -> "missing_context";
+        };
+    }
 }
 
 
