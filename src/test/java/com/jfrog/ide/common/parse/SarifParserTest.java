@@ -14,6 +14,7 @@ import org.testng.annotations.Test;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -52,6 +53,11 @@ public class SarifParserTest {
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getChildren().size(), 10);
         assertEquals(results.get(0).getSeverity(), Severity.High);
+        // verify fixed version field is not null
+        ScaIssueNode firstNode = (ScaIssueNode) results.get(0).getChildren().get(0);
+        assertNotNull(firstNode.getFixedVersions());
+        assertTrue(Arrays.stream(firstNode.getFixedVersions()).findAny().isPresent());
+
         results.get(0).getChildren().forEach(node -> assertEquals(node.getClass(), ScaIssueNode.class));
         results.forEach(fileTreeNode -> fileTreeNode.getChildren().forEach(node -> {
             if (node instanceof ScaIssueNode scaIssueNode) {

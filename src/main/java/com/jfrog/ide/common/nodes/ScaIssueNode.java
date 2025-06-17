@@ -12,7 +12,7 @@ import java.util.List;
 public class ScaIssueNode extends FileIssueNode {
     private Applicability applicability;
     private List<List<ImpactPath>> impactPaths;
-    private String fixedVersions;
+    private String[] fixedVersions;
     private String componentName;
     private String componentVersion;
     // TODO: add isDirectDependency indication after implementing corresponding logic in cli-security
@@ -22,7 +22,7 @@ public class ScaIssueNode extends FileIssueNode {
     ScaIssueNode() {
     }
 
-    public ScaIssueNode(String title, String reason, Severity severity, String ruleID, Applicability applicability, List<List<ImpactPath>> impactPaths, String fixedVersions, String fullDescription) {
+    public ScaIssueNode(String title, String reason, Severity severity, String ruleID, Applicability applicability, List<List<ImpactPath>> impactPaths, String[] fixedVersions, String fullDescription) {
         super(title, reason, SourceCodeScanType.SCA, severity, ruleID, fullDescription);
         this.applicability = applicability;
         this.impactPaths = impactPaths;
