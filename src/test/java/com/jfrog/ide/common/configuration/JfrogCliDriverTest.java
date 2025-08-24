@@ -1,5 +1,7 @@
 package com.jfrog.ide.common.configuration;
 
+import com.jfrog.ide.common.nodes.FileTreeNode;
+import com.jfrog.ide.common.parse.SarifParser;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -40,6 +42,7 @@ public class JfrogCliDriverTest {
     private final String XRAY_URL = SERVER_URL + "xray/";
     private String testServerId;
     private File tempDir;
+    private final SarifParser parser = new SarifParser(new NullLog());
 
     @SuppressWarnings("unused")
     @Test()
@@ -200,8 +203,11 @@ public class JfrogCliDriverTest {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
                     singletonList(projectToCheck), testServerId, null, testEnv);
-            //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(),0);
+            List<FileTreeNode> findings = parser.parse(response.getRes());
+            assertNotNull(findings);
+            assertFalse(findings.isEmpty(), "Expected findings in SARIF output for npm project");
+            // TODO: Add more checks on the findings
         } catch (Exception e) {
             fail(e.getMessage(), e);
         }
@@ -214,8 +220,11 @@ public class JfrogCliDriverTest {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
                     projectsToCheck, testServerId, null, testEnv);
-            //TODO: check real values after the sarif parser is added
             assertEquals(response.getExitValue(), 0);
+            List<FileTreeNode> findings = parser.parse(response.getRes());
+            assertNotNull(findings);
+            assertFalse(findings.isEmpty(), "Expected findings in SARIF output for multi-maven project");
+            // TODO: Add more checks on the findings
         } catch (Exception e) {
             fail(e.getMessage(), e);
         }

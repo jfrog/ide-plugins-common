@@ -183,16 +183,36 @@ public class JfrogCliDriver {
     }
 
     public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, List<String> extraArgs, Map<String, String> envVars) throws Exception {
+        AuditConfig config = new AuditConfig.Builder()
+                .scannedDirectories(scannedDirectories)
+                .serverId(serverId)
+                .extraArgs(extraArgs)
+                .envVars(envVars)
+                .build();
+        return runCliAudit(workingDirectory, config);
+    }
+
+    public CommandResults runCliAudit(File workingDirectory, AuditConfig config) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("audit");
-        if (scannedDirectories != null && !scannedDirectories.isEmpty()) {
-            String workingDirsString = scannedDirectories.size() > 1 ? String.join(", ", scannedDirectories) : scannedDirectories.get(0);
+
+        if (config.getScannedDirectories() != null && !config.getScannedDirectories().isEmpty()) {
+            String workingDirsString = config.getScannedDirectories().size() > 1 ?
+                    String.join(", ", config.getScannedDirectories()) :
+                    config.getScannedDirectories().get(0);
             args.add("--working-dirs=" + workingDirsString);
         }
-        args.add("--server-id=" + serverId);
+
+        args.add("--server-id=" + config.getServerId());
         args.add("--format=sarif");
+
+        if (StringUtils.isNotBlank(config.getExcludedPattern())) {
+            args.add("--exclusions=" + config.getExcludedPattern());
+        }
+
         try {
-            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), null, log);
+            return runCommand(workingDirectory, config.getEnvVars(), args.toArray(new String[0]),
+                    config.getExtraArgs() != null ? config.getExtraArgs() : Collections.emptyList(), null, log);
         } catch (IOException | InterruptedException e) {
             throw new Exception("Failed to run JF audit. Reason: " + e.getMessage(), e);
         }
