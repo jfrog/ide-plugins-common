@@ -200,15 +200,17 @@ public class JfrogCliDriver {
             String workingDirsString = config.getScannedDirectories().size() > 1 ?
                     String.join(", ", config.getScannedDirectories()) :
                     config.getScannedDirectories().get(0);
-            args.add("--working-dirs=" + workingDirsString);
+            args.add("--working-dirs=" + quoteArgumentForUnix(workingDirsString));
         }
 
         args.add("--server-id=" + config.getServerId());
         args.add("--format=sarif");
 
-        if (StringUtils.isNotBlank(config.getExcludedPattern())) {
-            args.add("--exclusions=" + config.getExcludedPattern());
+        if (config.getExcludedPattern() != null && !config.getExcludedPattern().isEmpty()) {
+            String excludedPatterns = String.join(",", config.getExcludedPattern());
+            args.add("--exclusions=" + quoteArgumentForUnix(excludedPatterns));
         }
+        System.out.println("Running JF audit with args: " + args);
 
         try {
             return runCommand(workingDirectory, config.getEnvVars(), args.toArray(new String[0]),
@@ -237,5 +239,10 @@ public class JfrogCliDriver {
         if (env != null) {
             env.put("JFROG_CLI_AVOID_NEW_VERSION_WARNING", "true");
         }
+    }
+
+    private String quoteArgumentForUnix(String commaSeparatedValues) {
+        // macOS/Linux: add quotes around the comma-separated values
+        return SystemUtils.IS_OS_WINDOWS ? commaSeparatedValues : "\"" + commaSeparatedValues + "\"";
     }
 }

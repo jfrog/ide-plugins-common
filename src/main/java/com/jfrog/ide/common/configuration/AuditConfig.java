@@ -1,12 +1,16 @@
 package com.jfrog.ide.common.configuration;
 
+import lombok.Getter;
+
 import java.util.List;
 import java.util.Map;
 
+@Getter
 public class AuditConfig {
+    // Getters
     private final List<String> scannedDirectories;
     private final String serverId;
-    private final String excludedPattern;
+    private final List<String> excludedPattern;
     private final List<String> extraArgs;
     private final Map<String, String> envVars;
 
@@ -21,7 +25,7 @@ public class AuditConfig {
     public static class Builder {
         private List<String> scannedDirectories;
         private String serverId;
-        private String excludedPattern;
+        private List<String> excludedPattern;
         private List<String> extraArgs;
         private Map<String, String> envVars;
 
@@ -35,7 +39,7 @@ public class AuditConfig {
             return this;
         }
 
-        public Builder excludedPattern(String excludedPattern) {
+        public Builder excludedPattern(List<String> excludedPattern) {
             this.excludedPattern = excludedPattern;
             return this;
         }
@@ -55,10 +59,4 @@ public class AuditConfig {
         }
     }
 
-    // Getters
-    public List<String> getScannedDirectories() { return scannedDirectories; }
-    public String getServerId() { return serverId; }
-    public String getExcludedPattern() { return excludedPattern; }
-    public List<String> getExtraArgs() { return extraArgs; }
-    public Map<String, String> getEnvVars() { return envVars; }
 }
