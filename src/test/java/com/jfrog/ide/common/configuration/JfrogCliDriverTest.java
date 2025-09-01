@@ -1,8 +1,15 @@
 package com.jfrog.ide.common.configuration;
 
+import com.jfrog.ide.common.nodes.FileIssueNode;
+import com.jfrog.ide.common.nodes.FileTreeNode;
+import com.jfrog.ide.common.nodes.subentities.Severity;
+import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
+import com.jfrog.ide.common.parse.SarifParser;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.executor.CommandResults;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -19,7 +26,6 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static java.util.Collections.singletonList;
 import static org.testng.Assert.*;
 
 /**
@@ -40,6 +46,8 @@ public class JfrogCliDriverTest {
     private final String XRAY_URL = SERVER_URL + "xray/";
     private String testServerId;
     private File tempDir;
+    private final SarifParser parser = new SarifParser(new NullLog());
+    private final Logger logger = LoggerFactory.getLogger(JfrogCliDriverTest.class);
 
     @SuppressWarnings("unused")
     @Test()
@@ -82,6 +90,8 @@ public class JfrogCliDriverTest {
             fail(e.getMessage(), e);
         }
         testEnv.put("JFROG_CLI_HOME_DIR", tempDir.getAbsolutePath());
+        testEnv.put("JFROG_CLI_LOG_LEVEL", "DEBUG");
+        testEnv.put("CI", "true");
         jfrogCliDriver = new JfrogCliDriver(testEnv, tempDir.getAbsolutePath() + File.separator, new NullLog());
     }
 
@@ -152,7 +162,6 @@ public class JfrogCliDriverTest {
             CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, USER_NAME, PASSWORD, null, tempDir, testEnv);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
             assertTrue(response.isOk());
-            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getUsername(), USER_NAME);
             assertEquals(serverConfig.getPassword(), PASSWORD);
@@ -169,7 +178,6 @@ public class JfrogCliDriverTest {
             CommandResults response = jfrogCliDriver.addCliServerConfig(XRAY_URL, ARTIFACTORY_URL, testServerId, null, null, ACCESS_TOKEN, tempDir, testEnv);
             JfrogCliServerConfig serverConfig = jfrogCliDriver.getServerConfig(tempDir, Collections.emptyList(), testEnv);
             assertTrue(response.isOk());
-            assertTrue(response.getErr().isBlank());
             assertNotNull(serverConfig);
             assertEquals(serverConfig.getAccessToken(), ACCESS_TOKEN);
             assertEquals(serverConfig.getArtifactoryUrl(), ARTIFACTORY_URL);
@@ -195,13 +203,23 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testRunAudit_NpmProject() {
-        String projectToCheck = "npm";
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    singletonList(projectToCheck), testServerId, null, testEnv);
-            //TODO: check real values after the sarif parser is added
+                    null, testServerId, testEnv);
             assertEquals(response.getExitValue(),0);
+            logger.info("Audit debug logs: \n" + response.getErr());
+            logger.info("Audit response: \n" + response.getRes());
+            List<FileTreeNode> findings = parser.parse(response.getRes());
+            assertNotNull(findings);
+            assertFalse(findings.isEmpty(), "Expected findings in SARIF output for npm project");
+            // Verify the findings
+            assertEquals(findings.size(), 1, "Expected exactly one file with findings");
+            FileTreeNode node = findings.get(0);
+            assertEquals(node.getChildren().size(), 1, "Expected exactly one vulnerabilities");
+            FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
+            assertEquals(issue.getSeverity(), Severity.High, "Expected severity to be HIGH");
+            assertEquals(issue.getReporterType(), SourceCodeScanType.SCA, "Expected reporter type to be SCA");
         } catch (Exception e) {
             fail(e.getMessage(), e);
         }
@@ -213,9 +231,20 @@ public class JfrogCliDriverTest {
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    projectsToCheck, testServerId, null, testEnv);
-            //TODO: check real values after the sarif parser is added
+                    projectsToCheck, testServerId, testEnv);
             assertEquals(response.getExitValue(), 0);
+            logger.info("Audit debug logs: \n" + response.getErr());
+            logger.info("Audit response: \n" + response.getRes());
+            List<FileTreeNode> findings = parser.parse(response.getRes());
+            assertNotNull(findings);
+            assertFalse(findings.isEmpty(), "Expected findings in SARIF output for multi-maven project");
+            // Verify the findings
+            assertEquals(findings.size(), 1, "Expected exactly one file with findings");
+            FileTreeNode node = findings.get(0);
+            assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
+            assertEquals(node.getSeverity(), Severity.High, "Expected severity to be HIGH");
+            FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
+            assertEquals(issue.getReporterType(), SourceCodeScanType.SCA, "Expected reporter type to be SCA");
         } catch (Exception e) {
             fail(e.getMessage(), e);
         }
@@ -223,6 +252,35 @@ public class JfrogCliDriverTest {
 
         private String createServerId() {
         return "ide-plugins-common-test-server-" + timeStampFormat.format(System.currentTimeMillis());
+    }
+
+    @Test
+    public void testRunAudit_WithExcludedPattern() {
+        try {
+            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
+            AuditConfig config = new AuditConfig.Builder()
+                    .serverId(testServerId)
+                    .excludedPattern(new ArrayList<>(List.of("*multi3*")))
+                    .serverId(testServerId)
+                    .envVars(testEnv)
+                    .build();
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(), config);
+            assertEquals(response.getExitValue(), 0);
+            logger.info("Audit debug logs: \n" + response.getErr());
+            logger.info("Audit response: \n" + response.getRes());
+            List<FileTreeNode> findings = parser.parse(response.getRes());
+            assertNotNull(findings);
+            assertFalse(findings.isEmpty(), "Expected findings in SARIF output for multi-maven project");
+            // Verify the findings
+            assertEquals(findings.size(), 1, "Expected exactly one file with findings");
+            FileTreeNode node = findings.get(0);
+            assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
+            assertEquals(node.getSeverity(), Severity.High, "Expected severity to be HIGH");
+            FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
+            assertEquals(issue.getReporterType(), SourceCodeScanType.SCA, "Expected reporter type to be SCA");
+        } catch (Exception e) {
+            fail(e.getMessage(), e);
+        }
     }
 
     @AfterMethod

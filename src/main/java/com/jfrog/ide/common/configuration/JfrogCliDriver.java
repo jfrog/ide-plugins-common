@@ -182,17 +182,36 @@ public class JfrogCliDriver {
         }
     }
 
-    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, List<String> extraArgs, Map<String, String> envVars) throws Exception {
+    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, Map<String, String> envVars) throws Exception {
+        AuditConfig config = new AuditConfig.Builder()
+                .scannedDirectories(scannedDirectories)
+                .serverId(serverId)
+                .envVars(envVars)
+                .build();
+        return runCliAudit(workingDirectory, config);
+    }
+
+    public CommandResults runCliAudit(File workingDirectory, AuditConfig config) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("audit");
-        if (scannedDirectories != null && !scannedDirectories.isEmpty()) {
-            String workingDirsString = scannedDirectories.size() > 1 ? String.join(", ", scannedDirectories) : scannedDirectories.get(0);
-            args.add("--working-dirs=" + workingDirsString);
+
+        if (config.getScannedDirectories() != null && !config.getScannedDirectories().isEmpty()) {
+            String workingDirsString = config.getScannedDirectories().size() > 1 ?
+                    String.join(", ", config.getScannedDirectories()) :
+                    config.getScannedDirectories().get(0);
+            args.add("--working-dirs=" + quoteArgumentForUnix(workingDirsString));
         }
-        args.add("--server-id=" + serverId);
+
+        args.add("--server-id=" + config.getServerId());
         args.add("--format=sarif");
+
+        if (config.getExcludedPattern() != null && !config.getExcludedPattern().isEmpty()) {
+            String excludedPatterns = String.join(",", config.getExcludedPattern());
+            args.add("--exclusions=" + quoteArgumentForUnix(excludedPatterns));
+        }
+
         try {
-            return runCommand(workingDirectory, envVars, args.toArray(new String[0]), extraArgs != null ? extraArgs : Collections.emptyList(), null, log);
+            return runCommand(workingDirectory, config.getEnvVars(), args.toArray(new String[0]), Collections.emptyList(), null, log);
         } catch (IOException | InterruptedException e) {
             throw new Exception("Failed to run JF audit. Reason: " + e.getMessage(), e);
         }
@@ -217,5 +236,10 @@ public class JfrogCliDriver {
         if (env != null) {
             env.put("JFROG_CLI_AVOID_NEW_VERSION_WARNING", "true");
         }
+    }
+
+    private String quoteArgumentForUnix(String commaSeparatedValues) {
+        // macOS/Linux: add quotes around the comma-separated values
+        return SystemUtils.IS_OS_WINDOWS ? commaSeparatedValues : "\"" + commaSeparatedValues + "\"";
     }
 }
