@@ -210,7 +210,6 @@ public class JfrogCliDriver {
             String excludedPatterns = String.join(",", config.getExcludedPattern());
             args.add("--exclusions=" + quoteArgumentForUnix(excludedPatterns));
         }
-        System.out.println("Running JF audit with args: " + args);
 
         try {
             return runCommand(workingDirectory, config.getEnvVars(), args.toArray(new String[0]),

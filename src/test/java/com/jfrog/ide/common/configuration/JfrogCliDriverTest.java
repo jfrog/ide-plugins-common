@@ -8,6 +8,8 @@ import com.jfrog.ide.common.parse.SarifParser;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.executor.CommandResults;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -46,6 +48,7 @@ public class JfrogCliDriverTest {
     private String testServerId;
     private File tempDir;
     private final SarifParser parser = new SarifParser(new NullLog());
+    private final Logger logger = LoggerFactory.getLogger(JfrogCliDriverTest.class);
 
     @SuppressWarnings("unused")
     @Test()
@@ -207,6 +210,8 @@ public class JfrogCliDriverTest {
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
                     singletonList(projectToCheck), testServerId, null, testEnv);
             assertEquals(response.getExitValue(),0);
+            logger.info("Audit debug logs: \n" + response.getErr());
+            logger.info("Audit response: \n" + response.getRes());
             List<FileTreeNode> findings = parser.parse(response.getRes());
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for npm project");
@@ -230,12 +235,12 @@ public class JfrogCliDriverTest {
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
                     projectsToCheck, testServerId, null, testEnv);
             assertEquals(response.getExitValue(), 0);
-            System.out.println("Audit debug logs: \n" + response.getErr());
-            System.out.println("Audit response: \n" + response.getRes());
+            logger.info("Audit debug logs: \n" + response.getErr());
+            logger.info("Audit response: \n" + response.getRes());
             List<FileTreeNode> findings = parser.parse(response.getRes());
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for multi-maven project");
-            // Verifiy the findings
+            // Verify the findings
             assertEquals(findings.size(), 1, "Expected exactly one file with findings");
             FileTreeNode node = findings.get(0);
             assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
@@ -264,10 +269,12 @@ public class JfrogCliDriverTest {
                     .build();
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(), config);
             assertEquals(response.getExitValue(), 0);
+            logger.info("Audit debug logs: \n" + response.getErr());
+            logger.info("Audit response: \n" + response.getRes());
             List<FileTreeNode> findings = parser.parse(response.getRes());
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for multi-maven project");
-            // Verifiy the findings
+            // Verify the findings
             assertEquals(findings.size(), 1, "Expected exactly one file with findings");
             FileTreeNode node = findings.get(0);
             assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
