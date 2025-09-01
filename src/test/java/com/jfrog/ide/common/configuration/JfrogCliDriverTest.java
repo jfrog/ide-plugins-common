@@ -206,7 +206,7 @@ public class JfrogCliDriverTest {
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    null, testServerId, null, testEnv);
+                    null, testServerId, testEnv);
             assertEquals(response.getExitValue(),0);
             logger.info("Audit debug logs: \n" + response.getErr());
             logger.info("Audit response: \n" + response.getRes());
@@ -231,7 +231,7 @@ public class JfrogCliDriverTest {
         try {
             Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    projectsToCheck, testServerId, null, testEnv);
+                    projectsToCheck, testServerId, testEnv);
             assertEquals(response.getExitValue(), 0);
             logger.info("Audit debug logs: \n" + response.getErr());
             logger.info("Audit response: \n" + response.getRes());
@@ -262,7 +262,6 @@ public class JfrogCliDriverTest {
                     .serverId(testServerId)
                     .excludedPattern(new ArrayList<>(List.of("*multi3*")))
                     .serverId(testServerId)
-                    .extraArgs(null)
                     .envVars(testEnv)
                     .build();
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(), config);

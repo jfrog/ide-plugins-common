@@ -11,14 +11,12 @@ public class AuditConfig {
     private final List<String> scannedDirectories;
     private final String serverId;
     private final List<String> excludedPattern;
-    private final List<String> extraArgs;
     private final Map<String, String> envVars;
 
     private AuditConfig(Builder builder) {
         this.scannedDirectories = builder.scannedDirectories;
         this.serverId = builder.serverId;
         this.excludedPattern = builder.excludedPattern;
-        this.extraArgs = builder.extraArgs;
         this.envVars = builder.envVars;
     }
 
@@ -26,7 +24,6 @@ public class AuditConfig {
         private List<String> scannedDirectories;
         private String serverId;
         private List<String> excludedPattern;
-        private List<String> extraArgs;
         private Map<String, String> envVars;
 
         public Builder serverId(String serverId) {
@@ -41,11 +38,6 @@ public class AuditConfig {
 
         public Builder excludedPattern(List<String> excludedPattern) {
             this.excludedPattern = excludedPattern;
-            return this;
-        }
-
-        public Builder extraArgs(List<String> extraArgs) {
-            this.extraArgs = extraArgs;
             return this;
         }
 

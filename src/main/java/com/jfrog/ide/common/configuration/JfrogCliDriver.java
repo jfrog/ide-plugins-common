@@ -182,11 +182,10 @@ public class JfrogCliDriver {
         }
     }
 
-    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, List<String> extraArgs, Map<String, String> envVars) throws Exception {
+    public CommandResults runCliAudit(File workingDirectory, List<String> scannedDirectories, String serverId, Map<String, String> envVars) throws Exception {
         AuditConfig config = new AuditConfig.Builder()
                 .scannedDirectories(scannedDirectories)
                 .serverId(serverId)
-                .extraArgs(extraArgs)
                 .envVars(envVars)
                 .build();
         return runCliAudit(workingDirectory, config);
@@ -212,8 +211,7 @@ public class JfrogCliDriver {
         }
 
         try {
-            return runCommand(workingDirectory, config.getEnvVars(), args.toArray(new String[0]),
-                    config.getExtraArgs() != null ? config.getExtraArgs() : Collections.emptyList(), null, log);
+            return runCommand(workingDirectory, config.getEnvVars(), args.toArray(new String[0]), Collections.emptyList(), null, log);
         } catch (IOException | InterruptedException e) {
             throw new Exception("Failed to run JF audit. Reason: " + e.getMessage(), e);
         }
