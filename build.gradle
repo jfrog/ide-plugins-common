@@ -43,8 +43,8 @@ dependencies {
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.13'
     implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '3.0.1'
-    implementation group: 'commons-io', name: 'commons-io', version: '2.9.0'
-    implementation(group: 'com.opencsv', name: 'opencsv', version: '5.7.0') {
+    implementation group: 'commons-io', name: 'commons-io', version: '2.20.0'
+    implementation(group: 'com.opencsv', name: 'opencsv', version: '5.11.1') {
         exclude group: 'common-collections', module: 'commons-collections'
         exclude group: 'org.apache.commons', module: 'commons-text'
     }
