@@ -26,7 +26,6 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static java.util.Collections.singletonList;
 import static org.testng.Assert.*;
 
 /**
@@ -204,11 +203,10 @@ public class JfrogCliDriverTest {
 
     @Test
     public void testRunAudit_NpmProject() {
-        String projectToCheck = "npm";
         try {
-            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects");
+            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/npm");
             CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
-                    singletonList(projectToCheck), testServerId, null, testEnv);
+                    null, testServerId, null, testEnv);
             assertEquals(response.getExitValue(),0);
             logger.info("Audit debug logs: \n" + response.getErr());
             logger.info("Audit response: \n" + response.getRes());
