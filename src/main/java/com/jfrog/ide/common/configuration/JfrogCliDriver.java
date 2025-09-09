@@ -210,6 +210,11 @@ public class JfrogCliDriver {
             args.add("--exclusions=" + quoteArgumentForUnix(excludedPatterns));
         }
 
+        if (config.getWatches() != null && !config.getWatches().isEmpty()) {
+            String watches = String.join(",", config.getWatches());
+            args.add("--watches=" + quoteArgumentForUnix(watches));
+        }
+
         try {
             return runCommand(workingDirectory, config.getEnvVars(), args.toArray(new String[0]), Collections.emptyList(), null, log);
         } catch (IOException | InterruptedException e) {

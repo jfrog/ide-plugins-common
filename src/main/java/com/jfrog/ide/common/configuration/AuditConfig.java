@@ -12,12 +12,14 @@ public class AuditConfig {
     private final String serverId;
     private final List<String> excludedPattern;
     private final Map<String, String> envVars;
+    private final List<String> watches;
 
     private AuditConfig(Builder builder) {
         this.scannedDirectories = builder.scannedDirectories;
         this.serverId = builder.serverId;
         this.excludedPattern = builder.excludedPattern;
         this.envVars = builder.envVars;
+        this.watches = builder.watches;
     }
 
     public static class Builder {
@@ -25,6 +27,7 @@ public class AuditConfig {
         private String serverId;
         private List<String> excludedPattern;
         private Map<String, String> envVars;
+        private List<String> watches;
 
         public Builder serverId(String serverId) {
             this.serverId = serverId;
@@ -48,6 +51,11 @@ public class AuditConfig {
 
         public AuditConfig build() {
             return new AuditConfig(this);
+        }
+
+        public Builder watches(List<String> watches) {
+            this.watches = watches;
+            return this;
         }
     }
 
