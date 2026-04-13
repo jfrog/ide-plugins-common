@@ -2,6 +2,7 @@ package com.jfrog.ide.common.go;
 
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
+import com.jfrog.ide.common.utils.WslUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,7 +44,7 @@ public class GoTreeBuilder {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
         this.logger = logger;
-        this.env = env;
+        this.env = WslUtils.augmentForWsl(env, projectDir, "go");
     }
 
     /**

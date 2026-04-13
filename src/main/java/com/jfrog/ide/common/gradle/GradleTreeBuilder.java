@@ -5,6 +5,7 @@ import com.jfrog.GradleDepTreeResults;
 import com.jfrog.GradleDependencyNode;
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
+import com.jfrog.ide.common.utils.WslUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.GeneralInfo;
 
@@ -32,7 +33,7 @@ public class GradleTreeBuilder {
     public GradleTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env, String gradleExe) {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
-        this.gradleDriver = new GradleDriver(gradleExe, env);
+        this.gradleDriver = new GradleDriver(gradleExe, WslUtils.augmentForWsl(env, projectDir, "gradle"));
     }
 
     /**

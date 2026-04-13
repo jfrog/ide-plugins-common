@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
 import com.jfrog.ide.common.utils.Utils;
+import com.jfrog.ide.common.utils.WslUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.npm.NpmDriver;
 
@@ -28,7 +29,7 @@ public class NpmTreeBuilder {
     public NpmTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env) {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
-        this.npmDriver = new NpmDriver(env);
+        this.npmDriver = new NpmDriver(WslUtils.augmentForWsl(env, projectDir, "npm"));
     }
 
     /**
