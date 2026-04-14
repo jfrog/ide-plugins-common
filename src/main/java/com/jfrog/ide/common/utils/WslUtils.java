@@ -14,7 +14,7 @@ import java.util.Map;
  * Utilities for running CLI tools in a WSL (Windows Subsystem for Linux) environment.
  * <p>
  * When IntelliJ runs on Windows and a project is located on a WSL filesystem
- * (e.g. {@code \\wsl.localhost\Ubuntu-22.04\home\user\project}), the Windows process
+ * (e.g. {@code \\wsl.localhost\Ubuntu-22.04\home\\user\project}), the Windows process
  * environment does not contain paths to CLI tools installed inside WSL.
  * <p>
  * This class solves the problem by creating lightweight {@code .cmd} shim files that
