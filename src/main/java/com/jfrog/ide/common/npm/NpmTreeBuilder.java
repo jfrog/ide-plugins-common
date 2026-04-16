@@ -18,7 +18,6 @@ import org.jfrog.build.extractor.npm.NpmDriver;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,7 @@ import java.util.Map;
  */
 public class NpmTreeBuilder {
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final ObjectReader jsonReader = new ObjectMapper().reader();
+    private static final ObjectReader jsonReader = objectMapper.reader();
     private final NpmDriver npmDriver;
     private final CommandExecutor wslExecutor;
     private final boolean isWsl;
@@ -58,7 +57,6 @@ public class NpmTreeBuilder {
      * @throws IOException in case of I/O error.
      */
     public DepTree buildTree(Log logger) throws IOException {
-        logger.warn("WSL:" + this.isWsl);
         if (!isNpmInstalled()) {
             throw new IOException("Could not scan npm project dependencies, because npm CLI is not in the PATH. [WSL=" + this.isWsl + "]");
         }
@@ -84,8 +82,9 @@ public class NpmTreeBuilder {
     private boolean isNpmInstalled() {
         if (isWsl) {
             try {
-                CommandResults results = wslExecutor.exeCommand(null,
-                        Arrays.asList("--exec", "npm", "--version"), null, null);
+                List<String> args = wslNpmInvocationPrefix();
+                args.add("--version");
+                CommandResults results = wslExecutor.exeCommand(null, args, null, null);
                 return results.isOk() && !StringUtils.isBlank(results.getRes());
             } catch (Exception e) {
                 return false;
@@ -95,17 +94,26 @@ public class NpmTreeBuilder {
     }
 
     /**
+     * Prefix arguments for {@code wsl.exe} so npm runs in the project directory inside WSL
+     * (same {@code --cd} context as {@link #npmList}).
+     */
+    private List<String> wslNpmInvocationPrefix() {
+        String linuxPath = WslUtils.toLinuxPath(projectDir.toString());
+        List<String> args = new ArrayList<>();
+        args.add("--cd");
+        args.add(linuxPath);
+        args.add("--exec");
+        args.add("npm");
+        return args;
+    }
+
+    /**
      * Run {@code npm ls} and return the parsed JSON output.
      * For WSL projects, the command is routed through {@code wsl.exe --cd <linux-path> --exec npm ...}.
      */
     private JsonNode npmList(List<String> extraArgs) throws IOException {
         if (isWsl) {
-            String linuxPath = WslUtils.toLinuxPath(projectDir.toString());
-            List<String> args = new ArrayList<>();
-            args.add("--cd");
-            args.add(linuxPath);
-            args.add("--exec");
-            args.add("npm");
+            List<String> args = new ArrayList<>(wslNpmInvocationPrefix());
             args.add("ls");
             args.add("--json");
             args.add("--all");
@@ -114,7 +122,7 @@ public class NpmTreeBuilder {
                 CommandResults commandRes = wslExecutor.exeCommand(null, args, null, null);
                 String res = StringUtils.isBlank(commandRes.getRes()) ? "{}" : commandRes.getRes();
                 JsonNode results = jsonReader.readTree(res);
-                if (!commandRes.isOk() && !results.has("problems")) {
+                if (!commandRes.isOk() && !results.has("problems") && results.isObject()) {
                     ((ObjectNode) results).put("problems", commandRes.getErr());
                 }
                 return results;

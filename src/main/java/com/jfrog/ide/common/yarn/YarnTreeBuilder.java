@@ -40,8 +40,8 @@ public class YarnTreeBuilder {
      * @throws IOException in case of I/O error.
      */
     public DepTree buildTree() throws IOException {
-        if (!yarnDriver.isYarnInstalled()) {
-            throw new IOException("Could not scan Yarn project dependencies, because Yarn is not in the PATH. [WSL=" + this.yarnDriver.useWsl + "]");
+        if (!yarnDriver.isYarnInstalled(projectDir.toFile())) {
+            throw new IOException("Could not scan Yarn project dependencies, because Yarn is not in the PATH. [WSL=" + this.yarnDriver.runsThroughWsl() + "]");
         }
         JsonNode listResults = yarnDriver.list(projectDir.toFile());
         return buildYarnDependencyTree(listResults);

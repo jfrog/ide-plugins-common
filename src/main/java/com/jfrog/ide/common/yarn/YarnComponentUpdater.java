@@ -38,7 +38,7 @@ public class YarnComponentUpdater extends ComponentUpdater {
 
     @Override
     public boolean isDriverInstalled() {
-        return yarnDriver.isYarnInstalled();
+        return yarnDriver.isYarnInstalled(projectDir.toFile());
     }
 
     @Override

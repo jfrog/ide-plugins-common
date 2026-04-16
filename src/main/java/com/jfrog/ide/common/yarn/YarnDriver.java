@@ -22,7 +22,7 @@ public class YarnDriver {
     private static final ObjectReader jsonReader = new ObjectMapper().reader();
     private final CommandExecutor commandExecutor;
     private final Log log;
-    protected final boolean useWsl;
+    private final boolean useWsl;
 
     public YarnDriver(Map<String, String> env) {
         this(env, new NullLog(), false);
@@ -38,10 +38,25 @@ public class YarnDriver {
         this.log = log;
     }
 
+    /**
+     * @return whether Yarn commands are executed via {@code wsl.exe} (WSL UNC project path).
+     */
+    public boolean runsThroughWsl() {
+        return useWsl;
+    }
+
     @SuppressWarnings("unused")
     public boolean isYarnInstalled() {
+        return isYarnInstalled(null);
+    }
+
+    /**
+     * @param projectWorkingDirectory project root, or {@code null} for a global Yarn check (non-WSL only;
+     *                                  WSL mode should pass the project directory so the check uses the same {@code --cd} as scans).
+     */
+    public boolean isYarnInstalled(File projectWorkingDirectory) {
         try {
-            return !version(null).isEmpty();
+            return !version(projectWorkingDirectory).isEmpty();
         } catch (IOException | InterruptedException e) {
             return false;
         }

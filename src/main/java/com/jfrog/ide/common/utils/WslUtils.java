@@ -14,12 +14,16 @@ public class WslUtils {
     private WslUtils() {
     }
 
+    private static boolean startsWithIgnoreCase(String s, String prefix) {
+        return s.length() >= prefix.length() && s.regionMatches(true, 0, prefix, 0, prefix.length());
+    }
+
     /**
      * Returns true if the given path string refers to a WSL filesystem
      * (i.e. it is a UNC path rooted at the wsl.localhost or wsl$ host).
      */
     public static boolean isWslPath(String path) {
-        return path != null && (path.startsWith(WSL_LOCALHOST_PREFIX) || path.startsWith(WSL_DOLLAR_PREFIX));
+        return path != null && (startsWithIgnoreCase(path, WSL_LOCALHOST_PREFIX) || startsWithIgnoreCase(path, WSL_DOLLAR_PREFIX));
     }
 
     /**
@@ -38,10 +42,13 @@ public class WslUtils {
      * @return the Linux path, or the original string unchanged if it is not a WSL path
      */
     public static String toLinuxPath(String wslWindowsPath) {
+        if (wslWindowsPath == null) {
+            return null;
+        }
         String withoutPrefix;
-        if (wslWindowsPath.startsWith(WSL_LOCALHOST_PREFIX)) {
+        if (startsWithIgnoreCase(wslWindowsPath, WSL_LOCALHOST_PREFIX)) {
             withoutPrefix = wslWindowsPath.substring(WSL_LOCALHOST_PREFIX.length());
-        } else if (wslWindowsPath.startsWith(WSL_DOLLAR_PREFIX)) {
+        } else if (startsWithIgnoreCase(wslWindowsPath, WSL_DOLLAR_PREFIX)) {
             withoutPrefix = wslWindowsPath.substring(WSL_DOLLAR_PREFIX.length());
         } else {
             return wslWindowsPath;
