@@ -19,11 +19,33 @@ public class WslUtils {
     }
 
     /**
+     * Normalizes Windows extended-length UNC prefixes so WSL detection sees {@code \\wsl$\...} / {@code \\wsl.localhost\...}.
+     * Example: {@code \\?\UNC\wsl$\Ubuntu\home\...} becomes {@code \\wsl$\Ubuntu\home\...}.
+     */
+    static String normalizePathStringForWsl(String path) {
+        if (path == null || path.isEmpty()) {
+            return path;
+        }
+        String p = path;
+        if (startsWithIgnoreCase(p, "\\\\?\\UNC\\")) {
+            return "\\\\" + p.substring("\\\\?\\UNC\\".length());
+        }
+        if (startsWithIgnoreCase(p, "\\\\?\\")) {
+            return p.substring("\\\\?\\".length());
+        }
+        return p;
+    }
+
+    /**
      * Returns true if the given path string refers to a WSL filesystem
      * (i.e. it is a UNC path rooted at the wsl.localhost or wsl$ host).
      */
     public static boolean isWslPath(String path) {
-        return path != null && (startsWithIgnoreCase(path, WSL_LOCALHOST_PREFIX) || startsWithIgnoreCase(path, WSL_DOLLAR_PREFIX));
+        if (path == null) {
+            return false;
+        }
+        String normalized = normalizePathStringForWsl(path);
+        return startsWithIgnoreCase(normalized, WSL_LOCALHOST_PREFIX) || startsWithIgnoreCase(normalized, WSL_DOLLAR_PREFIX);
     }
 
     /**
@@ -45,11 +67,12 @@ public class WslUtils {
         if (wslWindowsPath == null) {
             return null;
         }
+        String p = normalizePathStringForWsl(wslWindowsPath);
         String withoutPrefix;
-        if (startsWithIgnoreCase(wslWindowsPath, WSL_LOCALHOST_PREFIX)) {
-            withoutPrefix = wslWindowsPath.substring(WSL_LOCALHOST_PREFIX.length());
-        } else if (startsWithIgnoreCase(wslWindowsPath, WSL_DOLLAR_PREFIX)) {
-            withoutPrefix = wslWindowsPath.substring(WSL_DOLLAR_PREFIX.length());
+        if (startsWithIgnoreCase(p, WSL_LOCALHOST_PREFIX)) {
+            withoutPrefix = p.substring(WSL_LOCALHOST_PREFIX.length());
+        } else if (startsWithIgnoreCase(p, WSL_DOLLAR_PREFIX)) {
+            withoutPrefix = p.substring(WSL_DOLLAR_PREFIX.length());
         } else {
             return wslWindowsPath;
         }

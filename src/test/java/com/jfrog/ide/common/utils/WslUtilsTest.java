@@ -19,6 +19,8 @@ public class WslUtilsTest {
                 {"\\\\WSL$\\Ubuntu\\home\\user\\repo", true},
                 {"\\\\wsl.localhost\\Ubuntu\\home\\user\\repo", true},
                 {"\\\\WSL.LOCALHOST\\Ubuntu\\home\\user\\repo", true},
+                {"\\\\?\\UNC\\wsl$\\Ubuntu\\home\\user\\repo", true},
+                {"\\\\?\\UNC\\WSL.LOCALHOST\\Ubuntu\\home\\user\\repo", true},
         };
     }
 
@@ -45,6 +47,7 @@ public class WslUtilsTest {
                 {"\\\\WSL$\\Ubuntu\\home\\user\\app", "/home/user/app"},
                 {"\\\\wsl.localhost\\Ubuntu\\home\\user\\app", "/home/user/app"},
                 {"\\\\wsl$\\Ubuntu", "/"},
+                {"\\\\?\\UNC\\wsl$\\Ubuntu\\home\\user\\app", "/home/user/app"},
         };
     }
 
