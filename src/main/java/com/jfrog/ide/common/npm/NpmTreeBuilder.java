@@ -2,16 +2,25 @@ package com.jfrog.ide.common.npm;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
 import com.jfrog.ide.common.utils.Utils;
+import com.jfrog.ide.common.utils.WslUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.extractor.executor.CommandExecutor;
+import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.npm.NpmDriver;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,14 +30,24 @@ import java.util.Map;
  */
 public class NpmTreeBuilder {
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectReader jsonReader = new ObjectMapper().reader();
     private final NpmDriver npmDriver;
+    private final CommandExecutor wslExecutor;
+    private final boolean isWsl;
     private final Path projectDir;
     private final String descriptorFilePath;
 
     public NpmTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env) {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
-        this.npmDriver = new NpmDriver(env);
+        this.isWsl = WslUtils.isWslPath(projectDir);
+        if (isWsl) {
+            this.npmDriver = null;
+            this.wslExecutor = new CommandExecutor("wsl.exe", env);
+        } else {
+            this.npmDriver = new NpmDriver(env);
+            this.wslExecutor = null;
+        }
     }
 
     /**
@@ -39,15 +58,16 @@ public class NpmTreeBuilder {
      * @throws IOException in case of I/O error.
      */
     public DepTree buildTree(Log logger) throws IOException {
-        if (!npmDriver.isNpmInstalled()) {
-            throw new IOException("Could not scan npm project dependencies, because npm CLI is not in the PATH.");
+        logger.warn("WSL:" + this.isWsl);
+        if (!isNpmInstalled()) {
+            throw new IOException("Could not scan npm project dependencies, because npm CLI is not in the PATH. [WSL=" + this.isWsl + "]");
         }
-        JsonNode prodResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--prod", "--package-lock-only"));
+        JsonNode prodResults = npmList(Lists.newArrayList("--prod", "--package-lock-only"));
         if (prodResults.get("problems") != null) {
             logger.warn("Errors occurred during building the Npm dependency tree. " +
                     "The dependency tree may be incomplete:\n" + prodResults.get("problems").toString());
         }
-        JsonNode devResults = npmDriver.list(projectDir.toFile(), Lists.newArrayList("--dev", "--package-lock-only"));
+        JsonNode devResults = npmList(Lists.newArrayList("--dev", "--package-lock-only"));
         Map<String, DepTreeNode> nodes = new HashMap<>();
         String packageId = getPackageId(prodResults);
         addDepTreeNodes(nodes, prodResults, packageId, "prod");
@@ -55,6 +75,54 @@ public class NpmTreeBuilder {
         DepTree tree = new DepTree(packageId, nodes);
         tree.getRootNode().descriptorFilePath(descriptorFilePath);
         return tree;
+    }
+
+    /**
+     * Check whether npm is available, accounting for WSL projects.
+     * For WSL projects, npm is invoked through {@code wsl.exe}.
+     */
+    private boolean isNpmInstalled() {
+        if (isWsl) {
+            try {
+                CommandResults results = wslExecutor.exeCommand(null,
+                        Arrays.asList("--exec", "npm", "--version"), null, null);
+                return results.isOk() && !StringUtils.isBlank(results.getRes());
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return npmDriver.isNpmInstalled();
+    }
+
+    /**
+     * Run {@code npm ls} and return the parsed JSON output.
+     * For WSL projects, the command is routed through {@code wsl.exe --cd <linux-path> --exec npm ...}.
+     */
+    private JsonNode npmList(List<String> extraArgs) throws IOException {
+        if (isWsl) {
+            String linuxPath = WslUtils.toLinuxPath(projectDir.toString());
+            List<String> args = new ArrayList<>();
+            args.add("--cd");
+            args.add(linuxPath);
+            args.add("--exec");
+            args.add("npm");
+            args.add("ls");
+            args.add("--json");
+            args.add("--all");
+            args.addAll(extraArgs);
+            try {
+                CommandResults commandRes = wslExecutor.exeCommand(null, args, null, null);
+                String res = StringUtils.isBlank(commandRes.getRes()) ? "{}" : commandRes.getRes();
+                JsonNode results = jsonReader.readTree(res);
+                if (!commandRes.isOk() && !results.has("problems")) {
+                    ((ObjectNode) results).put("problems", commandRes.getErr());
+                }
+                return results;
+            } catch (IOException | InterruptedException e) {
+                throw new IOException("npm ls failed via WSL", e);
+            }
+        }
+        return npmDriver.list(projectDir.toFile(), extraArgs);
     }
 
     private void addDepTreeNodes(Map<String, DepTreeNode> nodes, JsonNode jsonDep, String depId, String scope) {

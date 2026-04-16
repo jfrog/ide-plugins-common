@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
 import com.jfrog.ide.common.nodes.subentities.ImpactTree;
+import com.jfrog.ide.common.utils.WslUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 
@@ -29,7 +30,7 @@ public class YarnTreeBuilder {
     public YarnTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env, Log log) {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
-        this.yarnDriver = new YarnDriver(env, log);
+        this.yarnDriver = new YarnDriver(env, log, WslUtils.isWslPath(projectDir));
     }
 
     /**
@@ -40,7 +41,7 @@ public class YarnTreeBuilder {
      */
     public DepTree buildTree() throws IOException {
         if (!yarnDriver.isYarnInstalled()) {
-            throw new IOException("Could not scan Yarn project dependencies, because Yarn is not in the PATH.");
+            throw new IOException("Could not scan Yarn project dependencies, because Yarn is not in the PATH. [WSL=" + this.yarnDriver.useWsl + "]");
         }
         JsonNode listResults = yarnDriver.list(projectDir.toFile());
         return buildYarnDependencyTree(listResults);
