@@ -3,7 +3,7 @@ package com.jfrog.ide.common.yarn;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.jfrog.ide.common.utils.WslUtils;
+import org.jfrog.build.extractor.util.WslUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;

@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.go.GoDriver;
+import org.jfrog.build.extractor.util.WslUtils;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -11,6 +12,9 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -27,13 +31,16 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
     private final Path sourceDir;
     private final Path targetDir;
     private final Log logger;
+    private final boolean runGoThroughWsl;
     private static final String[] EXCLUDED_DIRS = new String[]{".git", ".idea", ".vscode"};
 
-    public GoScanWorkspaceCreator(String executablePath, Path sourceDir, Path targetDir, Path goModAbsDir, Map<String, String> env, Log logger) {
-        this.goDriver = new GoDriver(executablePath, env, goModAbsDir.toFile(), logger);
+    public GoScanWorkspaceCreator(String executablePath, Path sourceDir, Path targetDir, Path goModAbsDir,
+                                  Map<String, String> env, Log logger, boolean runGoThroughWsl) {
+        this.goDriver = new GoDriver(executablePath, env, goModAbsDir.toFile(), logger, runGoThroughWsl);
         this.sourceDir = sourceDir;
         this.targetDir = targetDir;
         this.logger = logger;
+        this.runGoThroughWsl = runGoThroughWsl;
     }
 
     @Override
@@ -73,7 +80,17 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
         if (fileName.equals("go.mod")) {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
-            goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
+            if (runGoThroughWsl) {
+                String goModPathArg = WslUtils.windowsLocalPathToWslMount(targetGoMod.toAbsolutePath().toString());
+                String sourceAbs = sourceDir.toAbsolutePath().toString();
+                String wdArg = WslUtils.isWslPath(sourceAbs)
+                        ? WslUtils.toLinuxPath(sourceAbs)
+                        : WslUtils.windowsLocalPathToWslMount(sourceAbs);
+                List<String> args = new ArrayList<>(Arrays.asList("run", ".", "-goModPath=" + goModPathArg, "-wd=" + wdArg));
+                goDriver.runCmd(args, true);
+            } else {
+                goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
+            }
             return FileVisitResult.CONTINUE;
         }
         // Files other than go.mod and *.go files are not necessary to build the dependency tree of used Go packages.
