@@ -10,7 +10,7 @@ import org.jfrog.build.api.util.Log;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
-import org.jfrog.build.extractor.util.WslUtils;
+import org.jfrog.build.extractor.WslUtils;
 
 import java.io.*;
 import java.nio.file.Files;

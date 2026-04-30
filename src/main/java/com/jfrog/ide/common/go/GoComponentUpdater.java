@@ -3,7 +3,7 @@ package com.jfrog.ide.common.go;
 import com.jfrog.ide.common.updateversion.ComponentUpdater;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.go.GoDriver;
-import org.jfrog.build.extractor.util.WslUtils;
+import org.jfrog.build.extractor.WslUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;

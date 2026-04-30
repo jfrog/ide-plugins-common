@@ -1,7 +1,7 @@
 package com.jfrog.ide.common.npm;
 
 import com.jfrog.ide.common.updateversion.ComponentUpdater;
-import org.jfrog.build.extractor.util.WslUtils;
+import org.jfrog.build.extractor.WslUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandExecutor;

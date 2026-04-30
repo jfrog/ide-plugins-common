@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.go.GoDriver;
-import org.jfrog.build.extractor.util.WslUtils;
+import org.jfrog.build.extractor.WslUtils;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;

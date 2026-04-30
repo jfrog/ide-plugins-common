@@ -8,7 +8,7 @@ import com.google.common.collect.Lists;
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
 import com.jfrog.ide.common.utils.Utils;
-import org.jfrog.build.extractor.util.WslUtils;
+import org.jfrog.build.extractor.WslUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.executor.CommandExecutor;

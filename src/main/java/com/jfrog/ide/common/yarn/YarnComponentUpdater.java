@@ -1,7 +1,7 @@
 package com.jfrog.ide.common.yarn;
 
 import com.jfrog.ide.common.updateversion.ComponentUpdater;
-import org.jfrog.build.extractor.util.WslUtils;
+import org.jfrog.build.extractor.WslUtils;
 import org.jfrog.build.api.util.Log;
 
 import java.io.IOException;
