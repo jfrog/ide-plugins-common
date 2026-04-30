@@ -9,6 +9,8 @@ import java.util.Objects;
 @Getter
 public class ImpactPath {
     @JsonProperty()
+    private String id;
+    @JsonProperty()
     private String name;
     @JsonProperty()
     private String version;
@@ -16,6 +18,13 @@ public class ImpactPath {
     // empty constructor for deserialization
     @SuppressWarnings("unused")
     public ImpactPath() {
+    }
+
+    @SuppressWarnings("unused")
+    public ImpactPath(String dependencyId, String dependencyName, String dependencyVersion) {
+        this.id = dependencyId;
+        this.name = dependencyName;
+        this.version = dependencyVersion;
     }
 
     @SuppressWarnings("unused")

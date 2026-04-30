@@ -85,6 +85,14 @@ public class GradleTreeBuilderTest {
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("pluginLibDir", GradleDependencyNode.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 
+        // Isolate Gradle cache to avoid CI failures: test's Gradle subprocess otherwise uses ~/.gradle,
+        // causing "Failed to create Jar file" (concurrent writes) and "Unable to create directory 'reports/profile'".
+        File gradleUserHome = new File(tempProject, ".gradle-test-cache");
+        if (!gradleUserHome.exists() && !gradleUserHome.mkdirs()) {
+            throw new IOException("Could not create isolated GRADLE_USER_HOME: " + gradleUserHome);
+        }
+        env.put("GRADLE_USER_HOME", gradleUserHome.getAbsolutePath());
+
         Path projectDir = tempProject.toPath();
         String descriptorFileName = "build.gradle";
         if (projectPath.toLowerCase().contains("kotlin")) {

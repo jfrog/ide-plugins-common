@@ -75,8 +75,9 @@ public class GradleDriver {
             // Copy init script to the temp file
             Files.copy(gradleInitScript, initScript, StandardCopyOption.REPLACE_EXISTING);
 
-            // Run "gradle generateDepTrees -q -I <path-to-init-script>" -Dcom.jfrog.depsTreeOutputFile=<path-to-output-file>
-            List<String> args = Lists.newArrayList("generateDepTrees", "-q", "-I", initScript.toString(),
+            // Run "gradle generateDepTrees --no-daemon -q -I <path-to-init-script>" -Dcom.jfrog.depsTreeOutputFile=<path-to-output-file>
+            // --no-daemon avoids sharing the Gradle daemon with the main build (prevents cache lock/contentions on CI).
+            List<String> args = Lists.newArrayList("generateDepTrees", "--no-daemon", "-q", "-I", initScript.toString(),
                     "-Dcom.jfrog.depsTreeOutputFile=" + outputFile.toString());
             runCommand(workingDirectory, args, logger);
             List<File> files = new ArrayList<>();
