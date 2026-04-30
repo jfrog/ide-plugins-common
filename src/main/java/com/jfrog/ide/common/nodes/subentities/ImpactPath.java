@@ -12,6 +12,8 @@ public class ImpactPath {
     private String name;
     @JsonProperty()
     private String version;
+    @JsonProperty()
+    private String id;
 
     // empty constructor for deserialization
     @SuppressWarnings("unused")
@@ -20,6 +22,13 @@ public class ImpactPath {
 
     @SuppressWarnings("unused")
     public ImpactPath(String dependencyName, String dependencyVersion) {
+        this.name = dependencyName;
+        this.version = dependencyVersion;
+    }
+
+    @SuppressWarnings("unused")
+    public ImpactPath(String dependencyId, String dependencyName, String dependencyVersion) {
+        this.id = dependencyId;
         this.name = dependencyName;
         this.version = dependencyVersion;
     }

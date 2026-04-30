@@ -29,7 +29,7 @@ dependencies {
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.16.0'
     implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
         exclude group: 'commons-codec', module: 'commons-codec'
     }
@@ -39,10 +39,10 @@ dependencies {
     implementation group: 'com.jetbrains.qodana', name: 'qodana-sarif', version: '0.2.113'
     implementation group: 'org.apache.httpcomponents', name: 'httpcore', version: '4.4.14'
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.18.0'
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.13'
-    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '3.0.1'
+    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '3.2.0'
     implementation group: 'commons-io', name: 'commons-io', version: '2.20.0'
     implementation(group: 'com.opencsv', name: 'opencsv', version: '5.11.1') {
         exclude group: 'common-collections', module: 'commons-collections'

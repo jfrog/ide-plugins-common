@@ -60,7 +60,7 @@ public class GradleDriver {
      * @return list of files containing the dependency trees of the Gradle projects.
      * @throws IOException in case of any I/O error.
      */
-    public List<File> generateDependenciesGraphAsJson(File workingDirectory, Log logger) throws IOException {
+    public List<File> generateDependenciesGraphAsJson(File workingDirectory, Path gradleUserHome, Log logger) throws IOException {
         String encodedPath = Base64.getEncoder().encodeToString(workingDirectory.getName().getBytes(StandardCharsets.UTF_8));
 
         // Create temp init script file
@@ -75,9 +75,10 @@ public class GradleDriver {
             // Copy init script to the temp file
             Files.copy(gradleInitScript, initScript, StandardCopyOption.REPLACE_EXISTING);
 
-            // Run "gradle generateDepTrees -q -I <path-to-init-script>" -Dcom.jfrog.depsTreeOutputFile=<path-to-output-file>
+            // Run "gradle generateDepTrees -q -I <path-to-init-script> -Dcom.jfrog.depsTreeOutputFile=<path-to-output-file> -Dgradle.user.home=<path-to-gradle-user-home>"
             List<String> args = Lists.newArrayList("generateDepTrees", "-q", "-I", initScript.toString(),
-                    "-Dcom.jfrog.depsTreeOutputFile=" + outputFile.toString());
+                    "-Dcom.jfrog.depsTreeOutputFile=" + outputFile.toString(),
+                    "-Dgradle.user.home=" + gradleUserHome.toString());
             runCommand(workingDirectory, args, logger);
             List<File> files = new ArrayList<>();
             for (String line : Files.readAllLines(outputFile)) {

@@ -11,6 +11,7 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +28,17 @@ public class GradleTreeBuilder {
     private final GradleDriver gradleDriver;
     private final Path projectDir;
     private final String descriptorFilePath;
+    private final Path gradleUserHome;
     private Path pluginLibDir;
 
     public GradleTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env, String gradleExe) {
+        this(projectDir, descriptorFilePath, env, gradleExe, null);
+    }
+
+    public GradleTreeBuilder(Path projectDir, String descriptorFilePath, Map<String, String> env, String gradleExe, Path gradleUserHome) {
         this.projectDir = projectDir;
         this.descriptorFilePath = descriptorFilePath;
+        this.gradleUserHome = gradleUserHome != null ? gradleUserHome : Paths.get(System.getProperty("user.home"), ".gradle");
         this.gradleDriver = new GradleDriver(gradleExe, env);
     }
 
@@ -44,7 +51,7 @@ public class GradleTreeBuilder {
      */
     public DepTree buildTree(Log logger) throws IOException {
         gradleDriver.verifyGradleInstalled();
-        List<File> gradleDependenciesFiles = gradleDriver.generateDependenciesGraphAsJson(projectDir.toFile(), logger);
+        List<File> gradleDependenciesFiles = gradleDriver.generateDependenciesGraphAsJson(projectDir.toFile(), gradleUserHome, logger);
         return createDependencyTrees(gradleDependenciesFiles);
     }
 

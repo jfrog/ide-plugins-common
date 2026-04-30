@@ -32,17 +32,21 @@ public class GradleTreeBuilderTest {
 
     private static final Path GRADLE_ROOT = Paths.get(".").toAbsolutePath().normalize().resolve(Paths.get("src", "test", "resources", "gradle"));
     private File tempProject;
+    private File tempGradleUserHome;
 
     @BeforeMethod
     public void setUp(Object[] args) throws IOException {
         tempProject = Files.createTempDirectory("ide-plugins-common-gradle").toFile();
         tempProject.deleteOnExit();
         FileUtils.copyDirectory(GRADLE_ROOT.resolve((String) args[0]).toFile(), tempProject);
+        tempGradleUserHome = Files.createTempDirectory("ide-plugins-common-gradle-user-home").toFile();
+        tempGradleUserHome.deleteOnExit();
     }
 
     @AfterMethod
     public void tearDown() {
         FileUtils.deleteQuietly(tempProject);
+        FileUtils.deleteQuietly(tempGradleUserHome);
     }
 
     @DataProvider
@@ -82,7 +86,7 @@ public class GradleTreeBuilderTest {
 
     private DepTree buildGradleDependencyTree(String projectPath) throws IOException {
         // Add path to gradle-dep-tree JAR to "pluginLibDir" environment variable, to be read in gradle-dep-tree.gradle init script
-        Map<String, String> env = new HashMap<>(System.getenv());
+        Map<String, String> env = new HashMap<>();
         env.put("pluginLibDir", GradleDependencyNode.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 
         Path projectDir = tempProject.toPath();
@@ -91,7 +95,7 @@ public class GradleTreeBuilderTest {
             descriptorFileName += ".kts";
         }
         String descriptorFilePath = projectDir.resolve(descriptorFileName).toString();
-        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(projectDir, descriptorFilePath, env, "");
+        GradleTreeBuilder gradleTreeBuilder = new GradleTreeBuilder(projectDir, descriptorFilePath, env, "", tempGradleUserHome.toPath());
         DepTree depTree = gradleTreeBuilder.buildTree(new NullLog());
         assertNotNull(depTree);
 
