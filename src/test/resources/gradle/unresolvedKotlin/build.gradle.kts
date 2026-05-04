@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("org.jfrog.buildinfo", "build-info-extractor-gradle", "4.+")
+        classpath("org.jfrog.buildinfo", "build-info-extractor-gradle", "5.+")
     }
     configurations.classpath {
         resolutionStrategy {
@@ -103,8 +103,8 @@ configure<org.jfrog.gradle.plugin.artifactory.dsl.ArtifactoryPluginConvention> {
     publish {
         repository {
             setRepoKey("libs-snapshot-local") // The Artifactory repository key to publish to
-            setUsername(findProperty("artifactory_user")) // The publisher user name
-            setPassword(findProperty("artifactory_password")) // The publisher password
+            setUsername(findProperty("artifactory_user")?.toString().orEmpty()) // The publisher user name
+            setPassword(findProperty("artifactory_password")?.toString().orEmpty()) // The publisher password
             // This is an optional section for configuring Ivy publication (when publishIvy = true).
             ivy {
                 setIvyLayout("[organization]/[module]/ivy-[revision].xml")
