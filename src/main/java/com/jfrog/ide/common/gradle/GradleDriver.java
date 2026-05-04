@@ -67,7 +67,6 @@ public class GradleDriver {
         Path initScript = Files.createTempFile("init-script", encodedPath);
         logger.debug("dependencies.gradle init script path: " + initScript);
         Path outputFile = Files.createTempFile("gradle-deps-tree", "");
-        Path gradleUserHome = Files.createTempDirectory("jfrog-gradle-user-home-");
         try (InputStream gradleInitScript = getClass().getResourceAsStream("/gradle-dep-tree.gradle")) {
             if (gradleInitScript == null) {
                 throw new IOException("Couldn't find dependencies.gradle init script.");
@@ -76,13 +75,8 @@ public class GradleDriver {
             // Copy init script to the temp file
             Files.copy(gradleInitScript, initScript, StandardCopyOption.REPLACE_EXISTING);
 
-            // Isolate GRADLE_USER_HOME per invocation so parallel scans/tests do not contend on ~/.gradle/caches/jars-9
-            // (e.g. "Failed to create Jar file ... jackson-core-*.jar", wrapped as ExecutionException).
-            // --no-daemon avoids leaving daemons bound to the temporary home.
-            List<String> args = Lists.newArrayList(
-                    "--no-daemon",
-                    "--gradle-user-home", gradleUserHome.toAbsolutePath().toString(),
-                    "generateDepTrees", "-q", "-I", initScript.toString(),
+            // Run "gradle generateDepTrees -q -I <path-to-init-script>" -Dcom.jfrog.depsTreeOutputFile=<path-to-output-file>
+            List<String> args = Lists.newArrayList("generateDepTrees", "-q", "-I", initScript.toString(),
                     "-Dcom.jfrog.depsTreeOutputFile=" + outputFile.toString());
             runCommand(workingDirectory, args, logger);
             List<File> files = new ArrayList<>();
@@ -100,11 +94,6 @@ public class GradleDriver {
         } finally {
             FileUtils.forceDelete(initScript.toFile());
             FileUtils.forceDelete(outputFile.toFile());
-            try {
-                FileUtils.deleteDirectory(gradleUserHome.toFile());
-            } catch (IOException cleanupEx) {
-                FileUtils.deleteQuietly(gradleUserHome.toFile());
-            }
         }
     }
 
