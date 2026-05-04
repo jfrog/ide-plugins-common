@@ -22,14 +22,17 @@ repositories {
     }
 }
 
-def buildInfoVersion = '2.41.13'
+def buildInfoVersion = '2.43.6'
+// Updated to 2.17.3 for security fixes - compatible with Java 8+
+def jacksonVersion = '2.17.3'
+
 dependencies {
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.15.2'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jacksonVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: jacksonVersion
     implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
         exclude group: 'commons-codec', module: 'commons-codec'
     }
@@ -42,7 +45,7 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     implementation group: 'commons-codec', name: 'commons-codec', version: '1.13'
-    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '3.0.1'
+    implementation group: 'com.jfrog', name: 'gradle-dep-tree', version: '3.2.1'
     implementation group: 'commons-io', name: 'commons-io', version: '2.20.0'
     implementation(group: 'com.opencsv', name: 'opencsv', version: '5.11.1') {
         exclude group: 'common-collections', module: 'commons-collections'
