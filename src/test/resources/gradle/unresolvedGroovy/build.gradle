@@ -19,7 +19,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '4.+')
+        classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '5.+')
     }
     configurations.classpath {
         resolutionStrategy {

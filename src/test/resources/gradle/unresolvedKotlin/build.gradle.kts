@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("org.jfrog.buildinfo", "build-info-extractor-gradle", "4.+")
+        classpath("org.jfrog.buildinfo", "build-info-extractor-gradle", "5.+")
     }
     configurations.classpath {
         resolutionStrategy {
