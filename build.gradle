@@ -22,7 +22,7 @@ repositories {
     }
 }
 
-def buildInfoVersion = '2.43.6'
+def buildInfoVersion = '2.43.9'
 // Updated to 2.17.3 for security fixes - compatible with Java 8+
 def jacksonVersion = '2.17.3'
 

@@ -1,6 +1,7 @@
 package com.jfrog.ide.common.yarn;
 
 import com.jfrog.ide.common.updateversion.ComponentUpdater;
+import org.jfrog.build.extractor.WslUtils;
 import org.jfrog.build.api.util.Log;
 
 import java.io.IOException;
@@ -14,7 +15,7 @@ public class YarnComponentUpdater extends ComponentUpdater {
 
     public YarnComponentUpdater(Path projectDir, Log logger, Map<String, String> env) {
         super(projectDir, logger);
-        this.yarnDriver = new YarnDriver(env);
+        this.yarnDriver = new YarnDriver(env, logger, WslUtils.isWslPath(projectDir));
     }
 
     /**
@@ -37,7 +38,7 @@ public class YarnComponentUpdater extends ComponentUpdater {
 
     @Override
     public boolean isDriverInstalled() {
-        return yarnDriver.isYarnInstalled();
+        return yarnDriver.isYarnInstalled(projectDir.toFile());
     }
 
     @Override

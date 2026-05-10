@@ -3,6 +3,7 @@ package com.jfrog.ide.common.yarn;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import org.jfrog.build.extractor.WslUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
@@ -12,7 +13,6 @@ import org.jfrog.build.extractor.executor.CommandResults;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -22,20 +22,41 @@ public class YarnDriver {
     private static final ObjectReader jsonReader = new ObjectMapper().reader();
     private final CommandExecutor commandExecutor;
     private final Log log;
+    private final boolean useWsl;
 
     public YarnDriver(Map<String, String> env) {
-        this(env, new NullLog());
+        this(env, new NullLog(), false);
     }
 
     public YarnDriver(Map<String, String> env, Log log) {
-        this.commandExecutor = new CommandExecutor("yarn", env);
+        this(env, log, false);
+    }
+
+    public YarnDriver(Map<String, String> env, Log log, boolean useWsl) {
+        this.useWsl = useWsl;
+        this.commandExecutor = useWsl ? new CommandExecutor("wsl.exe", env) : new CommandExecutor("yarn", env);
         this.log = log;
+    }
+
+    /**
+     * @return whether Yarn commands are executed via {@code wsl.exe} (WSL UNC project path).
+     */
+    public boolean runsThroughWsl() {
+        return useWsl;
     }
 
     @SuppressWarnings("unused")
     public boolean isYarnInstalled() {
+        return isYarnInstalled(null);
+    }
+
+    /**
+     * @param projectWorkingDirectory project root, or {@code null} for a global Yarn check (non-WSL only;
+     *                                  WSL mode should pass the project directory so the check uses the same {@code --cd} as scans).
+     */
+    public boolean isYarnInstalled(File projectWorkingDirectory) {
         try {
-            return !version(null).isEmpty();
+            return !version(projectWorkingDirectory).isEmpty();
         } catch (IOException | InterruptedException e) {
             return false;
         }
@@ -128,8 +149,20 @@ public class YarnDriver {
     }
 
     private CommandResults runCommand(File workingDirectory, String[] args, List<String> extraArgs) throws IOException, InterruptedException {
-        List<String> finalArgs = Stream.concat(Arrays.stream(args), extraArgs.stream()).collect(Collectors.toList());
-        CommandResults commandRes = commandExecutor.exeCommand(workingDirectory, finalArgs, null, null);
+        List<String> finalArgs = new ArrayList<>();
+        File wdForExecutor = workingDirectory;
+        if (useWsl) {
+            // Route through wsl.exe. If a working directory is given, convert it to a Linux path via --cd.
+            if (workingDirectory != null) {
+                finalArgs.add("--cd");
+                finalArgs.add(WslUtils.toLinuxPath(workingDirectory.getPath()));
+            }
+            finalArgs.add("--exec");
+            finalArgs.add("yarn");
+            wdForExecutor = null; // Working directory is handled by --cd above
+        }
+        Stream.concat(Arrays.stream(args), extraArgs.stream()).forEach(finalArgs::add);
+        CommandResults commandRes = commandExecutor.exeCommand(wdForExecutor, finalArgs, null, null);
         if (!commandRes.isOk()) {
             throw new IOException(commandRes.getErr() + commandRes.getRes());
         }

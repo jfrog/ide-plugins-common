@@ -10,6 +10,7 @@ import org.jfrog.build.api.util.Log;
 import org.jfrog.build.client.Version;
 import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
+import org.jfrog.build.extractor.WslUtils;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -126,7 +127,8 @@ public class GoTreeBuilder {
         Path goModAbsDir = null;
         try {
             goModAbsDir = prepareGoModAbs();
-            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(executablePath, projectDir, targetDir, goModAbsDir, env, logger);
+            boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
+            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(executablePath, projectDir, targetDir, goModAbsDir, env, logger, runGoThroughWsl);
             Files.walkFileTree(projectDir, goScanWorkspaceCreator);
         } finally {
             if (goModAbsDir != null) {
@@ -176,9 +178,10 @@ public class GoTreeBuilder {
     public DepTree buildTree() throws IOException {
         File tmpDir = createGoWorkspace().toFile();
         try {
-            GoDriver goDriver = new GoDriver(executablePath, env, tmpDir, logger);
+            boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
+            GoDriver goDriver = new GoDriver(executablePath, env, tmpDir, logger, runGoThroughWsl);
             if (!goDriver.isInstalled()) {
-                throw new IOException("Could not scan the Go project dependencies, because the Go executable is not in the PATH.");
+                throw new IOException("Could not scan the Go project dependencies, because the Go executable is not in the PATH. [WSL=" + runGoThroughWsl + "]");
             }
 
             CommandResults versionRes = goDriver.version(false);
