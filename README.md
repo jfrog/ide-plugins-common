@@ -29,4 +29,4 @@ To build the code without running the tests, add to the "clean build" command th
 We welcome community contribution through pull requests.
 
 # Release Notes
-The release notes are available [here](RELEASE.md#release-notes).
+The release notes are available [here](https://github.com/jfrog/ide-plugins-common/releases).
