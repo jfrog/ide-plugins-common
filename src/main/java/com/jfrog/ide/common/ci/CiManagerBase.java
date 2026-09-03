@@ -62,12 +62,12 @@ public class CiManagerBase {
 
     /**
      * Build the CI tree in a producer-consumer method.
-     * The producer download build-info artifacts from artifactory, save them in cache and produce the build
+     * The producer downloads build-info artifacts from Artifactory, saves them in cache and produces the build
      * general info to the consumer.
-     * The consumer download build scan results from Xray, save them in cache and populate the CI tree with nodes
+     * The consumer downloads build scan results from Xray, saves them in cache and populates the CI tree with nodes
      * containing only the build general info of the builds.
      * <p>
-     * When the produce-consumer job is done, the CI tree contains only general information on the builds.
+     * When the producer-consumer job is done, the CI tree contains only general information on the builds.
      * The build dependencies, artifacts and Xray scan results is stored in cache to save RAM.
      *
      * @param buildsPattern - The build pattern configured in the IDE configuration
