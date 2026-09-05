@@ -62,7 +62,7 @@ public class NpmTreeBuilder {
         }
         JsonNode prodResults = npmList(Lists.newArrayList("--prod", "--package-lock-only"));
         if (prodResults.get("problems") != null) {
-            logger.warn("Errors occurred during building the Npm dependency tree. " +
+            logger.warn("Errors occurred while building the Npm dependency tree. " +
                     "The dependency tree may be incomplete:\n" + prodResults.get("problems").toString());
         }
         JsonNode devResults = npmList(Lists.newArrayList("--dev", "--package-lock-only"));

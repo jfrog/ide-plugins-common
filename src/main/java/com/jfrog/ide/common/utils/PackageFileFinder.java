@@ -48,7 +48,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * Get package.json directories and their directories.
+     * Get package.json files and their parent directories.
      *
      * @return Set of package.json's parent directories.
      */
@@ -60,7 +60,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * Get package.json directories and their directories.
+     * Get yarn.lock files and their parent directories.
      *
      * @return Set of yarn.lock's parent directories.
      */
@@ -69,7 +69,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * Get build.gradle and build.gradle.kts directories and their directories.
+     * Get build.gradle and build.gradle.kts files and their parent directories.
      *
      * @return Set of build.gradle and build.gradle.kts's parent directories.
      */
@@ -78,7 +78,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * Get go.mod directories and their directories.
+     * Get go.mod files and their parent directories.
      *
      * @return Set of go.mod's parent directories.
      */
@@ -100,7 +100,7 @@ public class PackageFileFinder implements FileVisitor<Path> {
      *
      * @param dir   - Current directory.
      * @param attrs - Directory attributes.
-     * @return FileVisitResult.CONTINUE or FileVisitResult.SKIP_SUBTREE respectfully.
+     * @return FileVisitResult.CONTINUE or FileVisitResult.SKIP_SUBTREE respectively.
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
@@ -140,11 +140,11 @@ public class PackageFileFinder implements FileVisitor<Path> {
     }
 
     /**
-     * Skip sub directories without permissions
+     * Skip subdirectories without permissions
      *
      * @param dir - Current directory.
      * @param exc - IOException or null.
-     * @return FileVisitResult.CONTINUE or FileVisitResult.SKIP_SUBTREE respectfully.
+     * @return FileVisitResult.CONTINUE or FileVisitResult.SKIP_SUBTREE respectively.
      */
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
