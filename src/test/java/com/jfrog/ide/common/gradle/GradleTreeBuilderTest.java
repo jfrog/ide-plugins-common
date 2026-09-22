@@ -3,6 +3,7 @@ package com.jfrog.ide.common.gradle;
 import com.jfrog.GradleDependencyNode;
 import com.jfrog.ide.common.TestUtils;
 import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeModule;
 import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.apache.commons.io.FileUtils;
 import org.jfrog.build.api.util.NullLog;
@@ -100,6 +101,29 @@ public class GradleTreeBuilderTest {
         assertNotNull(commonsText, "Couldn't find node 'org.apache.commons:commons-text:1.9'.");
         assertTrue(commonsText.getChildren().contains("org.apache.commons:commons-lang3:3.11"),
                 "The dependency resolved in 'moda' was dropped by the module of 'modb': " + commonsText.getChildren());
+    }
+
+    @SuppressWarnings("unused")
+    @Test(dataProvider = "gradleTreeBuilderSharedDependencyProvider")
+    public void gradleTreeBuilderModuleScopesTest(String projectPath) throws IOException {
+        DepTree depTree = buildGradleDependencyTree(projectPath);
+
+        Map<String, DepTreeModule> modulesByRoot = new HashMap<>();
+        for (DepTreeModule module : depTree.modules()) {
+            modulesByRoot.put(module.rootId(), module);
+        }
+        assertEquals(modulesByRoot.size(), 3);
+
+        DepTreeModule moda = modulesByRoot.get("org.jfrog.test.gradle.shared:moda:1.0-SNAPSHOT");
+        assertNotNull(moda, "Couldn't find the 'moda' module scope in " + modulesByRoot.keySet());
+        assertTrue(moda.nodes().get("org.apache.commons:commons-text:1.9").getChildren()
+                        .contains("org.apache.commons:commons-lang3:3.11"),
+                "'moda' resolves commons-lang3 through commons-text");
+
+        DepTreeModule modb = modulesByRoot.get("org.jfrog.test.gradle.shared:modb:1.0-SNAPSHOT");
+        assertNotNull(modb, "Couldn't find the 'modb' module scope in " + modulesByRoot.keySet());
+        assertFalse(modb.nodes().containsKey("org.apache.commons:commons-lang3:3.11"),
+                "'modb' excludes commons-lang3, so its scope must not contain it");
     }
 
     private DepTree buildGradleDependencyTree(String projectPath) throws IOException {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.GradleDepTreeResults;
 import com.jfrog.GradleDependencyNode;
 import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeModule;
 import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.GeneralInfo;
@@ -11,7 +12,9 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -62,11 +65,16 @@ public class GradleTreeBuilder {
         DepTreeNode rootNode = new DepTreeNode().descriptorFilePath(descriptorFilePath);
 
         Map<String, DepTreeNode> nodes = new HashMap<>();
+        List<DepTreeModule> modules = new ArrayList<>();
         for (File moduleDepsFile : gradleDependenciesFiles) {
             GradleDepTreeResults results = objectMapper.readValue(moduleDepsFile, GradleDepTreeResults.class);
+            Map<String, DepTreeNode> moduleNodes = new HashMap<>();
             for (Map.Entry<String, GradleDependencyNode> nodeEntry : results.getNodes().entrySet()) {
                 String compId = nodeEntry.getKey();
                 GradleDependencyNode gradleDep = nodeEntry.getValue();
+                moduleNodes.put(compId, new DepTreeNode()
+                        .scopes(new HashSet<>(gradleDep.getConfigurations()))
+                        .children(new HashSet<>(gradleDep.getChildren())));
                 DepTreeNode node = nodes.computeIfAbsent(compId, id -> new DepTreeNode());
                 node.getScopes().addAll(gradleDep.getConfigurations());
                 node.getChildren().addAll(gradleDep.getChildren());
@@ -74,12 +82,13 @@ public class GradleTreeBuilder {
             String moduleRootId = results.getRoot();
             nodes.get(moduleRootId).descriptorFilePath(descriptorFilePath);
             rootNode.getChildren().add(moduleRootId);
+            modules.add(new DepTreeModule(moduleRootId, moduleNodes));
         }
         if (rootNode.getChildren().size() == 1) {
-            return new DepTree(rootNode.getChildren().iterator().next(), nodes);
+            return new DepTree(rootNode.getChildren().iterator().next(), nodes, modules);
         }
         nodes.put(rootId, rootNode);
-        return new DepTree(rootId, nodes);
+        return new DepTree(rootId, nodes, modules);
     }
 
     private GeneralInfo createGeneralInfo(String id, GradleDependencyNode node) {
