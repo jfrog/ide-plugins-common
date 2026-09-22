@@ -80,6 +80,28 @@ public class GradleTreeBuilderTest {
         assertTrue(missing.getScopes().contains("testImplementation"));
     }
 
+    /**
+     * Data provider for a project whose modules resolve the same dependency with different transitive
+     * dependencies - 'modb' excludes 'commons-lang3' from 'commons-text', 'moda' doesn't.
+     *
+     * @return 'sharedDependency'.
+     */
+    @DataProvider
+    private Object[][] gradleTreeBuilderSharedDependencyProvider() {
+        return new Object[][]{{"sharedDependency"}};
+    }
+
+    @SuppressWarnings("unused")
+    @Test(dataProvider = "gradleTreeBuilderSharedDependencyProvider")
+    public void gradleTreeBuilderSharedDependencyTest(String projectPath) throws IOException {
+        DepTree depTree = buildGradleDependencyTree(projectPath);
+
+        DepTreeNode commonsText = depTree.nodes().get("org.apache.commons:commons-text:1.9");
+        assertNotNull(commonsText, "Couldn't find node 'org.apache.commons:commons-text:1.9'.");
+        assertTrue(commonsText.getChildren().contains("org.apache.commons:commons-lang3:3.11"),
+                "The dependency resolved in 'moda' was dropped by the module of 'modb': " + commonsText.getChildren());
+    }
+
     private DepTree buildGradleDependencyTree(String projectPath) throws IOException {
         // Add path to gradle-dep-tree JAR to "pluginLibDir" environment variable, to be read in gradle-dep-tree.gradle init script
         Map<String, String> env = new HashMap<>(System.getenv());
