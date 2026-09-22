@@ -81,6 +81,7 @@ public class GradleTreeBuilder {
             }
             String moduleRootId = results.getRoot();
             nodes.get(moduleRootId).descriptorFilePath(descriptorFilePath);
+            moduleNodes.get(moduleRootId).descriptorFilePath(descriptorFilePath);
             rootNode.getChildren().add(moduleRootId);
             modules.add(new DepTreeModule(moduleRootId, moduleNodes));
         }

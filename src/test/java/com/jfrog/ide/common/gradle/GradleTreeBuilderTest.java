@@ -105,7 +105,7 @@ public class GradleTreeBuilderTest {
 
     @SuppressWarnings("unused")
     @Test(dataProvider = "gradleTreeBuilderSharedDependencyProvider")
-    public void gradleTreeBuilderModuleScopesTest(String projectPath) throws IOException {
+    public void gradleTreeBuilderModulesTest(String projectPath) throws IOException {
         DepTree depTree = buildGradleDependencyTree(projectPath);
 
         Map<String, DepTreeModule> modulesByRoot = new HashMap<>();
@@ -114,16 +114,24 @@ public class GradleTreeBuilderTest {
         }
         assertEquals(modulesByRoot.size(), 3);
 
+        String rootModuleId = "org.jfrog.test.gradle.shared:" + tempProject.getName() + ":1.0-SNAPSHOT";
+        assertTrue(modulesByRoot.containsKey(rootModuleId),
+                "Couldn't find the root project's own module tree '" + rootModuleId + "' in " + modulesByRoot.keySet());
+
         DepTreeModule moda = modulesByRoot.get("org.jfrog.test.gradle.shared:moda:1.0-SNAPSHOT");
-        assertNotNull(moda, "Couldn't find the 'moda' module scope in " + modulesByRoot.keySet());
-        assertTrue(moda.nodes().get("org.apache.commons:commons-text:1.9").getChildren()
-                        .contains("org.apache.commons:commons-lang3:3.11"),
+        assertNotNull(moda, "Couldn't find the 'moda' module tree in " + modulesByRoot.keySet());
+        DepTreeNode modaCommonsText = moda.nodes().get("org.apache.commons:commons-text:1.9");
+        assertEquals(modaCommonsText.getScopes(), Sets.newHashSet(
+                        "implementation", "compileClasspath", "runtimeClasspath",
+                        "testCompileClasspath", "testRuntimeClasspath", "default"),
+                "'moda' resolves commons-text through its own configurations");
+        assertTrue(modaCommonsText.getChildren().contains("org.apache.commons:commons-lang3:3.11"),
                 "'moda' resolves commons-lang3 through commons-text");
 
         DepTreeModule modb = modulesByRoot.get("org.jfrog.test.gradle.shared:modb:1.0-SNAPSHOT");
-        assertNotNull(modb, "Couldn't find the 'modb' module scope in " + modulesByRoot.keySet());
+        assertNotNull(modb, "Couldn't find the 'modb' module tree in " + modulesByRoot.keySet());
         assertFalse(modb.nodes().containsKey("org.apache.commons:commons-lang3:3.11"),
-                "'modb' excludes commons-lang3, so its scope must not contain it");
+                "'modb' excludes commons-lang3, so its own tree must not contain it");
         assertFalse(modb.nodes().get("org.apache.commons:commons-text:1.9").getChildren()
                         .contains("org.apache.commons:commons-lang3:3.11"),
                 "'modb' excludes commons-lang3 from commons-text, so modb's own commons-text node must not include it");
