@@ -124,6 +124,9 @@ public class GradleTreeBuilderTest {
         assertNotNull(modb, "Couldn't find the 'modb' module scope in " + modulesByRoot.keySet());
         assertFalse(modb.nodes().containsKey("org.apache.commons:commons-lang3:3.11"),
                 "'modb' excludes commons-lang3, so its scope must not contain it");
+        assertFalse(modb.nodes().get("org.apache.commons:commons-text:1.9").getChildren()
+                        .contains("org.apache.commons:commons-lang3:3.11"),
+                "'modb' excludes commons-lang3 from commons-text, so modb's own commons-text node must not include it");
     }
 
     private DepTree buildGradleDependencyTree(String projectPath) throws IOException {
