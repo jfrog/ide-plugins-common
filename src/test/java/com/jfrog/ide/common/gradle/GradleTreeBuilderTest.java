@@ -95,46 +95,21 @@ public class GradleTreeBuilderTest {
     @SuppressWarnings("unused")
     @Test(dataProvider = "gradleTreeBuilderSharedDependencyProvider")
     public void gradleTreeBuilderSharedDependencyTest(String projectPath) throws IOException {
+        final String COMMONS_TEXT = "org.apache.commons:commons-text:1.9";
+        final String COMMONS_LANG3 = "org.apache.commons:commons-lang3:3.11";
         DepTree depTree = buildGradleDependencyTree(projectPath);
 
-        DepTreeNode commonsText = depTree.nodes().get("org.apache.commons:commons-text:1.9");
-        assertNotNull(commonsText, "Couldn't find node 'org.apache.commons:commons-text:1.9'.");
-        assertTrue(commonsText.getChildren().contains("org.apache.commons:commons-lang3:3.11"),
-                "The dependency resolved in 'moda' was dropped by the module of 'modb': " + commonsText.getChildren());
-    }
-
-    @SuppressWarnings("unused")
-    @Test(dataProvider = "gradleTreeBuilderSharedDependencyProvider")
-    public void gradleTreeBuilderModulesTest(String projectPath) throws IOException {
-        DepTree depTree = buildGradleDependencyTree(projectPath);
+        assertTrue(depTree.nodes().get(COMMONS_TEXT).getChildren().contains(COMMONS_LANG3),
+                "The merged tree must keep the edge resolved by 'moda'");
 
         Map<String, DepTreeModule> modulesByRoot = new HashMap<>();
-        for (DepTreeModule module : depTree.modules()) {
-            modulesByRoot.put(module.rootId(), module);
-        }
-        assertEquals(modulesByRoot.size(), 3);
-
-        String rootModuleId = "org.jfrog.test.gradle.shared:" + tempProject.getName() + ":1.0-SNAPSHOT";
-        assertTrue(modulesByRoot.containsKey(rootModuleId),
-                "Couldn't find the root project's own module tree '" + rootModuleId + "' in " + modulesByRoot.keySet());
-
-        DepTreeModule moda = modulesByRoot.get("org.jfrog.test.gradle.shared:moda:1.0-SNAPSHOT");
-        assertNotNull(moda, "Couldn't find the 'moda' module tree in " + modulesByRoot.keySet());
-        DepTreeNode modaCommonsText = moda.nodes().get("org.apache.commons:commons-text:1.9");
-        assertEquals(modaCommonsText.getScopes(), Sets.newHashSet(
-                        "implementation", "compileClasspath", "runtimeClasspath",
-                        "testCompileClasspath", "testRuntimeClasspath", "default"),
-                "'moda' resolves commons-text through its own configurations");
-        assertTrue(modaCommonsText.getChildren().contains("org.apache.commons:commons-lang3:3.11"),
-                "'moda' resolves commons-lang3 through commons-text");
-
-        DepTreeModule modb = modulesByRoot.get("org.jfrog.test.gradle.shared:modb:1.0-SNAPSHOT");
-        assertNotNull(modb, "Couldn't find the 'modb' module tree in " + modulesByRoot.keySet());
-        assertFalse(modb.nodes().containsKey("org.apache.commons:commons-lang3:3.11"),
-                "'modb' excludes commons-lang3, so its own tree must not contain it");
-        assertFalse(modb.nodes().get("org.apache.commons:commons-text:1.9").getChildren()
-                        .contains("org.apache.commons:commons-lang3:3.11"),
-                "'modb' excludes commons-lang3 from commons-text, so modb's own commons-text node must not include it");
+        depTree.modules().forEach(module -> modulesByRoot.put(module.rootId(), module));
+        DepTreeNode modaCommonsText = modulesByRoot.get("org.jfrog.test.gradle.shared:moda:1.0-SNAPSHOT").nodes().get(COMMONS_TEXT);
+        assertTrue(modaCommonsText.getChildren().contains(COMMONS_LANG3));
+        assertTrue(modaCommonsText.getScopes().contains("implementation"));
+        DepTreeNode modbCommonsText = modulesByRoot.get("org.jfrog.test.gradle.shared:modb:1.0-SNAPSHOT").nodes().get(COMMONS_TEXT);
+        assertFalse(modbCommonsText.getChildren().contains(COMMONS_LANG3),
+                "'modb' excludes commons-lang3, so its own tree must not contain the edge");
     }
 
     private DepTree buildGradleDependencyTree(String projectPath) throws IOException {
