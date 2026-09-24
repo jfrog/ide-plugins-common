@@ -5,6 +5,7 @@ import com.jfrog.ide.common.nodes.FileTreeNode;
 import com.jfrog.ide.common.nodes.subentities.Severity;
 import com.jfrog.ide.common.nodes.subentities.SourceCodeScanType;
 import com.jfrog.ide.common.parse.SarifParser;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.jfrog.build.api.util.NullLog;
 import org.jfrog.build.extractor.executor.CommandResults;
@@ -46,6 +47,7 @@ public class JfrogCliDriverTest {
     private final String XRAY_URL = SERVER_URL + "xray/";
     private String testServerId;
     private File tempDir;
+    private File exampleProjectCopy;
     private final SarifParser parser = new SarifParser(new NullLog());
     private final Logger logger = LoggerFactory.getLogger(JfrogCliDriverTest.class);
 
@@ -204,8 +206,8 @@ public class JfrogCliDriverTest {
     @Test
     public void testRunAudit_NpmProject() {
         try {
-            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/npm");
-            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
+            File exampleProject = copyExampleProject("npm");
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProject,
                     null, testServerId, testEnv);
             assertEquals(response.getExitValue(),0);
             logger.info("Audit debug logs: \n" + response.getErr());
@@ -214,8 +216,8 @@ public class JfrogCliDriverTest {
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for npm project");
             // Verify the findings
-            assertEquals(findings.size(), 1, "Expected exactly one file with findings");
-            FileTreeNode node = findings.get(0);
+            FileTreeNode node = findings.stream().filter(finding -> finding.getSubtitle().equals("package.json")).findFirst().orElse(null);
+            assertNotNull(node, "Expected SCA findings in package.json");
             assertEquals(node.getChildren().size(), 1, "Expected exactly one vulnerabilities");
             FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
             assertEquals(issue.getSeverity(), Severity.High, "Expected severity to be HIGH");
@@ -229,8 +231,8 @@ public class JfrogCliDriverTest {
     public void testRunAudit_MultiMavenProject() {
         List<String> projectsToCheck = new ArrayList<>(Arrays.asList("multi1", "multi2"));
         try {
-            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
-            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(),
+            File exampleProject = copyExampleProject("maven-example");
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProject,
                     projectsToCheck, testServerId, testEnv);
             assertEquals(response.getExitValue(), 0);
             logger.info("Audit debug logs: \n" + response.getErr());
@@ -250,6 +252,16 @@ public class JfrogCliDriverTest {
         }
     }
 
+    /**
+     * Audits run on a copy of the example project, because jf audit skips a working directory whose absolute
+     * path matches its default exclusion patterns, and this repository keeps its fixtures under src/test.
+     */
+    private File copyExampleProject(String projectName) throws IOException {
+        exampleProjectCopy = Files.createTempDirectory("ide-plugins-common-audit").toFile();
+        FileUtils.copyDirectory(Path.of("src/test/resources/example-projects", projectName).toFile(), exampleProjectCopy);
+        return exampleProjectCopy;
+    }
+
         private String createServerId() {
         return "ide-plugins-common-test-server-" + timeStampFormat.format(System.currentTimeMillis());
     }
@@ -257,14 +269,14 @@ public class JfrogCliDriverTest {
     @Test
     public void testRunAudit_WithExcludedPattern() {
         try {
-            Path exampleProjectsFolder = Path.of("src/test/resources/example-projects/maven-example");
+            File exampleProject = copyExampleProject("maven-example");
             AuditConfig config = new AuditConfig.Builder()
                     .serverId(testServerId)
                     .excludedPattern(new ArrayList<>(List.of("*multi3*")))
                     .serverId(testServerId)
                     .envVars(testEnv)
                     .build();
-            CommandResults response = jfrogCliDriver.runCliAudit(exampleProjectsFolder.toFile(), config);
+            CommandResults response = jfrogCliDriver.runCliAudit(exampleProject, config);
             assertEquals(response.getExitValue(), 0);
             logger.info("Audit debug logs: \n" + response.getErr());
             logger.info("Audit response: \n" + response.getRes());
@@ -285,6 +297,7 @@ public class JfrogCliDriverTest {
 
     @AfterMethod
     public void cleanUp(Method method) {
+        FileUtils.deleteQuietly(exampleProjectCopy);
         try {
             if (!TEST_NAME_TO_SKIP_CLI_DOWNLOAD.equals(method.getName())) {
                 String[] serverConfigCmdArgs = {"config", "remove", testServerId, "--quiet"};

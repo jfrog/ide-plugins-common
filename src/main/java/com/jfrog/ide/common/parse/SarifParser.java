@@ -67,7 +67,17 @@ public class SarifParser {
             List<Result> resultsList = run.getResults();
             // get the scanner tool name with characters only
             String sourceCodeToolName = run.getTool().getDriver().getName().replaceAll("[^a-zA-Z\\s]", "").trim();
-            SourceCodeScanType reporter = SourceCodeScanType.fromParam(sourceCodeToolName);
+            SourceCodeScanType reporter;
+            try {
+                reporter = SourceCodeScanType.fromParam(sourceCodeToolName);
+            } catch (IllegalArgumentException e) {
+                if (resultsList.isEmpty()) {
+                    log.debug("Skipping an unsupported scanner with no results: " + sourceCodeToolName);
+                } else {
+                    log.warn("Skipping " + resultsList.size() + " results of an unsupported scanner: " + sourceCodeToolName);
+                }
+                continue;
+            }
 
             for (Result result : resultsList){
                 ReportingDescriptor rule = run.getTool().getDriver().getRules().stream()
