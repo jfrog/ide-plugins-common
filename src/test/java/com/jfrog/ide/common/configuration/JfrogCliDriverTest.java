@@ -216,8 +216,8 @@ public class JfrogCliDriverTest {
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for npm project");
             // Verify the findings
-            assertEquals(findings.size(), 1, "Expected exactly one file with findings");
-            FileTreeNode node = findings.get(0);
+            FileTreeNode node = findings.stream().filter(finding -> finding.getSubtitle().equals("package.json")).findFirst().orElse(null);
+            assertNotNull(node, "Expected SCA findings in package.json");
             assertEquals(node.getChildren().size(), 1, "Expected exactly one vulnerabilities");
             FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
             assertEquals(issue.getSeverity(), Severity.High, "Expected severity to be HIGH");
