@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfrog.GradleDepTreeResults;
 import com.jfrog.GradleDependencyNode;
 import com.jfrog.ide.common.deptree.DepTree;
+import com.jfrog.ide.common.deptree.DepTreeModule;
 import com.jfrog.ide.common.deptree.DepTreeNode;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.scan.GeneralInfo;
@@ -11,9 +12,13 @@ import org.jfrog.build.extractor.scan.GeneralInfo;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Build Gradle dependency tree before the Xray scan.
@@ -56,27 +61,47 @@ public class GradleTreeBuilder {
      * @throws IOException in case of any I/O error.
      */
     private DepTree createDependencyTrees(List<File> gradleDependenciesFiles) throws IOException {
-        String rootId = projectDir.getFileName().toString();
-        DepTreeNode rootNode = new DepTreeNode().descriptorFilePath(descriptorFilePath);
-
-        Map<String, DepTreeNode> nodes = new HashMap<>();
+        List<DepTreeModule> modules = new ArrayList<>();
         for (File moduleDepsFile : gradleDependenciesFiles) {
-            GradleDepTreeResults results = objectMapper.readValue(moduleDepsFile, GradleDepTreeResults.class);
-            for (Map.Entry<String, GradleDependencyNode> nodeEntry : results.getNodes().entrySet()) {
-                String compId = nodeEntry.getKey();
-                GradleDependencyNode gradleDep = nodeEntry.getValue();
-                DepTreeNode node = new DepTreeNode().scopes(gradleDep.getConfigurations()).children(gradleDep.getChildren());
-                nodes.put(compId, node);
-            }
-            String moduleRootId = results.getRoot();
-            nodes.get(moduleRootId).descriptorFilePath(descriptorFilePath);
-            rootNode.getChildren().add(moduleRootId);
+            modules.add(readModule(moduleDepsFile));
         }
-        if (rootNode.getChildren().size() == 1) {
-            return new DepTree(rootNode.getChildren().iterator().next(), nodes);
+        Map<String, DepTreeNode> nodes = mergeModules(modules);
+        Set<String> moduleRootIds = modules.stream().map(DepTreeModule::rootId).collect(Collectors.toCollection(HashSet::new));
+        if (moduleRootIds.size() == 1) {
+            return new DepTree(moduleRootIds.iterator().next(), nodes, modules);
         }
-        nodes.put(rootId, rootNode);
-        return new DepTree(rootId, nodes);
+        String rootId = projectDir.getFileName().toString();
+        nodes.put(rootId, new DepTreeNode().descriptorFilePath(descriptorFilePath).children(moduleRootIds));
+        return new DepTree(rootId, nodes, modules);
+    }
+
+    private DepTreeModule readModule(File moduleDepsFile) throws IOException {
+        GradleDepTreeResults results = objectMapper.readValue(moduleDepsFile, GradleDepTreeResults.class);
+        Map<String, DepTreeNode> nodes = new HashMap<>();
+        results.getNodes().forEach((compId, gradleDep) -> nodes.put(compId, new DepTreeNode()
+                .scopes(new HashSet<>(gradleDep.getConfigurations()))
+                .children(new HashSet<>(gradleDep.getChildren()))));
+        nodes.get(results.getRoot()).descriptorFilePath(descriptorFilePath);
+        return new DepTreeModule(results.getRoot(), nodes);
+    }
+
+    /**
+     * A component shared by several modules may be resolved with different configurations and transitive
+     * dependencies in each, so its nodes are merged rather than replaced.
+     */
+    private Map<String, DepTreeNode> mergeModules(List<DepTreeModule> modules) {
+        Map<String, DepTreeNode> merged = new HashMap<>();
+        for (DepTreeModule module : modules) {
+            module.nodes().forEach((compId, moduleNode) -> {
+                DepTreeNode node = merged.computeIfAbsent(compId, id -> new DepTreeNode());
+                node.getScopes().addAll(moduleNode.getScopes());
+                node.getChildren().addAll(moduleNode.getChildren());
+                if (moduleNode.getDescriptorFilePath() != null) {
+                    node.descriptorFilePath(moduleNode.getDescriptorFilePath());
+                }
+            });
+        }
+        return merged;
     }
 
     private GeneralInfo createGeneralInfo(String id, GradleDependencyNode node) {
