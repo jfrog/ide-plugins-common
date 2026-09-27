@@ -47,6 +47,14 @@ public class SarifParserTest {
     }
 
     @Test
+    public void testParseSarifReportSkipsUnsupportedScanners() throws IOException {
+        results = parser.parse(readSarifReportFromFile(resourcesDir + "sca_and_unsupported_scanners.json"));
+
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getChildren().size(), 10);
+    }
+
+    @Test
     public void testParseSarifReportWithOnlyScaResults() throws IOException {
         results = parser.parse(readSarifReportFromFile(resourcesDir + "sca_no_jas.json"));
 

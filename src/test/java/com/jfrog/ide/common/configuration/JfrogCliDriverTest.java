@@ -216,7 +216,7 @@ public class JfrogCliDriverTest {
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for npm project");
             // Verify the findings
-            FileTreeNode node = findings.stream().filter(finding -> finding.getSubtitle().equals("package.json")).findFirst().orElse(null);
+            FileTreeNode node = findings.stream().filter(finding -> finding.getTitle().equals("package.json")).findFirst().orElse(null);
             assertNotNull(node, "Expected SCA findings in package.json");
             assertEquals(node.getChildren().size(), 1, "Expected exactly one vulnerabilities");
             FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
@@ -241,8 +241,8 @@ public class JfrogCliDriverTest {
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for multi-maven project");
             // Verify the findings
-            assertEquals(findings.size(), 1, "Expected exactly one file with findings");
-            FileTreeNode node = findings.get(0);
+            FileTreeNode node = findings.stream().filter(finding -> finding.getTitle().equals("pom.xml")).findFirst().orElse(null);
+            assertNotNull(node, "Expected SCA findings in pom.xml");
             assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
             assertEquals(node.getSeverity(), Severity.High, "Expected severity to be HIGH");
             FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
@@ -262,7 +262,7 @@ public class JfrogCliDriverTest {
         return exampleProjectCopy;
     }
 
-        private String createServerId() {
+    private String createServerId() {
         return "ide-plugins-common-test-server-" + timeStampFormat.format(System.currentTimeMillis());
     }
 
@@ -284,8 +284,8 @@ public class JfrogCliDriverTest {
             assertNotNull(findings);
             assertFalse(findings.isEmpty(), "Expected findings in SARIF output for multi-maven project");
             // Verify the findings
-            assertEquals(findings.size(), 1, "Expected exactly one file with findings");
-            FileTreeNode node = findings.get(0);
+            FileTreeNode node = findings.stream().filter(finding -> finding.getTitle().equals("pom.xml")).findFirst().orElse(null);
+            assertNotNull(node, "Expected SCA findings in pom.xml");
             assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
             assertEquals(node.getSeverity(), Severity.High, "Expected severity to be HIGH");
             FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);

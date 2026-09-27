@@ -99,15 +99,23 @@ public class GradleTreeBuilderTest {
         final String COMMONS_LANG3 = "org.apache.commons:commons-lang3:3.11";
         DepTree depTree = buildGradleDependencyTree(projectPath);
 
-        assertTrue(depTree.nodes().get(COMMONS_TEXT).getChildren().contains(COMMONS_LANG3),
+        DepTreeNode commonsText = depTree.nodes().get(COMMONS_TEXT);
+        assertNotNull(commonsText, "Couldn't find node '" + COMMONS_TEXT + "'.");
+        assertTrue(commonsText.getChildren().contains(COMMONS_LANG3),
                 "The merged tree must keep the edge resolved by 'moda'");
 
         Map<String, DepTreeModule> modulesByRoot = new HashMap<>();
         depTree.modules().forEach(module -> modulesByRoot.put(module.rootId(), module));
-        DepTreeNode modaCommonsText = modulesByRoot.get("org.jfrog.test.gradle.shared:moda:1.0-SNAPSHOT").nodes().get(COMMONS_TEXT);
+        DepTreeModule moda = modulesByRoot.get("org.jfrog.test.gradle.shared:moda:1.0-SNAPSHOT");
+        assertNotNull(moda, "Couldn't find the 'moda' module tree in " + modulesByRoot.keySet());
+        DepTreeNode modaCommonsText = moda.nodes().get(COMMONS_TEXT);
+        assertNotNull(modaCommonsText, "Couldn't find '" + COMMONS_TEXT + "' in the 'moda' module tree.");
         assertTrue(modaCommonsText.getChildren().contains(COMMONS_LANG3));
         assertTrue(modaCommonsText.getScopes().contains("implementation"));
-        DepTreeNode modbCommonsText = modulesByRoot.get("org.jfrog.test.gradle.shared:modb:1.0-SNAPSHOT").nodes().get(COMMONS_TEXT);
+        DepTreeModule modb = modulesByRoot.get("org.jfrog.test.gradle.shared:modb:1.0-SNAPSHOT");
+        assertNotNull(modb, "Couldn't find the 'modb' module tree in " + modulesByRoot.keySet());
+        DepTreeNode modbCommonsText = modb.nodes().get(COMMONS_TEXT);
+        assertNotNull(modbCommonsText, "Couldn't find '" + COMMONS_TEXT + "' in the 'modb' module tree.");
         assertFalse(modbCommonsText.getChildren().contains(COMMONS_LANG3),
                 "'modb' excludes commons-lang3, so its own tree must not contain the edge");
     }

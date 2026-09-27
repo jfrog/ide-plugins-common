@@ -71,7 +71,7 @@ public class SarifParser {
             try {
                 reporter = SourceCodeScanType.fromParam(sourceCodeToolName);
             } catch (IllegalArgumentException e) {
-                if (resultsList.isEmpty()) {
+                if (resultsList == null || resultsList.isEmpty()) {
                     log.debug("Skipping an unsupported scanner with no results: " + sourceCodeToolName);
                 } else {
                     log.warn("Skipping " + resultsList.size() + " results of an unsupported scanner: " + sourceCodeToolName);
