@@ -2,8 +2,8 @@ package com.jfrog.ide.common.go;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.extractor.go.GoDriver;
@@ -98,7 +98,7 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
     }
 
     private void absolutizeReplacePaths(Path goMod) throws IOException {
-        String goModArg = toGoPath(goMod.toAbsolutePath().toString());
+        String goModArg = quoteForShell(toGoPath(goMod.toAbsolutePath().toString()));
         String goModJson = goDriver.runCmd(List.of("mod", "edit", "-json", goModArg), false).getRes();
         List<String> editArgs = new ArrayList<>(List.of("mod", "edit"));
         for (JsonNode replace : jsonReader.readTree(goModJson).path("Replace")) {
@@ -107,7 +107,7 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
             if (replacement.has("Version") || isAbsolute(replacementPath)) {
                 continue;
             }
-            editArgs.add("-replace=" + toModuleQuery(replace.get("Old")) + "=" + resolveFromSourceDir(replacementPath));
+            editArgs.add(quoteForShell("-replace=" + toModuleQuery(replace.get("Old")) + "=" + resolveFromSourceDir(replacementPath)));
         }
         if (editArgs.size() == 2) {
             return;
@@ -129,9 +129,17 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
 
     private String resolveFromSourceDir(String relativePath) {
         if (runGoThroughWsl) {
-            return FilenameUtils.normalize(toGoPath(sourceDir.toAbsolutePath().toString()) + "/" + relativePath, true);
+            return toGoPath(sourceDir.toAbsolutePath().toString()) + "/" + relativePath;
         }
         return sourceDir.toAbsolutePath().resolve(relativePath).normalize().toString();
+    }
+
+    // GoDriver runs commands through "/bin/sh -c" or "cmd /c", and the replace paths come from the scanned go.mod.
+    private static String quoteForShell(String arg) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return "\"" + arg + "\"";
+        }
+        return "'" + arg.replace("'", "'\\''") + "'";
     }
 
     private static String toModuleQuery(JsonNode module) {

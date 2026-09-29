@@ -106,6 +106,25 @@ public class GoTreeBuilderTest {
         }
     }
 
+    @Test(dataProvider = "replacePathProjectsProvider")
+    public void testCreateDependencyTreeReplacePath(String projectName) throws IOException {
+        Map<String, Integer> expected = new HashMap<>() {{
+            put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
+        }};
+        Path projectDir = GO_ROOT.resolve(projectName);
+        GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+        DepTree dt = treeBuilder.buildTree();
+        validateDependencyTreeResults(expected, dt);
+    }
+
+    @DataProvider
+    private Object[][] replacePathProjectsProvider() {
+        return new Object[][]{
+                {"projectReplaceWithSpace"},
+                {"projectReplaceWithShellChars"},
+        };
+    }
+
     /**
      * The project has no dependencies.
      */
