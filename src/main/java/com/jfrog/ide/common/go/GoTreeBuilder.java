@@ -27,8 +27,6 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings({"unused"})
 public class GoTreeBuilder {
-    // Required files of the gomod-absolutizer Go program
-    private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final Version MIN_GO_VERSION_FOR_BUILD_VCS_FLAG = new Version("1.18");
     public static final String GO_VERSION_PATTERN = "^go(\\d*.\\d*.*\\d*)";
     private static final String GO_SOURCE_CODE_PREFIX = "github.com/golang/go:";
@@ -124,38 +122,10 @@ public class GoTreeBuilder {
      */
     private Path createGoWorkspace() throws IOException {
         Path targetDir = Files.createTempDirectory(null);
-        Path goModAbsDir = null;
-        try {
-            goModAbsDir = prepareGoModAbs();
-            boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
-            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(executablePath, projectDir, targetDir, goModAbsDir, env, logger, runGoThroughWsl);
-            Files.walkFileTree(projectDir, goScanWorkspaceCreator);
-        } finally {
-            if (goModAbsDir != null) {
-                FileUtils.deleteQuietly(goModAbsDir.toFile());
-            }
-        }
+        boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
+        GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(executablePath, projectDir, targetDir, env, logger, runGoThroughWsl);
+        Files.walkFileTree(projectDir, goScanWorkspaceCreator);
         return targetDir;
-    }
-
-    /**
-     * Copy gomod-absolutizer Go files to a temp directory.
-     * The gomod-absolutizer is used to change relative paths in go.mod files to absolute paths.
-     *
-     * @throws IOException in case of any I/O error.
-     */
-    private Path prepareGoModAbs() throws IOException {
-        Path goModAbsDir = Files.createTempDirectory(null);
-        for (String fileName : GO_MOD_ABS_COMPONENTS) {
-            try (InputStream is = getClass().getResourceAsStream("/gomod-absolutizer/" + fileName);
-                 OutputStream os = new FileOutputStream(goModAbsDir.resolve(fileName).toFile())) {
-                if (is == null) {
-                    throw new IOException("Couldn't find resource /gomod-absolutizer/" + fileName);
-                }
-                is.transferTo(os);
-            }
-        }
-        return goModAbsDir;
     }
 
     private static void populateChildren(DepTree depTree, String[] dependenciesGraph) {

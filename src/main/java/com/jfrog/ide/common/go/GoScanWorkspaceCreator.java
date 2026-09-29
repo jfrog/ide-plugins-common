@@ -1,5 +1,8 @@
 package com.jfrog.ide.common.go;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
@@ -11,12 +14,14 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import static com.jfrog.ide.common.utils.Utils.createMapper;
 
 /**
  * This FileVisitor copies all go.mod and *.go files from the input source directory to the input target directory.
@@ -27,6 +32,7 @@ import java.util.stream.Stream;
  * @author yahavi
  **/
 public class GoScanWorkspaceCreator implements FileVisitor<Path> {
+    private static final ObjectMapper jsonReader = createMapper();
     private final GoDriver goDriver;
     private final Path sourceDir;
     private final Path targetDir;
@@ -34,9 +40,9 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
     private final boolean runGoThroughWsl;
     private static final String[] EXCLUDED_DIRS = new String[]{".git", ".idea", ".vscode"};
 
-    public GoScanWorkspaceCreator(String executablePath, Path sourceDir, Path targetDir, Path goModAbsDir,
+    public GoScanWorkspaceCreator(String executablePath, Path sourceDir, Path targetDir,
                                   Map<String, String> env, Log logger, boolean runGoThroughWsl) {
-        this.goDriver = new GoDriver(executablePath, env, goModAbsDir.toFile(), logger, runGoThroughWsl);
+        this.goDriver = new GoDriver(executablePath, env, targetDir.toFile(), logger, runGoThroughWsl);
         this.sourceDir = sourceDir;
         this.targetDir = targetDir;
         this.logger = logger;
@@ -80,17 +86,7 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
         if (fileName.equals("go.mod")) {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
-            if (runGoThroughWsl) {
-                String goModPathArg = WslUtils.windowsLocalPathToWslMount(targetGoMod.toAbsolutePath().toString());
-                String sourceAbs = sourceDir.toAbsolutePath().toString();
-                String wdArg = WslUtils.isWslPath(sourceAbs)
-                        ? WslUtils.toLinuxPath(sourceAbs)
-                        : WslUtils.windowsLocalPathToWslMount(sourceAbs);
-                List<String> args = new ArrayList<>(Arrays.asList("run", ".", "-goModPath=" + goModPathArg, "-wd=" + wdArg));
-                goDriver.runCmd(args, true);
-            } else {
-                goDriver.runCmd("run . -goModPath=" + targetGoMod.toAbsolutePath() + " -wd=" + sourceDir.toAbsolutePath(), true);
-            }
+            absolutizeReplacePaths(targetGoMod);
             return FileVisitResult.CONTINUE;
         }
         // Files other than go.mod and *.go files are not necessary to build the dependency tree of used Go packages.
@@ -99,6 +95,48 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
             Files.createFile(targetDir.resolve(sourceDir.relativize(file)));
         }
         return FileVisitResult.CONTINUE;
+    }
+
+    private void absolutizeReplacePaths(Path goMod) throws IOException {
+        String goModArg = toGoPath(goMod.toAbsolutePath().toString());
+        String goModJson = goDriver.runCmd(List.of("mod", "edit", "-json", goModArg), false).getRes();
+        List<String> editArgs = new ArrayList<>(List.of("mod", "edit"));
+        for (JsonNode replace : jsonReader.readTree(goModJson).path("Replace")) {
+            JsonNode replacement = replace.get("New");
+            String replacementPath = replacement.get("Path").asText();
+            if (replacement.has("Version") || isAbsolute(replacementPath)) {
+                continue;
+            }
+            editArgs.add("-replace=" + toModuleQuery(replace.get("Old")) + "=" + resolveFromSourceDir(replacementPath));
+        }
+        if (editArgs.size() == 2) {
+            return;
+        }
+        editArgs.add(goModArg);
+        goDriver.runCmd(editArgs, true);
+    }
+
+    private String toGoPath(String localPath) {
+        if (!runGoThroughWsl) {
+            return localPath;
+        }
+        return WslUtils.isWslPath(localPath) ? WslUtils.toLinuxPath(localPath) : WslUtils.windowsLocalPathToWslMount(localPath);
+    }
+
+    private boolean isAbsolute(String goPath) {
+        return runGoThroughWsl ? goPath.startsWith("/") : Paths.get(goPath).isAbsolute();
+    }
+
+    private String resolveFromSourceDir(String relativePath) {
+        if (runGoThroughWsl) {
+            return FilenameUtils.normalize(toGoPath(sourceDir.toAbsolutePath().toString()) + "/" + relativePath, true);
+        }
+        return sourceDir.toAbsolutePath().resolve(relativePath).normalize().toString();
+    }
+
+    private static String toModuleQuery(JsonNode module) {
+        String path = module.get("Path").asText();
+        return module.has("Version") ? path + "@" + module.get("Version").asText() : path;
     }
 
     @Override
