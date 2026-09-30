@@ -114,18 +114,26 @@ public class GoTreeBuilder {
     }
 
     /**
-     * Copy go.mod file to a temporary directory.
-     * This is necessary to bypass checksum mismatches issues in the original go.sum.
-     *
-     * @return the temporary directory.
-     * @throws IOException in case of any I/O error.
+     * Returns the environment for running go in the project directory, with go reading and writing a copy of the
+     * project's go.mod, and a go.sum next to it, in the given directory instead of the project's own files.
      */
-    private Path createGoWorkspace() throws IOException {
-        Path targetDir = Files.createTempDirectory(null);
-        boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
-        GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(executablePath, projectDir, targetDir, env, logger, runGoThroughWsl);
-        Files.walkFileTree(projectDir, goScanWorkspaceCreator);
-        return targetDir;
+    private Map<String, String> createScanEnv(Path tmpDir, boolean runGoThroughWsl) throws IOException {
+        Path goMod = Files.copy(projectDir.resolve("go.mod"), tmpDir.resolve("go.mod"));
+        String goModPath = runGoThroughWsl ? WslUtils.toWslLinuxCdPath(goMod.toFile()) : goMod.toString();
+        Map<String, String> scanEnv = env == null ? new HashMap<>() : new HashMap<>(env);
+        String goFlags = scanEnv.getOrDefault("GOFLAGS", System.getenv("GOFLAGS"));
+        String modFileFlag = "-modfile=" + goModPath;
+        // GOFLAGS is split on spaces; Go 1.21 and later accept a quoted flag.
+        if (StringUtils.containsWhitespace(modFileFlag)) {
+            modFileFlag = "'" + modFileFlag + "'";
+        }
+        scanEnv.put("GOFLAGS", StringUtils.trim(StringUtils.defaultString(goFlags) + " " + modFileFlag));
+        if (runGoThroughWsl) {
+            // Windows environment variables reach go inside WSL only when WSLENV lists them.
+            String wslEnv = scanEnv.getOrDefault("WSLENV", System.getenv("WSLENV"));
+            scanEnv.put("WSLENV", StringUtils.isBlank(wslEnv) ? "GOFLAGS" : wslEnv + ":GOFLAGS");
+        }
+        return scanEnv;
     }
 
     private static void populateChildren(DepTree depTree, String[] dependenciesGraph) {
@@ -146,10 +154,10 @@ public class GoTreeBuilder {
     }
 
     public DepTree buildTree() throws IOException {
-        File tmpDir = createGoWorkspace().toFile();
+        Path tmpDir = Files.createTempDirectory(null);
         try {
             boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
-            GoDriver goDriver = new GoDriver(executablePath, env, tmpDir, logger, runGoThroughWsl);
+            GoDriver goDriver = new GoDriver(executablePath, createScanEnv(tmpDir, runGoThroughWsl), projectDir.toFile(), logger, runGoThroughWsl);
             if (!goDriver.isInstalled()) {
                 throw new IOException("Could not scan the Go project dependencies, because the Go executable is not in the PATH. [WSL=" + runGoThroughWsl + "]");
             }
@@ -162,7 +170,7 @@ public class GoTreeBuilder {
             depTree.getRootNode().descriptorFilePath(descriptorFilePath);
             return depTree;
         } finally {
-            FileUtils.deleteDirectory(tmpDir);
+            FileUtils.deleteDirectory(tmpDir.toFile());
         }
     }
 
