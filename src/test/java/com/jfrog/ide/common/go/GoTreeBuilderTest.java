@@ -2,6 +2,7 @@ package com.jfrog.ide.common.go;
 
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
@@ -107,6 +108,24 @@ public class GoTreeBuilderTest {
             validateDependencyTreeResults(expected, dt);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
+        }
+    }
+
+    /**
+     * The project is a module of a go.work workspace.
+     */
+    @Test
+    public void testCreateDependencyTreeInWorkspace() throws IOException {
+        Path workspaceDir = Files.createTempDirectory("goWorkspace");
+        try {
+            Path projectDir = workspaceDir.resolve("project5");
+            FileUtils.copyDirectory(GO_ROOT.resolve("project5").toFile(), projectDir.toFile());
+            Files.writeString(workspaceDir.resolve("go.work"), "go 1.21\n\nuse ./project5\n");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
+            validateDependencyTreeResults(new HashMap<>(), dt);
+        } finally {
+            FileUtils.deleteDirectory(workspaceDir.toFile());
         }
     }
 
