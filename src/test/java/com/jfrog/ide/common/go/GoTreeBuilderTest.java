@@ -106,6 +106,9 @@ public class GoTreeBuilderTest {
         }
     }
 
+    /**
+     * The projects replace a dependency with a relative path that contains a space or shell characters.
+     */
     @Test(dataProvider = "replacePathProjectsProvider")
     public void testCreateDependencyTreeReplacePath(String projectName) throws IOException {
         Map<String, Integer> expected = new HashMap<>() {{

@@ -86,7 +86,7 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
         if (fileName.equals("go.mod")) {
             Path targetGoMod = targetDir.resolve(sourceDir.relativize(file));
             Files.copy(file, targetGoMod);
-            absolutizeReplacePaths(targetGoMod);
+            makeReplacePathsAbsolute(targetGoMod);
             return FileVisitResult.CONTINUE;
         }
         // Files other than go.mod and *.go files are not necessary to build the dependency tree of used Go packages.
@@ -97,44 +97,66 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
         return FileVisitResult.CONTINUE;
     }
 
-    private void absolutizeReplacePaths(Path goMod) throws IOException {
-        String goModArg = quoteForShell(toGoPath(goMod.toAbsolutePath().toString()));
-        String goModJson = goDriver.runCmd(List.of("mod", "edit", "-json", goModArg), false).getRes();
-        List<String> editArgs = new ArrayList<>(List.of("mod", "edit"));
-        for (JsonNode replace : jsonReader.readTree(goModJson).path("Replace")) {
-            JsonNode replacement = replace.get("New");
+    /**
+     * Rewrites every relative local path in the go.mod's replace directives to an absolute path under the source
+     * directory, so the copied project still finds the modules it replaces.
+     */
+    private void makeReplacePathsAbsolute(Path goMod) throws IOException {
+        String quotedGoModPath = quoteForShell(toPathForGo(goMod.toAbsolutePath().toString()));
+        String goModJson = goDriver.runCmd(List.of("mod", "edit", "-json", quotedGoModPath), false).getRes();
+
+        // Build a -replace flag for each directive that replaces a module with a relative local path.
+        List<String> replaceFlags = new ArrayList<>();
+        for (JsonNode replaceDirective : jsonReader.readTree(goModJson).path("Replace")) {
+            JsonNode replacement = replaceDirective.get("New");
             String replacementPath = replacement.get("Path").asText();
             if (replacement.has("Version") || isAbsolute(replacementPath)) {
                 continue;
             }
-            editArgs.add(quoteForShell("-replace=" + toModuleQuery(replace.get("Old")) + "=" + resolveFromSourceDir(replacementPath)));
+            String replaceFlag = "-replace=" + formatReplacedModule(replaceDirective.get("Old")) + "=" + makeAbsolute(replacementPath);
+            replaceFlags.add(quoteForShell(replaceFlag));
         }
-        if (editArgs.size() == 2) {
+        if (replaceFlags.isEmpty()) {
             return;
         }
-        editArgs.add(goModArg);
+
+        List<String> editArgs = new ArrayList<>(List.of("mod", "edit"));
+        editArgs.addAll(replaceFlags);
+        editArgs.add(quotedGoModPath);
         goDriver.runCmd(editArgs, true);
     }
 
-    private String toGoPath(String localPath) {
+    /**
+     * Returns the path as the go command sees it: a Linux path when Go runs through WSL, otherwise the path unchanged.
+     */
+    private String toPathForGo(String path) {
         if (!runGoThroughWsl) {
-            return localPath;
+            return path;
         }
-        return WslUtils.isWslPath(localPath) ? WslUtils.toLinuxPath(localPath) : WslUtils.windowsLocalPathToWslMount(localPath);
+        return WslUtils.isWslPath(path) ? WslUtils.toLinuxPath(path) : WslUtils.windowsLocalPathToWslMount(path);
     }
 
-    private boolean isAbsolute(String goPath) {
-        return runGoThroughWsl ? goPath.startsWith("/") : Paths.get(goPath).isAbsolute();
+    /**
+     * Returns whether a path from the go.mod is absolute on the system Go runs on.
+     */
+    private boolean isAbsolute(String path) {
+        return runGoThroughWsl ? path.startsWith("/") : Paths.get(path).isAbsolute();
     }
 
-    private String resolveFromSourceDir(String relativePath) {
+    /**
+     * Returns the absolute path, as the go command sees it, of a path relative to the source directory.
+     */
+    private String makeAbsolute(String relativePath) {
         if (runGoThroughWsl) {
-            return toGoPath(sourceDir.toAbsolutePath().toString()) + "/" + relativePath;
+            return toPathForGo(sourceDir.toAbsolutePath().toString()) + "/" + relativePath;
         }
         return sourceDir.toAbsolutePath().resolve(relativePath).normalize().toString();
     }
 
-    // GoDriver runs commands through "/bin/sh -c" or "cmd /c", and the replace paths come from the scanned go.mod.
+    /**
+     * Quotes an argument so that the shell GoDriver runs commands through ("/bin/sh -c" or "cmd /c") passes it to go
+     * as a single argument, without interpreting its characters.
+     */
     private static String quoteForShell(String arg) {
         if (SystemUtils.IS_OS_WINDOWS) {
             return "\"" + arg + "\"";
@@ -142,7 +164,11 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
         return "'" + arg.replace("'", "'\\''") + "'";
     }
 
-    private static String toModuleQuery(JsonNode module) {
+    /**
+     * Returns the replaced module as the -replace flag expects it: its path, followed by "@version" when the
+     * replace directive applies to one version only.
+     */
+    private static String formatReplacedModule(JsonNode module) {
         String path = module.get("Path").asText();
         return module.has("Version") ? path + "@" + module.get("Version").asText() : path;
     }
