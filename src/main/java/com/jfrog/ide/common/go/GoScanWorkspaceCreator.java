@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
+import org.jfrog.build.extractor.executor.CommandResults;
 import org.jfrog.build.extractor.go.GoDriver;
 import org.jfrog.build.extractor.WslUtils;
 
@@ -13,10 +14,11 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -33,7 +35,10 @@ import static com.jfrog.ide.common.utils.Utils.createMapper;
  **/
 public class GoScanWorkspaceCreator implements FileVisitor<Path> {
     private static final ObjectMapper jsonReader = createMapper();
-    private final GoDriver goDriver;
+    private static final String GO_MOD_VARIABLE = "JFROG_GO_MOD";
+    private static final String REPLACE_FLAG_VARIABLE_PREFIX = "JFROG_GO_REPLACE_";
+    private final String executablePath;
+    private final Map<String, String> env;
     private final Path sourceDir;
     private final Path targetDir;
     private final Log logger;
@@ -42,7 +47,8 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
 
     public GoScanWorkspaceCreator(String executablePath, Path sourceDir, Path targetDir,
                                   Map<String, String> env, Log logger, boolean runGoThroughWsl) {
-        this.goDriver = new GoDriver(executablePath, env, targetDir.toFile(), logger, runGoThroughWsl);
+        this.executablePath = executablePath;
+        this.env = env;
         this.sourceDir = sourceDir;
         this.targetDir = targetDir;
         this.logger = logger;
@@ -102,66 +108,81 @@ public class GoScanWorkspaceCreator implements FileVisitor<Path> {
      * directory, so the copied project still finds the modules it replaces.
      */
     private void makeReplacePathsAbsolute(Path goMod) throws IOException {
-        String quotedGoModPath = quoteForShell(toPathForGo(goMod.toAbsolutePath().toString()));
-        String goModJson = goDriver.runCmd(List.of("mod", "edit", "-json", quotedGoModPath), false).getRes();
+        Map<String, String> variables = new HashMap<>();
+        variables.put(GO_MOD_VARIABLE, toWslPathWhenNeeded(goMod.toAbsolutePath()));
+        String goModJson = runGo(List.of("mod", "edit", "-json", referenceVariable(GO_MOD_VARIABLE)), variables, false).getRes();
 
-        // Build a -replace flag for each directive that replaces a module with a relative local path.
-        List<String> replaceFlags = new ArrayList<>();
+        // Build a -replace flag for each directive that replaces a module with a local path, not another module version.
+        List<String> replaceFlagReferences = new ArrayList<>();
         for (JsonNode replaceDirective : jsonReader.readTree(goModJson).path("Replace")) {
             JsonNode replacement = replaceDirective.get("New");
-            String replacementPath = replacement.get("Path").asText();
-            if (replacement.has("Version") || isAbsolute(replacementPath)) {
+            if (replacement.has("Version")) {
                 continue;
             }
-            String replaceFlag = "-replace=" + formatReplacedModule(replaceDirective.get("Old")) + "=" + makeAbsolute(replacementPath);
-            replaceFlags.add(quoteForShell(replaceFlag));
+            String replaceFlag;
+            try {
+                replaceFlag = "-replace=" + formatReplacedModule(replaceDirective.get("Old")) + "=" + makeAbsolute(replacement.get("Path").asText());
+            } catch (InvalidPathException e) {
+                logger.warn("Skipping a go.mod replace directive with an invalid path: " + e.getMessage());
+                continue;
+            }
+            if (SystemUtils.IS_OS_WINDOWS && breaksCmdQuoting(replaceFlag)) {
+                logger.warn("Skipping a go.mod replace directive that can't be passed to go on Windows: " + replaceFlag);
+                continue;
+            }
+            String replaceFlagVariable = REPLACE_FLAG_VARIABLE_PREFIX + replaceFlagReferences.size();
+            variables.put(replaceFlagVariable, replaceFlag);
+            replaceFlagReferences.add(referenceVariable(replaceFlagVariable));
         }
-        if (replaceFlags.isEmpty()) {
+        if (replaceFlagReferences.isEmpty()) {
             return;
         }
 
         List<String> editArgs = new ArrayList<>(List.of("mod", "edit"));
-        editArgs.addAll(replaceFlags);
-        editArgs.add(quotedGoModPath);
-        goDriver.runCmd(editArgs, true);
+        editArgs.addAll(replaceFlagReferences);
+        editArgs.add(referenceVariable(GO_MOD_VARIABLE));
+        runGo(editArgs, variables, true);
     }
 
     /**
-     * Returns the path as the go command sees it: a Linux path when Go runs through WSL, otherwise the path unchanged.
+     * Runs go with the given variables added to its environment. Values taken from the scanned project are passed
+     * this way and referenced from the args, because GoDriver runs commands through a shell that would interpret them.
      */
-    private String toPathForGo(String path) {
-        if (!runGoThroughWsl) {
-            return path;
-        }
-        return WslUtils.isWslPath(path) ? WslUtils.toLinuxPath(path) : WslUtils.windowsLocalPathToWslMount(path);
+    private CommandResults runGo(List<String> args, Map<String, String> variables, boolean verbose) throws IOException {
+        Map<String, String> goEnv = env == null ? new HashMap<>() : new HashMap<>(env);
+        goEnv.putAll(variables);
+        return new GoDriver(executablePath, goEnv, targetDir.toFile(), logger, runGoThroughWsl).runCmd(args, verbose);
     }
 
     /**
-     * Returns whether a path from the go.mod is absolute on the system Go runs on.
+     * When Go runs inside WSL, converts a Windows path to the Linux path Go sees there. Otherwise, returns it unchanged.
      */
-    private boolean isAbsolute(String path) {
-        return runGoThroughWsl ? path.startsWith("/") : Paths.get(path).isAbsolute();
+    private String toWslPathWhenNeeded(Path path) {
+        return runGoThroughWsl ? WslUtils.toWslLinuxCdPath(path.toFile()) : path.toString();
     }
 
     /**
-     * Returns the absolute path, as the go command sees it, of a path relative to the source directory.
+     * Returns the absolute path, in the original project, of a replace path from the go.mod, converted for WSL when
+     * needed. An absolute replace path is returned as is.
      */
-    private String makeAbsolute(String relativePath) {
-        if (runGoThroughWsl) {
-            return toPathForGo(sourceDir.toAbsolutePath().toString()) + "/" + relativePath;
-        }
-        return sourceDir.toAbsolutePath().resolve(relativePath).normalize().toString();
+    private String makeAbsolute(String replacementPath) {
+        return toWslPathWhenNeeded(sourceDir.toAbsolutePath().resolve(replacementPath).normalize());
     }
 
     /**
-     * Quotes an argument so that the shell GoDriver runs commands through ("/bin/sh -c" or "cmd /c") passes it to go
-     * as a single argument, without interpreting its characters.
+     * Returns whether a value would end the quoting around its reference in "cmd /c", which cannot escape a double
+     * quote inside a quoted argument.
      */
-    private static String quoteForShell(String arg) {
-        if (SystemUtils.IS_OS_WINDOWS) {
-            return "\"" + arg + "\"";
-        }
-        return "'" + arg.replace("'", "'\\''") + "'";
+    private static boolean breaksCmdQuoting(String value) {
+        return value.chars().anyMatch(character -> character == '"' || character < ' ');
+    }
+
+    /**
+     * Returns a reference to an environment variable, which the shell GoDriver runs commands through ("/bin/sh -c" or
+     * "cmd /c") replaces with the variable's value as one argument. Neither shell expands variables inside that value.
+     */
+    private static String referenceVariable(String variable) {
+        return SystemUtils.IS_OS_WINDOWS ? "\"%" + variable + "%\"" : "\"$" + variable + "\"";
     }
 
     /**

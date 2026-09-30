@@ -2,6 +2,7 @@ package com.jfrog.ide.common.go;
 
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
@@ -12,6 +13,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -107,7 +109,7 @@ public class GoTreeBuilderTest {
     }
 
     /**
-     * The projects replace a dependency with a relative path that contains a space or shell characters.
+     * The projects replace a dependency with a relative path that contains a space, shell characters or a percent sign.
      */
     @Test(dataProvider = "replacePathProjectsProvider")
     public void testCreateDependencyTreeReplacePath(String projectName) throws IOException {
@@ -120,11 +122,61 @@ public class GoTreeBuilderTest {
         validateDependencyTreeResults(expected, dt);
     }
 
+    /**
+     * The project replaces a dependency with an absolute path.
+     */
+    @Test
+    public void testCreateDependencyTreeAbsoluteReplacePath() throws IOException {
+        Map<String, Integer> expected = new HashMap<>() {{
+            put("github.com/test/subproject:0.0.0-00010101000000-000000000000", 1);
+        }};
+        Path projectDir = Files.createTempDirectory("projectAbsoluteReplacePath");
+        try {
+            Files.copy(GO_ROOT.resolve("project4").resolve("main.go"), projectDir.resolve("main.go"));
+            Files.copy(GO_ROOT.resolve("project4").resolve("go.sum"), projectDir.resolve("go.sum"));
+            String replacementPath = GO_ROOT.resolve("subproject").toString().replace('\\', '/');
+            Files.writeString(projectDir.resolve("go.mod"), "module projectAbsoluteReplacePath\n\n" +
+                    "require github.com/test/subproject v0.0.0-00010101000000-000000000000\n\n" +
+                    "replace github.com/test/subproject => \"" + replacementPath + "\"\n\n" +
+                    "go 1.13\n");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
+            validateDependencyTreeResults(expected, dt);
+        } finally {
+            FileUtils.deleteDirectory(projectDir.toFile());
+        }
+    }
+
+    /**
+     * A replaced module name that tries to run a command, through "cmd /c" on Windows and "/bin/sh -c" elsewhere.
+     */
+    @Test
+    public void testCreateDependencyTreeDoesNotRunReplacedModuleName() throws IOException {
+        Path projectDir = Files.createTempDirectory("projectInjectedModuleName");
+        Path marker = projectDir.resolve("injected");
+        try {
+            String markerInGoMod = marker.toString().replace("\\", "\\\\");
+            String replacedModule = "ex\\\"&type nul>" + markerInGoMod + "&\\\"$(touch " + markerInGoMod + ").com/x";
+            Files.writeString(projectDir.resolve("go.mod"), "module projectInjectedModuleName\n\n" +
+                    "replace \"" + replacedModule + "\" => \"../subproject\"\n\n" +
+                    "go 1.13\n");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            try {
+                treeBuilder.buildTree();
+            } catch (IOException ignored) {
+            }
+            assertFalse(Files.exists(marker));
+        } finally {
+            FileUtils.deleteDirectory(projectDir.toFile());
+        }
+    }
+
     @DataProvider
     private Object[][] replacePathProjectsProvider() {
         return new Object[][]{
                 {"projectReplaceWithSpace"},
                 {"projectReplaceWithShellChars"},
+                {"projectReplaceWithPercent"},
         };
     }
 
