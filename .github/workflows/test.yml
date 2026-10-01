@@ -27,9 +27,10 @@ jobs:
       JF_CLI_TEST_URL: ${{ secrets.JFROG_CLI_TEST_URL }}
       JF_CLI_TEST_ACCESS_TOKEN: ${{ secrets.JFROG_CLI_TEST_ACCESS_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
           
       - name: Unlabel 'safe to test'
         uses: actions-ecosystem/action-remove-labels@v1
