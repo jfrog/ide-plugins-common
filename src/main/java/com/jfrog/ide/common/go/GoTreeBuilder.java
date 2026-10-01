@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -127,9 +128,14 @@ public class GoTreeBuilder {
         // A go.work in or above the project puts go in workspace mode, which does not allow -modfile.
         scanEnv.put("GOWORK", "off");
         if (runGoThroughWsl) {
-            // Windows environment variables reach go inside WSL only when WSLENV lists them.
-            String wslEnv = scanEnv.getOrDefault("WSLENV", System.getenv("WSLENV"));
-            scanEnv.put("WSLENV", StringUtils.isBlank(wslEnv) ? "GOFLAGS:GOWORK" : wslEnv + ":GOFLAGS:GOWORK");
+            // Windows environment variables reach go inside WSL only when WSLENV lists them. They are listed without a
+            // path translation flag, since the -modfile path is already a Linux path.
+            String wslEnv = StringUtils.defaultString(scanEnv.getOrDefault("WSLENV", System.getenv("WSLENV")));
+            List<String> wslEnvEntries = Arrays.stream(wslEnv.split(":"))
+                    .filter(entry -> StringUtils.isNotBlank(entry) && !StringUtils.equalsAny(StringUtils.substringBefore(entry, "/"), "GOFLAGS", "GOWORK"))
+                    .collect(Collectors.toList());
+            wslEnvEntries.addAll(List.of("GOFLAGS", "GOWORK"));
+            scanEnv.put("WSLENV", String.join(":", wslEnvEntries));
         }
         return scanEnv;
     }
@@ -138,7 +144,7 @@ public class GoTreeBuilder {
      * Returns a flag as a GOFLAGS entry. GOFLAGS is split on spaces, so a flag with a space is quoted, which Go 1.21
      * and later support.
      */
-    private static String toGoFlagsEntry(String flag) {
+    static String toGoFlagsEntry(String flag) {
         if (!StringUtils.containsWhitespace(flag)) {
             return flag;
         }

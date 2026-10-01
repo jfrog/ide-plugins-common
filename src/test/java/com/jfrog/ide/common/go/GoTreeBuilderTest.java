@@ -65,9 +65,13 @@ public class GoTreeBuilderTest {
         }};
         try {
             Path projectDir = GO_ROOT.resolve("project2");
+            byte[] goMod = Files.readAllBytes(projectDir.resolve("go.mod"));
+            byte[] goSum = Files.readAllBytes(projectDir.resolve("go.sum"));
             GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
             DepTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt);
+            assertEquals(Files.readAllBytes(projectDir.resolve("go.mod")), goMod);
+            assertEquals(Files.readAllBytes(projectDir.resolve("go.sum")), goSum);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
         }
@@ -108,6 +112,22 @@ public class GoTreeBuilderTest {
             validateDependencyTreeResults(expected, dt);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
+        }
+    }
+
+    /**
+     * Go reads a -modfile path that contains a space from GOFLAGS.
+     */
+    @Test
+    public void testGoFlagsEntryWithSpace() throws IOException {
+        Path modFileDir = Files.createTempDirectory("go mod file");
+        try {
+            Path goMod = Files.copy(GO_ROOT.resolve("project5").resolve("go.mod"), modFileDir.resolve("go.mod"));
+            Map<String, String> env = Map.of("GOFLAGS", GoTreeBuilder.toGoFlagsEntry("-modfile=" + goMod), "GOWORK", "off");
+            GoDriver driver = new GoDriver(null, env, GO_ROOT.resolve("project5").toFile(), log);
+            assertEquals(driver.runCmd("list -m", false).getRes().trim(), "project5");
+        } finally {
+            FileUtils.deleteDirectory(modFileDir.toFile());
         }
     }
 
