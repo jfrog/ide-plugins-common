@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.testng.Assert.*;
 
@@ -39,6 +40,7 @@ public class JfrogCliDriverTest {
     private final SimpleDateFormat timeStampFormat = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
     private final Map<String, String> testEnv = new HashMap<>();
     private JfrogCliDriver jfrogCliDriver;
+    private static final Set<String> MAVEN_EXAMPLE_VULNERABILITIES = Set.of("CVE-2017-9801", "CVE-2018-1294", "CVE-2021-29425");
     private final String PASSWORD = System.getenv("JF_CLI_TEST_PASSWORD");
     private final String USER_NAME = System.getenv("JF_CLI_TEST_USER");
     private final String SERVER_URL = System.getenv("JF_CLI_TEST_URL");
@@ -243,7 +245,8 @@ public class JfrogCliDriverTest {
             // Verify the findings
             FileTreeNode node = findings.stream().filter(finding -> finding.getTitle().equals("pom.xml")).findFirst().orElse(null);
             assertNotNull(node, "Expected SCA findings in pom.xml");
-            assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
+            Set<String> vulnerabilities = node.getChildren().stream().map(child -> ((FileIssueNode) child).getTitle()).collect(Collectors.toSet());
+            assertTrue(vulnerabilities.containsAll(MAVEN_EXAMPLE_VULNERABILITIES), "Expected " + MAVEN_EXAMPLE_VULNERABILITIES + ", found " + vulnerabilities);
             assertEquals(node.getSeverity(), Severity.High, "Expected severity to be HIGH");
             FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
             assertEquals(issue.getReporterType(), SourceCodeScanType.SCA, "Expected reporter type to be SCA");
@@ -286,7 +289,8 @@ public class JfrogCliDriverTest {
             // Verify the findings
             FileTreeNode node = findings.stream().filter(finding -> finding.getTitle().equals("pom.xml")).findFirst().orElse(null);
             assertNotNull(node, "Expected SCA findings in pom.xml");
-            assertEquals(node.getChildren().size(), 3, "Expected exactly three vulnerabilities");
+            Set<String> vulnerabilities = node.getChildren().stream().map(child -> ((FileIssueNode) child).getTitle()).collect(Collectors.toSet());
+            assertTrue(vulnerabilities.containsAll(MAVEN_EXAMPLE_VULNERABILITIES), "Expected " + MAVEN_EXAMPLE_VULNERABILITIES + ", found " + vulnerabilities);
             assertEquals(node.getSeverity(), Severity.High, "Expected severity to be HIGH");
             FileIssueNode issue = (FileIssueNode) node.getChildren().get(0);
             assertEquals(issue.getReporterType(), SourceCodeScanType.SCA, "Expected reporter type to be SCA");
