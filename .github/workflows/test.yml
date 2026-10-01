@@ -29,7 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
           
       - name: Unlabel 'safe to test'

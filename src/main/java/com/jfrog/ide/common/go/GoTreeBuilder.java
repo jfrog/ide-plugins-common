@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,8 +28,6 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings({"unused"})
 public class GoTreeBuilder {
-    // Required files of the gomod-absolutizer Go program
-    private static final String[] GO_MOD_ABS_COMPONENTS = new String[]{"go.mod", "go.sum", "main.go", "utils.go"};
     private static final Version MIN_GO_VERSION_FOR_BUILD_VCS_FLAG = new Version("1.18");
     public static final String GO_VERSION_PATTERN = "^go(\\d*.\\d*.*\\d*)";
     private static final String GO_SOURCE_CODE_PREFIX = "github.com/golang/go:";
@@ -116,46 +115,41 @@ public class GoTreeBuilder {
     }
 
     /**
-     * Copy go.mod file to a temporary directory.
-     * This is necessary to bypass checksum mismatches issues in the original go.sum.
+     * Returns the environment for running go in the project directory, with go reading and writing a copy of the
+     * project's go.mod, and a go.sum next to it, in the given directory instead of the project's own files.
      *
-     * @return the temporary directory.
-     * @throws IOException in case of any I/O error.
+     * @param goFlags the GOFLAGS go already uses, including values saved with "go env -w"
      */
-    private Path createGoWorkspace() throws IOException {
-        Path targetDir = Files.createTempDirectory(null);
-        Path goModAbsDir = null;
-        try {
-            goModAbsDir = prepareGoModAbs();
-            boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
-            GoScanWorkspaceCreator goScanWorkspaceCreator = new GoScanWorkspaceCreator(executablePath, projectDir, targetDir, goModAbsDir, env, logger, runGoThroughWsl);
-            Files.walkFileTree(projectDir, goScanWorkspaceCreator);
-        } finally {
-            if (goModAbsDir != null) {
-                FileUtils.deleteQuietly(goModAbsDir.toFile());
-            }
+    private Map<String, String> createScanEnv(Path tmpDir, String goFlags, boolean runGoThroughWsl) throws IOException {
+        Path goMod = Files.copy(projectDir.resolve("go.mod"), tmpDir.resolve("go.mod"));
+        String goModPath = runGoThroughWsl ? WslUtils.toWslLinuxCdPath(goMod.toFile()) : goMod.toString();
+        Map<String, String> scanEnv = env == null ? new HashMap<>() : new HashMap<>(env);
+        scanEnv.put("GOFLAGS", StringUtils.trim(goFlags + " " + toGoFlagsEntry("-modfile=" + goModPath)));
+        // A go.work in or above the project puts go in workspace mode, which does not allow -modfile.
+        scanEnv.put("GOWORK", "off");
+        if (runGoThroughWsl) {
+            // Windows environment variables reach go inside WSL only when WSLENV lists them. They are listed without a
+            // path translation flag, since the -modfile path is already a Linux path.
+            String wslEnv = StringUtils.defaultString(scanEnv.getOrDefault("WSLENV", System.getenv("WSLENV")));
+            List<String> wslEnvEntries = Arrays.stream(wslEnv.split(":"))
+                    .filter(entry -> StringUtils.isNotBlank(entry) && !StringUtils.equalsAny(StringUtils.substringBefore(entry, "/"), "GOFLAGS", "GOWORK"))
+                    .collect(Collectors.toList());
+            wslEnvEntries.addAll(List.of("GOFLAGS", "GOWORK"));
+            scanEnv.put("WSLENV", String.join(":", wslEnvEntries));
         }
-        return targetDir;
+        return scanEnv;
     }
 
     /**
-     * Copy gomod-absolutizer Go files to a temp directory.
-     * The gomod-absolutizer is used to change relative paths in go.mod files to absolute paths.
-     *
-     * @throws IOException in case of any I/O error.
+     * Returns a flag as a GOFLAGS entry. GOFLAGS is split on spaces, so a flag with a space is quoted, which Go 1.21
+     * and later support.
      */
-    private Path prepareGoModAbs() throws IOException {
-        Path goModAbsDir = Files.createTempDirectory(null);
-        for (String fileName : GO_MOD_ABS_COMPONENTS) {
-            try (InputStream is = getClass().getResourceAsStream("/gomod-absolutizer/" + fileName);
-                 OutputStream os = new FileOutputStream(goModAbsDir.resolve(fileName).toFile())) {
-                if (is == null) {
-                    throw new IOException("Couldn't find resource /gomod-absolutizer/" + fileName);
-                }
-                is.transferTo(os);
-            }
+    static String toGoFlagsEntry(String flag) {
+        if (!StringUtils.containsWhitespace(flag)) {
+            return flag;
         }
-        return goModAbsDir;
+        String quote = flag.contains("'") ? "\"" : "'";
+        return quote + flag + quote;
     }
 
     private static void populateChildren(DepTree depTree, String[] dependenciesGraph) {
@@ -176,23 +170,25 @@ public class GoTreeBuilder {
     }
 
     public DepTree buildTree() throws IOException {
-        File tmpDir = createGoWorkspace().toFile();
+        Path tmpDir = Files.createTempDirectory(null);
         try {
             boolean runGoThroughWsl = WslUtils.isWslPath(projectDir);
-            GoDriver goDriver = new GoDriver(executablePath, env, tmpDir, logger, runGoThroughWsl);
+            GoDriver goDriver = new GoDriver(executablePath, env, projectDir.toFile(), logger, runGoThroughWsl);
             if (!goDriver.isInstalled()) {
                 throw new IOException("Could not scan the Go project dependencies, because the Go executable is not in the PATH. [WSL=" + runGoThroughWsl + "]");
             }
 
             CommandResults versionRes = goDriver.version(false);
             Version goVersion = parseGoVersion(versionRes, logger);
-            goDriver.modTidy(false, goVersion.isAtLeast(MIN_GO_VERSION));
-            DepTree depTree = createDependencyTree(goDriver, logger, false, goVersion.isAtLeast(MIN_GO_VERSION_FOR_BUILD_VCS_FLAG));
+            String goFlags = goDriver.runCmd("env GOFLAGS", false).getRes().trim();
+            GoDriver scanDriver = new GoDriver(executablePath, createScanEnv(tmpDir, goFlags, runGoThroughWsl), projectDir.toFile(), logger, runGoThroughWsl);
+            scanDriver.modTidy(false, goVersion.isAtLeast(MIN_GO_VERSION));
+            DepTree depTree = createDependencyTree(scanDriver, logger, false, goVersion.isAtLeast(MIN_GO_VERSION_FOR_BUILD_VCS_FLAG));
             addGoVersionNode(depTree, goVersion);
             depTree.getRootNode().descriptorFilePath(descriptorFilePath);
             return depTree;
         } finally {
-            FileUtils.deleteDirectory(tmpDir);
+            FileUtils.deleteDirectory(tmpDir.toFile());
         }
     }
 

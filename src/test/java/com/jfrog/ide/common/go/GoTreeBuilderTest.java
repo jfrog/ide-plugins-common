@@ -2,6 +2,7 @@ package com.jfrog.ide.common.go;
 
 import com.jfrog.ide.common.deptree.DepTree;
 import com.jfrog.ide.common.deptree.DepTreeNode;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jfrog.build.api.util.Log;
 import org.jfrog.build.api.util.NullLog;
@@ -12,6 +13,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -42,9 +44,12 @@ public class GoTreeBuilderTest {
 
         try {
             Path projectDir = GO_ROOT.resolve("project1");
+            String goMod = Files.readString(projectDir.resolve("go.mod"));
             GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
             DepTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt);
+            assertEquals(Files.readString(projectDir.resolve("go.mod")), goMod);
+            assertFalse(Files.exists(projectDir.resolve("go.sum")));
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
         }
@@ -60,9 +65,13 @@ public class GoTreeBuilderTest {
         }};
         try {
             Path projectDir = GO_ROOT.resolve("project2");
+            byte[] goMod = Files.readAllBytes(projectDir.resolve("go.mod"));
+            byte[] goSum = Files.readAllBytes(projectDir.resolve("go.sum"));
             GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
             DepTree dt = treeBuilder.buildTree();
             validateDependencyTreeResults(expected, dt);
+            assertEquals(Files.readAllBytes(projectDir.resolve("go.mod")), goMod);
+            assertEquals(Files.readAllBytes(projectDir.resolve("go.sum")), goSum);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
         }
@@ -103,6 +112,40 @@ public class GoTreeBuilderTest {
             validateDependencyTreeResults(expected, dt);
         } catch (IOException ex) {
             fail(ExceptionUtils.getStackTrace(ex));
+        }
+    }
+
+    /**
+     * Go reads a -modfile path that contains a space from GOFLAGS.
+     */
+    @Test
+    public void testGoFlagsEntryWithSpace() throws IOException {
+        Path modFileDir = Files.createTempDirectory("go mod file");
+        try {
+            Path goMod = Files.copy(GO_ROOT.resolve("project5").resolve("go.mod"), modFileDir.resolve("go.mod"));
+            Map<String, String> env = Map.of("GOFLAGS", GoTreeBuilder.toGoFlagsEntry("-modfile=" + goMod), "GOWORK", "off");
+            GoDriver driver = new GoDriver(null, env, GO_ROOT.resolve("project5").toFile(), log);
+            assertEquals(driver.runCmd("list -m", false).getRes().trim(), "project5");
+        } finally {
+            FileUtils.deleteDirectory(modFileDir.toFile());
+        }
+    }
+
+    /**
+     * The project is a module of a go.work workspace.
+     */
+    @Test
+    public void testCreateDependencyTreeInWorkspace() throws IOException {
+        Path workspaceDir = Files.createTempDirectory("goWorkspace");
+        try {
+            Path projectDir = workspaceDir.resolve("project5");
+            FileUtils.copyDirectory(GO_ROOT.resolve("project5").toFile(), projectDir.toFile());
+            Files.writeString(workspaceDir.resolve("go.work"), "go 1.21\n\nuse ./project5\n");
+            GoTreeBuilder treeBuilder = new GoTreeBuilder(null, projectDir, projectDir.resolve("go.mod").toString(), null, log);
+            DepTree dt = treeBuilder.buildTree();
+            validateDependencyTreeResults(new HashMap<>(), dt);
+        } finally {
+            FileUtils.deleteDirectory(workspaceDir.toFile());
         }
     }
 
