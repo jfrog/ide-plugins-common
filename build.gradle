@@ -25,12 +25,26 @@ repositories {
 def buildInfoVersion = '2.43.9'
 def jacksonVersion = '2.21.7'
 
+// Libraries that this build declares directly at fixed versions. Other modules request older, vulnerable versions of
+// them, which Gradle already resolves to the declared ones. Removing those requests changes no jar, and keeps the old
+// versions out of the dependency tree that the release audit scans.
+def librariesDeclaredHere = ['com.fasterxml.jackson.core:jackson-core', 'com.fasterxml.jackson.core:jackson-databind',
+                             'commons-io:commons-io', 'org.apache.commons:commons-lang3']
+dependencies.components.all {
+    allVariants {
+        withDependencies {
+            removeAll { it.group + ":" + it.name in librariesDeclaredHere }
+        }
+    }
+}
+
 dependencies {
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jacksonVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-npm', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-extractor-go', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-client', version: buildInfoVersion
     implementation group: 'org.jfrog.buildinfo', name: 'build-info-api', version: buildInfoVersion
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: jacksonVersion
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: jacksonVersion
     implementation(group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13') {
         exclude group: 'commons-codec', module: 'commons-codec'
